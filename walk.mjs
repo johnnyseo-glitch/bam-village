@@ -1,14 +1,14 @@
 // 밤마을 v0.7 — 카메라, 입력, 군중, 상호작용, 다이얼로그.
-import * as T from './vendor/three.min.mjs?v=1791364585';
-import {createBgm} from './bgm.mjs?v=1791364585';
-import {createWorld, HOST_STEP} from './world.mjs?v=1791364585';
-import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791364585';
+import * as T from './vendor/three.min.mjs?v=1791364675';
+import {createBgm} from './bgm.mjs?v=1791364675';
+import {createWorld, HOST_STEP} from './world.mjs?v=1791364675';
+import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791364675';
 import {TABLES, SPOTS, WANDERERS, LOUNGERS, DRINKS, ENTRY, ROOM, MOODS, JACKETS, ACCESSORIES, DRINK_MINUTES, PROFILE_TAGS, ROUND_MINUTES, NEXT_TOPICS, VILLAGES, RESIDENT_COUNT, RING, OBSTACLES,
-  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC, DOOR_Z} from './map-data.mjs?v=1791364585';
-import {createSession} from './session.mjs?v=1791364585';
-import {createOnline} from './online.mjs?v=1791364585';
-import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791364585';
-import {createGames} from './games.mjs?v=1791364585';
+  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC, DOOR_Z} from './map-data.mjs?v=1791364675';
+import {createSession} from './session.mjs?v=1791364675';
+import {createOnline} from './online.mjs?v=1791364675';
+import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791364675';
+import {createGames} from './games.mjs?v=1791364675';
 
 const $ = id => document.getElementById(id);
 const view = $('viewport'), dialog = $('villageDialog'), calm = $('calm');
@@ -1274,9 +1274,9 @@ function openVillages() {
       ${v.open ? `<button class="action" id="goVillage">${v.name} 마을로 놀러가기</button>` : '<button class="secondary" disabled>예시 지점 · 준비 중</button>'}
     </article>`;
   };
-  show("TONIGHT'S VILLAGES", `<h2>오늘 밤, 어디가 살아 있을까?</h2>
+  show("TONIGHT'S VILLAGES", `<h2>오늘 밤, 어디서 한잔할까요? 🍸</h2>
     <div class="villages">${VILLAGES.map(card).join('')}</div>
-    <p class="note">숫자는 체험용 예시예요. 매장 밖에서는 숫자와 분위기만 보여요. 사람과 미니미는 매장에 체크인해야 보여요.</p>
+    <p class="note">성수점에서 팀 테스트 중이에요. 한남·청담은 아직 준비 중인 예시예요. 들어가면 지금 접속한 사람들을 만날 수 있어요.</p>
     <div id="netLine" class="net-line">${netLine()}</div>`);
   bindNetLine();
   $('goVillage').onclick = async () => {
