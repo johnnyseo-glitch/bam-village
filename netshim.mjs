@@ -17,7 +17,10 @@ export function install({brokers = BROKERS} = {}) {
   let uid = store.get('bam-uid'); if (!uid) { uid = 'u_' + rand(10); store.set('bam-uid', uid); }
   if (params.has('host')) store.set('bam-host', '1');
   const isHost = store.get('bam-host') === '1';
-  const peerId = 'p_' + rand(6);
+  // 화면(탭)마다 같은 peer 이름을 계속 쓴다: 폰이 잠겼다가 새로고침돼도 '같은 사람'으로 이어진다
+  const sess = {get: k => { try { return sessionStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { sessionStorage.setItem(k, v); } catch {} }};
+  let peerId = sess.get('bam-peer'); if (!peerId) { peerId = 'p_' + rand(6); sess.set('bam-peer', peerId); }
+  const AWAY_MS = 20 * 60000, STALE_MS = 40000; // 연결이 끊겨도 20분 동안은 '잠깐 자리 비움'으로 남아 있다
 
   // ── 연결: 브로커를 차례로 시도 ───────────────────────
   let client = null;
@@ -25,7 +28,7 @@ export function install({brokers = BROKERS} = {}) {
     for (const url of brokers) {
       const ok = await new Promise(res => {
         const c = mqtt.connect(url, {clientId: 'bam_' + peerId + '_' + rand(2), clean: true, reconnectPeriod: 3000, connectTimeout: 7000, keepalive: 30,
-          will: {topic: `${P}/p/${peerId}`, payload: '', retain: true, qos: 0}});
+          will: {topic: `${P}/w/${peerId}`, payload: '1', retain: true, qos: 0}}); // 갑자기 끊기면 '자리 비움' 표시만
         const fail = () => { c.end(true); res(null); };
         const timer = setTimeout(() => { errors.push(url.replace(/^wss:\/\/([^@]*@)?/, '').split(/[:/]/)[0] + ': 응답 없음'); fail(); }, 8000);
         c.once('connect', () => { clearTimeout(timer); res(c); });
@@ -35,12 +38,19 @@ export function install({brokers = BROKERS} = {}) {
     }
     if (!client) return false;
     client.on('message', onMessage);
-    await new Promise(r => client.subscribe([`${P}/p/+`, `${P}/e/+`, `${P}/db/#`], {qos: 0}, r));
+    await new Promise(r => client.subscribe([`${P}/p/+`, `${P}/w/+`, `${P}/e/+`, `${P}/db/#`], {qos: 0}, r));
+    // 다시 연결되면(폰을 다시 켰을 때 등) 자리 비움 표시를 지우고 내 상태를 다시 알린다
+    client.on('connect', () => { setAway(false); publishPresence(); });
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) setAway(true);
+      else { if (!client.connected) client.reconnect(); setAway(false); publishPresence(); }
+    });
     setTimeout(() => { dbReady = true; for (const f of dbWaiters.splice(0)) f(); notifyDb(); }, 1200);
     publishPresence();
     setInterval(publishPresence, 8000, true);
     setInterval(sweep, 5000);
-    addEventListener('pagehide', () => { try { client.publish(`${P}/p/${peerId}`, '', {retain: true}); client.end(true); } catch {} });
+    addEventListener('pagehide', () => { try { setAway(true); } catch {} });
+    setAway(false);
     return true;
   })();
 
@@ -51,16 +61,20 @@ export function install({brokers = BROKERS} = {}) {
   let snapshot = Object.freeze([]);
   const meRow = () => Object.freeze({peer: peerId, by: uid, isMe: true, sameTab: true, kind: 'viewer', guest: false, presence: Object.freeze({...myPresence}), updatedAt: Date.now()});
   function rebuild() {
-    snapshot = Object.freeze([meRow(), ...[...others.entries()].map(([peer, o]) => Object.freeze({peer, by: o.by, isMe: o.by === uid, sameTab: false, kind: 'viewer', guest: false, presence: o.presence, updatedAt: o.seen}))]);
+    snapshot = Object.freeze([meRow(), ...[...others.entries()].map(([peer, o]) => Object.freeze({peer, by: o.by, isMe: o.by === uid, sameTab: false, kind: 'viewer', guest: false, presence: o.away ? Object.freeze({...o.presence, away: 1}) : o.presence, updatedAt: o.seen}))]);
     for (const h of peerL) { try { h({peers: snapshot, joined: [], left: [], updated: []}); } catch (e) { console.error(e); } }
   }
+  function setAway(on) { try { client?.publish(`${P}/w/${peerId}`, on ? '1' : '', {retain: true, qos: 0}); } catch {} }
   function publishPresence() {
     if (!client) return;
     client.publish(`${P}/p/${peerId}`, JSON.stringify({by: uid, presence: myPresence, t: Date.now()}), {retain: true, qos: 0});
   }
   function sweep() {
     const now = Date.now(); let changed = false;
-    for (const [k, o] of others) if (now - o.seen > 25000) { others.delete(k); changed = true; }
+    for (const [k, o] of others) {
+      if (now - o.seen > AWAY_MS) { others.delete(k); changed = true; }
+      else if (now - o.seen > STALE_MS && !o.away) { o.away = true; changed = true; }
+    }
     if (changed) rebuild();
   }
   function onMessage(topic, buf) {
@@ -68,7 +82,13 @@ export function install({brokers = BROKERS} = {}) {
     if (rest.startsWith('p/')) {
       const peer = rest.slice(2); if (peer === peerId) return;
       if (!text) { if (others.delete(peer)) rebuild(); return; }
-      try { const m = JSON.parse(text); if (Date.now() - (m.t || 0) > 60000) return; others.set(peer, {by: String(m.by || ''), presence: Object.freeze(m.presence || {}), seen: Date.now()}); rebuild(); } catch {}
+      try { const m = JSON.parse(text); const age = Date.now() - (m.t || 0); if (age > AWAY_MS) return;
+        const prev = others.get(peer);
+        others.set(peer, {by: String(m.by || ''), presence: Object.freeze(m.presence || {}), seen: Date.now() - Math.max(0, Math.min(age, AWAY_MS)), away: (prev?.away && age > 1000) || age > STALE_MS}); rebuild(); } catch {}
+    } else if (rest.startsWith('w/')) {
+      const peer = rest.slice(2); if (peer === peerId) return;
+      const o = others.get(peer); if (!o) return;
+      const away = text === '1'; if (o.away !== away) { o.away = away; if (!away) o.seen = Date.now(); rebuild(); }
     } else if (rest.startsWith('e/')) {
       const t = rest.slice(2);
       try { const m = JSON.parse(text); const self = m.peer === peerId;

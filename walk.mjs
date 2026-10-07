@@ -1098,7 +1098,7 @@ function openExit() {
     unlock('titles', {quiet: true}); unlock('postcards', {quiet: true});
     const memory = makeMemory();
     wallet.memories.unshift(memory); wallet.memories = wallet.memories.slice(0, 20); saveWallet();
-    online?.leaveVillage(); inVillage = false;
+    online?.leaveVillage(); inVillage = false; clearResume();
     stand(); orderGen++; flowToken++; releaseGuests(); session.reset(); glassGroup.visible = false; drink = null; giftDemoDone = false; refresh();
     showPostcard(memory.id, {fresh: true});
   };
@@ -1377,6 +1377,12 @@ view.addEventListener('pointerdown', e => {
   const r = renderer.domElement.getBoundingClientRect();
   ndc.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
   raycaster.setFromCamera(ndc, camera);
+  // 팀원 캐릭터를 누르면 정보 카드(이름표를 누른 것과 같다)
+  const roots = online?.pickRoots() ?? [];
+  if (roots.length) {
+    const h = raycaster.intersectObjects(roots, true)[0];
+    if (h) { let o = h.object; while (o && !roots.includes(o)) o = o.parent; const R = o && online.byRoot(o); if (R) { online.openPlayer(R); return; } }
+  }
   if (place === 'town') {
     if (escorting) return;
     if (raycaster.ray.intersectPlane(floor, hit)) { if (town.valid(hit.x, hit.z)) goTo(hit.x, hit.z, '', null, 1); else { const r = town.route({x: actor.position.x, z: actor.position.z}, {x: hit.x, z: hit.z}); if (r.length) { const e = r.at(-1); goTo(e.x, e.z, '', null, 1); } } }
@@ -1908,7 +1914,7 @@ function walkAndSit(t) {
 function becomeOwner(t) { state.owned = t.id; status('👑 방장이 자리를 떠서 이제 내가 방장이에요'); refresh(); }
 function kicked() {
   stand(); orderGen++; flowToken++; releaseGuests(); session.reset(); glassGroup.visible = false; drink = null; inVillage = false; path = []; marker.visible = false;
-  online.leaveVillage(); refresh();
+  online.leaveVillage(); clearResume(); refresh();
   show('GOOD NIGHT', '<h2>호스트가 입장을 마감했어요</h2><p>다시 들어오려면 호스트 화면의 새 입장 코드를 입력해 주세요.</p><button class="action" id="kOk">확인</button>', {onClose: openVillages, lock: true});
   $('kOk').onclick = closeDialog;
 }
@@ -1933,7 +1939,41 @@ loadProfile(); applyLook(); renderCoins(); applyUnlocks(); refresh();
 renderer.render(scene, camera);
 $('loading').hidden = true; $('nameplate').hidden = false;
 frameId = requestAnimationFrame(animate);
-openVillages();
+
+// ── 이어하기: 사파리가 잠들었다 깨며 페이지를 새로 열어도 20분 안이면 그 자리로 바로 돌아간다 ──
+const RESUME_KEY = 'bam-resume', RESUME_MS = 20 * 60000;
+function saveResume() {
+  if (!inVillage) return;
+  const t = state.table ? tableOf(state.table) : null;
+  try { localStorage.setItem(RESUME_KEY, JSON.stringify({at: Date.now(), visitId: state.visitId, place, table: state.table || null, owned: !!t && state.owned === t.id, title: t?.title ?? '', opener: t?.opener ?? '',
+    x: actor.position.x, z: actor.position.z, visitTables: state.visitTables ?? []})); } catch {}
+}
+function clearResume() { try { localStorage.removeItem(RESUME_KEY); } catch {} }
+function readResume() {
+  try { const r = JSON.parse(localStorage.getItem(RESUME_KEY) || 'null'); return r && Date.now() - r.at < RESUME_MS && state.profile.verified && state.profile.name ? r : null; } catch { return null; }
+}
+setInterval(saveResume, 3000);
+document.addEventListener('visibilitychange', () => { if (document.hidden) saveResume(); });
+window.addEventListener('pagehide', saveResume);
+async function resumeVillage(r) {
+  $('loading').hidden = false; $('loading').querySelector('p').textContent = '아까 자리로 돌아가는 중…';
+  if (online) await online.gate();
+  $('loading').hidden = true;
+  inVillage = true; state.visitId = r.visitId || 'v' + Date.now().toString(36); state.visitTables = r.visitTables ?? [];
+  level = 1; applyLook();
+  if (r.place === 'town') { ensureTown(); actor.position.set(r.x, 0, r.z); switchPlace('town'); }
+  else actor.position.set(r.place === 'bar' && Number.isFinite(r.x) ? r.x : ENTRY.x, 0, Number.isFinite(r.z) ? r.z : ENTRY.z);
+  const t = r.table && tableOf(r.table);
+  if (t && r.place !== 'town') {
+    state.table = t.id; if (!state.joined.includes(t.id)) state.joined.push(t.id);
+    if (r.owned) { state.owned = t.id; t.title = r.title || t.title; t.opener = r.opener || ''; const sp = SPOTS.find(s => s.id === t.id); if (sp) sp.title = t.title; }
+    seatMe(t); showConversation(t);
+  }
+  refresh();
+  status(t ? `🌙 다시 왔어요 · T${t.number} 자리 그대로예요` : '🌙 다시 왔어요 · 하던 곳에서 이어가요');
+}
+const resume = readResume();
+if (resume) resumeVillage(resume); else { clearResume(); openVillages(); }
 document.fonts?.load('64px Jua').then(() => world.drawSign("'Jua', sans-serif")).catch(() => {});
 
 renderer.domElement.addEventListener('webglcontextlost', e => { e.preventDefault(); failed = true; cancelAnimationFrame(frameId); $('failure').hidden = false; $('nameplate').hidden = true; release(); });

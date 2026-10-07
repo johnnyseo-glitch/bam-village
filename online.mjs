@@ -209,6 +209,9 @@ export function createOnline(G) {
     root.add(c.rig);
     if (p.ac && p.ac !== 'none') G.addAccessory?.(c.head, p.ac);
     root.traverse(o => { if (o.isMesh) { o.userData.ignorePick = true; } });
+    // 손가락으로 누르기 쉽게 몸 크기보다 조금 큰 투명 판정 기둥
+    const hitbox = new T.Mesh(new T.CylinderGeometry(.42, .42, 1.6, 10), new T.MeshBasicMaterial({transparent: true, opacity: 0, depthWrite: false, colorWrite: false}));
+    hitbox.position.y = .8; hitbox.userData.ignorePick = true; root.add(hitbox);
     const tag = document.createElement('button'); tag.className = 'npc-tag player-tag'; tag.hidden = true;
     $('worldLabels').appendChild(tag);
     const R = {peer: peer.peer, by: peer.by, p, root, c, tag, color: lookKey(p), phase: 0, jy: 0, jv: 0, lastEa: p.ea, lastJa: p.ja, q: new T.Quaternion(), pet: null};
@@ -233,7 +236,10 @@ export function createOnline(G) {
       if (R && R.color !== lookKey(p)) { removeRemote(R); R = null; }
       if (!R) R = addRemote(peer);
       R.p = p; R.by = peer.by;
-      R.tag.innerHTML = `${p.t ? `<small class="ttl">〈${esc(p.t)}〉</small>` : ''}<b class="mood-dot ${esc(p.md || 'talk')}"></b>${esc(p.n || '손님')} <i>${G.genderMark(p.g)}</i>${p.pt ? '<span>🐾</span>' : ''}`;
+      R.tag.innerHTML = `${p.t ? `<small class="ttl">〈${esc(p.t)}〉</small>` : ''}<b class="mood-dot ${esc(p.md || 'talk')}"></b>${esc(p.n || '손님')} <i>${G.genderMark(p.g)}</i>${p.pt ? '<span>🐾</span>' : ''}${p.away ? '<small class="away">💤 자리 비움</small>' : ''}`;
+      // 폰이 잠들어도 캐릭터와 자리는 그대로 두고 살짝 흐리게만
+      const away = !!p.away;
+      if (R.away !== away) { R.away = away; R.tag.classList.toggle('is-away', away); R.root.traverse(o => { if (o.isMesh && o.material && 'opacity' in o.material && o.material.colorWrite !== false) { if (!o.userData.ownMat) { o.material = o.material.clone(); o.userData.ownMat = true; } o.material.transparent = away; o.material.opacity = away ? .55 : 1; } }); }
     }
     for (const [k, R] of remotes) if (!seen.has(k)) removeRemote(R);
     // 방장이 연 판의 제목을 따라간다
@@ -457,6 +463,9 @@ export function createOnline(G) {
   start();
   return {net, settled, gate, openHost, tick, overlay, atTable, ownerOf, takenSeats, requestSeat, sendGift, giftServed,
     shareGame: (tb, p) => emit('game', {tb, p}),
+    openPlayer,
+    pickRoots: () => [...remotes.values()].map(R => R.root),
+    byRoot: root => [...remotes.values()].find(R => R.root === root) ?? null,
     praise, friendRequest, acceptFriend, friendStatus, leaveVillage, metList, hasPass,
     isHere: id => !!net.room?.peers().some(p => p.by === id && !p.sameTab && p.presence?.in),
     get count() { return remotes.size; }, players: () => [...remotes.values()]};
