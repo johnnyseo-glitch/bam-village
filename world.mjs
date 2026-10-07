@@ -626,8 +626,8 @@ export function createWorld() {
       parts.legs.push(leg);
       const arm = new T.Group(); arm.position.set(s * .2, .62, 0); rig.add(arm);
       const sleeve = cyl(.06, .065, .16, clothes, 0, -.07, 0, arm); sleeve.rotation.z = s * .25; outline(sleeve, .06);
-      outline(sphere(.065, species === 'panda' ? DARK : furM, s * .04, -.17, 0, arm), .065);
-      parts.arms.push(arm);
+      const hand = sphere(.065, species === 'panda' ? DARK : furM, s * .04, -.17, 0, arm); outline(hand, .065);
+      parts.arms.push(arm); if (s > 0) parts.fist = hand;
     }
     // 머리
     const head = new T.Group(); head.position.y = 1.0; rig.add(head);
@@ -642,7 +642,7 @@ export function createWorld() {
       if (species === 'frog') { const bump = sphere(.12, furM, s * .16, .28, .12, head); outline(bump, .12, .014); sphere(.075, WHITE, s * .16, .3, .2, head, false); }
       const ey = species === 'frog' ? .3 : .03, ez = species === 'frog' ? .27 : .335;
       const eye = sphere(.052, species === 'robot' ? glow('#7ff3ff') : DARK, s * (species === 'frog' ? .16 : .14), ey, ez, head); eye.scale.set(species === 'alien' ? 1.7 : 1, species === 'alien' ? 2.1 : 1.3, .5); if (species === 'alien') eye.rotation.z = s * .5; parts.eyes.push(eye);
-      const hl = sphere(.017, WHITE, s * (species === 'frog' ? .16 : .14) + .016, ey + .04, ez + .025, head, false); hl.castShadow = false;
+      const hl = sphere(.017, WHITE, s * (species === 'frog' ? .16 : .14) + .016, ey + .04, ez + .025, head, false); hl.castShadow = false; (parts.hls ??= []).push(hl);
       const blush = sphere(.06, BLUSH, s * .24, -.09, .27, head, false); blush.scale.set(1, .55, .3);
       if (species === 'hamster') { const ch = sphere(.12, fur2, s * .22, -.12, .16, head); outline(ch, .12, .014); }
       if (species === 'raccoon') { const m = sphere(.1, DARK, s * .14, .03, .3, head); m.scale.set(1.3, .8, .4); }
@@ -730,7 +730,13 @@ export function createWorld() {
       const wm = extra === 'wings' ? toon('#ffffff') : toon('#3a2f45');
       for (const s of [-1, 1]) { const w = extra === 'wings' ? sphere(.2, wm, s * .22, .6, -.2, rig) : cone(.2, .4, wm, s * .26, .62, -.18, rig, 3); w.scale.set(extra === 'wings' ? .55 : 1, 1, .25); w.rotation.z = s * (extra === 'wings' ? -.5 : -1.1); outline(w, .2, .012); }
     }
-    return {rig, head, legs: parts.legs, arms: parts.arms, eyes: parts.eyes, collar, clothes};
+    // 맞았을 때 표정 '> <': 눈 자리에 꺾쇠 두 개(평소엔 숨김)
+    const ouch = new T.Group(); ouch.visible = false; head.add(ouch); ouch.userData.hide = [...parts.eyes, ...(parts.hls ?? [])];
+    for (const s of [-1, 1]) {
+      const ey = species === 'frog' ? .3 : .04, ez = species === 'frog' ? .32 : .372, x = s * (species === 'frog' ? .16 : .14);
+      for (const k of [-1, 1]) { const bar = box(.085, .028, .03, DARK, x, ey + k * .022, ez, ouch, false); bar.rotation.z = s * k * .55; }
+    }
+    return {rig, head, legs: parts.legs, arms: parts.arms, eyes: parts.eyes, collar, clothes, fist: parts.fist, ouch};
   }
 
   // ── 주민 배치 ─────────────────────────────────────────
@@ -865,7 +871,7 @@ export function createWorld() {
     const c = critter({species, fur, outfit: '#cddc83', accent: '#f4b942', extra});
     c.rig.traverse(o => { if (!o.isMesh) return; if (species !== 'ghost' && o.material === c.clothes) o.material = ownJacket; o.userData.ignorePick = true; });
     rig.add(c.rig);
-    fox.rig = c.rig; fox.head = c.head;
+    fox.rig = c.rig; fox.head = c.head; fox.fist = c.fist; fox.ouch = c.ouch;
     fox.legs.length = 0; fox.legs.push(...c.legs); fox.arms.length = 0; fox.arms.push(...c.arms); fox.eyes.length = 0; fox.eyes.push(...c.eyes);
     c.arms[1].add(glassGroup);
     for (const g of Object.values(acc)) c.head.add(g);
@@ -887,6 +893,6 @@ export function createWorld() {
   function drawSign(font) { currentFont = font; for (const t of drawables) t.userData.redraw(font); }
   drawSign('sans-serif');
 
-  return {critter, setLook, addAccessory, makePet, npcPets, scene, actor, rig, legs: fox.legs, arms: fox.arms, eyes: fox.eyes, shadow, marker, entities, npcs, glassGroup, setGlass, setFill, setAccessory, makeBubble,
+  return {get fist() { return fox.fist; }, get ouch() { return fox.ouch; }, critter, setLook, addAccessory, makePet, npcPets, scene, actor, rig, legs: fox.legs, arms: fox.arms, eyes: fox.eyes, shadow, marker, entities, npcs, glassGroup, setGlass, setFill, setAccessory, makeBubble,
     seatAngles, jacket: ownJacket, drawSign, lampShades, emoteTextures, flags: flagTexes, clock: {hourHand, minHand}};
 }

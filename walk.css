@@ -437,7 +437,11 @@ fieldset { min-inline-size: 0; }
 .net-chip i { width: 9px; height: 9px; border-radius: 50%; background: var(--talk); box-shadow: 0 0 0 3px #3cb98a33; }
 .net-chip small { font-size: 9px; background: var(--coral); color: #fff; border-radius: 999px; padding: 1px 5px; margin-left: 2px; }
 .npc-tag.player-tag { border-color: var(--coral); background: #fff4ea; box-shadow: 0 2px 0 var(--coral); }
-.npc-tag.player-tag.is-away { opacity: .72; filter: grayscale(.5); }
+.away-badge { font-style: normal; font-size: 12px; background: #efe6ff; color: #5a4a8a; border-radius: 999px; padding: 2px 8px; vertical-align: middle; }
+.note-pick { display: grid; gap: 6px; margin: 10px 0; } .note-pick.drinks { grid-template-columns: 1fr 1fr; }
+.note-pick button { margin: 0; text-align: left; }
+.bam-passive { position: fixed; inset: 0; z-index: 50; display: grid; place-content: center; gap: 12px; text-align: center; padding: 24px; background: #1c1411ee; color: #fff8e9; font-family: var(--font-body); }
+.bam-passive h2 { font-family: var(--font-display); margin: 0; } .bam-passive button { justify-self: center; }
 .npc-tag.player-tag .away { display: block; font-size: 10px; color: #7a6a5c; }
 .npc-tag.player-tag .mood-dot { display: inline-block; width: 8px; height: 8px; margin-right: 3px; vertical-align: middle; }
 .people span.player { border-color: var(--coral); background: #fff4ea; }

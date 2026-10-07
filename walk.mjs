@@ -50,7 +50,7 @@ camera.position.copy(followPoint).add(cameraOffset); camera.lookAt(followPoint);
 let path = [], arrival = '', onArrival = null, phase = 0, last = 0, frameId = 0, walking = false, failed = false;
 let flowToken = 0, escorting = false, nearestEntity = null, lastNear = '', onDialogClose = null, toastTimer = 0, orderGen = 0;
 let place = 'bar', town = null, townLabels = [], games = null, fadeT = 0;
-let online = null, inVillage = false, netEmote = {id: null, at: 0}, netJumpAt = 0, netPunchAt = 0, punchAt = -1e9, knock = null;
+let online = null, inVillage = false, netEmote = {id: null, at: 0}, netJumpAt = 0, netPunchAt = 0, netHitAt = 0, punchAt = -1e9, knock = null, stunUntil = 0, ouchUntil = 0, shakeUntil = 0, hitStop = 0;
 let hostTask = null, drink = null, giftDemoDone = false, praiseDemoDone = false, level = 1, tutorial = null, myPet = null;
 const npcLevel = n => n.root.position.y > 2 ? 2 : 1;
 const genderMark = g => g === 'F' ? '♀' : g === 'M' ? '♂' : '';
@@ -306,25 +306,57 @@ function jump() {
   if (myPet) setTimeout(() => { if (myPet && !myPet.jy) myPet.jv = JUMP_SPEED * .8; }, 110); // 펫도 살짝 늦게 같이 점프
 }
 
-// 때리기: HP 없는 장난. 앞에 있는 사람은 '아야!' 하고 살짝 밀려난다.
+// 때리기(겟앰프드 느낌): 주먹이 커지며 앞으로 쭉 → 맞으면 💥 + 잠깐 멈칫(히트스톱) + '> <' 표정 + 밀려나며 경직. HP는 없다.
+const PUNCH_MS = 380, STRIKE_AT = 90;
 function punch() {
   if (failed || dialog.open || !calm.hidden || escorting) return;
   if (state.table) { seatedHint(); return; }
   const now = performance.now();
-  if (now - punchAt < 450) return;
+  if (now - punchAt < 520 || now < stunUntil) return;
   punchAt = now; netPunchAt = Date.now();
-  const fx = Math.sin(netEuler.setFromQuaternion(actor.quaternion, 'YXZ').y), fz = Math.cos(netEuler.y);
-  for (const R of online?.players() ?? []) {
-    const dx = R.root.position.x - actor.position.x, dz = R.root.position.z - actor.position.z, d = Math.hypot(dx, dz);
-    if (d < 1.25 && d > 0 && (dx * fx + dz * fz) / d > .35) bubbleOver(R.root, '퍽!', '#ffe1d6', 900, 1.95);
-  }
+  setTimeout(() => { // 주먹이 뻗는 순간 판정: 맞은 쪽 화면에서도 같은 규칙으로 판정한다
+    const fx = Math.sin(netEuler.setFromQuaternion(actor.quaternion, 'YXZ').y), fz = Math.cos(netEuler.y);
+    const nx = actor.position.x + fx * .22, nz = actor.position.z + fz * .22; if (place === 'bar' ? tryStep(nx, nz) : true) {} // 살짝 파고들기
+    let hit = false;
+    for (const R of online?.players() ?? []) {
+      const dx = R.root.position.x - actor.position.x, dz = R.root.position.z - actor.position.z, d = Math.hypot(dx, dz);
+      if (d < 1.35 && d > 0 && (dx * fx + dz * fz) / d > .35 && !R.p.tb) { hit = true; online.playHit(R, fx, fz); hitFx(R.root.position, fx, fz); }
+    }
+    if (hit) { hitStop = performance.now() + 110; shakeUntil = performance.now() + 160; }
+  }, STRIKE_AT);
 }
-// 누가 나를 때렸을 때: 앉아 있으면 말풍선만, 서 있으면 맞은 방향으로 살짝 밀린다
+// 누가 나를 때렸을 때
 function punched(R) {
-  bubbleOver(actor, '아야!', '#ffe1d6', 1200, 2.0);
-  if (state.table || dialog.open) return;
+  const now = performance.now();
+  ouchUntil = now + 850; netHitAt = Date.now(); shakeUntil = now + 260; hitStop = now + 110;
   const dx = actor.position.x - R.root.position.x, dz = actor.position.z - R.root.position.z, d = Math.hypot(dx, dz) || 1;
-  knock = {x: dx / d, z: dz / d, until: performance.now() + 260, start: performance.now()};
+  hitFx(actor.position, -dx / d, -dz / d);
+  if (state.table || dialog.open) return;
+  stunUntil = now + 650; path = []; marker.visible = false;
+  knock = {x: dx / d, z: dz / d, start: now + 110, until: now + 470};
+  if (jumpY <= .001 && jumpV === 0) jumpV = 2.2; // 살짝 뜨면서 밀려난다
+}
+// 💥 타격 이펙트: 별 모양 섬광이 커졌다 사라진다
+const hitTex = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
+  g.translate(64, 64); g.beginPath();
+  for (let i = 0; i < 20; i++) { const r = i % 2 ? 26 : 58 - (i % 4) * 6, a = i / 20 * Math.PI * 2; g.lineTo(Math.cos(a) * r, Math.sin(a) * r); }
+  g.closePath(); g.fillStyle = '#fff3a0'; g.fill(); g.lineWidth = 6; g.strokeStyle = '#ff8a3d'; g.stroke();
+  g.fillStyle = '#e8432f'; g.font = 'bold 34px Jua, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('퍽!', 0, 2);
+  const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; return t;
+})();
+const hitFxs = [];
+function hitFx(pos, fx = 0, fz = 0) {
+  const sp = new T.Sprite(new T.SpriteMaterial({map: hitTex, transparent: true, depthWrite: false, depthTest: false}));
+  sp.position.set(pos.x - fx * .25, (pos.y || 0) + .95, pos.z - fz * .25); sp.renderOrder = 20; scene.add(sp);
+  hitFxs.push({sp, born: performance.now()});
+}
+function animateHitFx(now) {
+  for (let i = hitFxs.length - 1; i >= 0; i--) {
+    const f = hitFxs[i], k = (now - f.born) / 360;
+    if (k >= 1) { scene.remove(f.sp); f.sp.material.dispose(); hitFxs.splice(i, 1); continue; }
+    f.sp.scale.setScalar(.35 + Math.min(1, k * 4) * .55); f.sp.material.opacity = k < .6 ? 1 : 1 - (k - .6) / .4; f.sp.material.rotation = k * .6;
+  }
 }
 
 function goTo(x, z, label = '', done = null, toLevel = level) {
@@ -645,6 +677,10 @@ calm.addEventListener('click', e => { if (e.target === calm || e.target.closest(
 $('calmMenu').onclick = () => { hideCalm(); openMenu(); };
 $('calmHost').onclick = () => { hideCalm(); openHostHelp(); };
 $('calmBack').onclick = hideCalm;
+// 알림: 화면을 꺼둔 사이 누가 손 흔들기·한마디·한 잔을 남기면 알려준다(브라우저가 허용하는 기기에서만)
+const canNotify = () => 'Notification' in window && Notification.permission === 'default';
+$('calmNotify').hidden = !canNotify();
+$('calmNotify').onclick = async () => { try { const r = await Notification.requestPermission(); status(r === 'granted' ? '🔔 알림을 켰어요. 화면을 꺼둬도 남긴 게 오면 알려줘요' : '알림이 꺼져 있어요. 돌아오면 바로 보여줄게요'); } catch {} $('calmNotify').hidden = !canNotify(); };
 
 // ── 호스트 ───────────────────────────────────────────────
 function openHost() {
@@ -1327,7 +1363,7 @@ function enterVillage() {
     for (const f of ['coins', 'shop', 'charFull', 'town']) unlock(f, {quiet: true});
     setTimeout(() => quietToast(`다시 왔네요! 🪙 코인 ${coinText()}개 · 상점 · 캐릭터 꾸미기 · 🌆 마을 산책이 열렸어요`), 5200);
   }
-  checkTitles();
+  checkTitles(); online?.pumpInbox();
   setTimeout(() => {
     if (!wallet.rulesSeen) showRules(() => { if (!wallet.tutorialDone) startTutorial(); });
     else { status('🌙 마을 규칙: 현장에서는 연락처·친구 신청·칭찬을 부탁하지 않아요'); if (!wallet.tutorialDone) startTutorial(); }
@@ -1718,7 +1754,7 @@ function animate(now) {
   const dt = Math.min((now - last) / 1000 || 0, .045); last = now;
   direction.set(0, 0, 0); let moved = false;
   const joyMag = joy.on ? Math.hypot(joy.x, joy.y) : 0;
-  if (!dialog.open && (keys.size || joyMag > .18) && !state.table) {
+  if (now < stunUntil) { /* 맞고 경직 중 */ } else if (!dialog.open && (keys.size || joyMag > .18) && !state.table) {
     if (keys.has('up')) direction.add(up); if (keys.has('down')) direction.sub(up);
     if (keys.has('right')) direction.add(right); if (keys.has('left')) direction.sub(right);
     if (joyMag > .18) direction.addScaledVector(up, -joy.y).addScaledVector(right, joy.x);
@@ -1768,14 +1804,23 @@ function animate(now) {
   rig.position.y += jumpY;
   if (jumpY > 0) { arms[0].rotation.x = -2.5; if (!glassGroup.visible) arms[1].rotation.x = -2.5; legs[0].rotation.x = -.5; legs[1].rotation.x = .3; }
   shadow.scale.setScalar(Math.max(.55, 1 - jumpY * .55));
-  const pk = (now - punchAt) / 320;
-  if (pk >= 0 && pk < 1) { const f = Math.sin(pk * Math.PI); arms[1].rotation.x = -1.65 * f; arms[1].rotation.z = -.15 * f; rig.rotation.x = .12 * f; }
-  else rig.rotation.x = 0;
-  if (knock) { // 맞으면 짧게 밀리고 몸이 흔들린다
-    const k = (now - knock.start) / (knock.until - knock.start);
+  // 때리기 동작: 뒤로 살짝 → 주먹이 커지며 쭉 → 원위치. 히트스톱 동안은 그 자세로 멈춘다.
+  const pt = Math.min(now, hitStop > now ? punchAt + STRIKE_AT + 40 : now) - punchAt, fist = world.fist;
+  if (pt >= 0 && pt < PUNCH_MS) {
+    const wind = pt < STRIKE_AT ? pt / STRIKE_AT : 0, out = pt >= STRIKE_AT ? Math.max(0, 1 - (pt - STRIKE_AT) / (PUNCH_MS - STRIKE_AT)) : 0;
+    const ext = pt < STRIKE_AT ? -.35 * wind : Math.min(1, (pt - STRIKE_AT) / 50) * out;
+    arms[1].rotation.x = -1.6 * Math.max(0, ext) + .5 * Math.max(0, -ext); arms[1].rotation.z = -.1 * ext;
+    rig.rotation.x = .16 * Math.max(0, ext) - .08 * wind; rig.rotation.y = -.35 * Math.max(0, ext) + .2 * wind;
+    if (fist) fist.scale.setScalar(1 + 1.4 * Math.max(0, ext));
+  } else { rig.rotation.x = 0; rig.rotation.y = 0; if (fist && fist.scale.x !== 1) fist.scale.setScalar(1); }
+  if (knock && now >= knock.start) { // 맞으면 밀리면서 몸이 휘청인다
+    const k = Math.min(1, (now - knock.start) / (knock.until - knock.start)), want = .75 * (1 - (1 - k) ** 2), v = want - (knock.done ?? 0); // 프레임이 끊겨도 총 0.75m는 밀린다
+    knock.done = want; tryStep(actor.position.x + knock.x * v, actor.position.z + knock.z * v);
+    rig.rotation.x = -.35 * (1 - k); rig.rotation.z = Math.sin(k * 22) * .16 * (1 - k);
     if (k >= 1) knock = null;
-    else { const v = 3.2 * (1 - k) * dt, nx = actor.position.x + knock.x * v, nz = actor.position.z + knock.z * v; if (tryStep(nx, nz)) actor.position.set(nx, actor.position.y, nz); rig.rotation.z = Math.sin(k * 20) * .12 * (1 - k); }
   }
+  const ouch = world.ouch, hurt = now < ouchUntil;
+  if (ouch && ouch.visible !== hurt) { ouch.visible = hurt; for (const o of ouch.userData.hide) o.visible = !hurt; }
   if (emoteAnim) { // 감정 표현 동작
     const k = (now - emoteAnim.start) / 1000;
     if (now > emoteAnim.until) emoteAnim = null;
@@ -1809,7 +1854,9 @@ function animate(now) {
   const tilt = place === 'town' ? 1 - wk : 0;
   lookAt.copy(followPoint).add(temp.set(0, 3.5 * wk + .7 * tilt, -16 * wk - 1.6 * tilt));
   camera.position.copy(followPoint).add(camOff); camera.lookAt(lookAt); camera.updateMatrixWorld();
-  const blink = now % 4800 > 4630 ? .15 : 1.25; eyes.forEach(e => e.scale.y = blink);
+  const blink = now < ouchUntil ? 0.001 : now % 4800 > 4630 ? .15 : 1.25; eyes.forEach(e => e.scale.y = blink);
+  if (now < shakeUntil && !reduced) { const a = (shakeUntil - now) / 260 * .07; camera.position.x += (Math.random() - .5) * a; camera.position.y += (Math.random() - .5) * a; }
+  animateHitFx(now);
   shadow.position.set(actor.position.x, .045, actor.position.z);
   marker.scale.setScalar(reduced ? 1 : 1 + Math.sin(now * .004) * .08);
   online?.tick(now, dt);
@@ -1945,7 +1992,7 @@ function netMe() {
     t: wallet.title ? titleName(wallet.title) ?? '' : '', md: p.mood || 'talk', c: j.color, pt: wallet.equipped.pet || null, pf: petItem?.fur || null,
     x: r2(actor.position.x), y: r2(actor.position.y), z: r2(actor.position.z), r: r2(netEuler.setFromQuaternion(actor.quaternion, 'YXZ').y), w: walking ? 1 : 0,
     tb: state.table || null, s: t ? (state.seatIdx ?? -1) : -1, own: owner ? 1 : 0, tt: owner ? t.title : '', op: owner ? t.opener : '',
-    e: netEmote.id, ea: netEmote.at, ja: netJumpAt, pa: netPunchAt,
+    e: netEmote.id, ea: netEmote.at, ja: netJumpAt, pa: netPunchAt, ht: netHitAt,
     sp: wallet.look?.species ?? 'fox', fu: wallet.look?.fur ?? '#f08a3c', ex: wallet.look?.extra ?? 'none', ac: wallet.equipped.accessory ?? 'none', pl: place};
 }
 const netEuler = new T.Euler();
@@ -2004,7 +2051,7 @@ online = createOnline({
   bubbleOver, status, show, closeDialog, refresh, tableOf, openMenu, openTable, serveToMe, hideCalm,
   inVillage: () => inVillage, me: netMe, dialogLabel: () => dialog.open ? $('modalLabel').textContent : '',
   moodShort: md => MOODS[md]?.short ?? '', levelOf: tb => levelY(tableOf(tb)?.level ?? 1),
-  walkAndSit, becomeOwner, onPassLost: kicked, onPunched: punched, wave: () => bubbleOver(actor, '👋 안녕!', '#ffffff', 2000, 2.0),
+  walkAndSit, becomeOwner, onPassLost: kicked, onPunched: punched, hitFx, wave: () => bubbleOver(actor, '👋 안녕!', '#ffffff', 2000, 2.0),
   onGame: (p, from) => { if (dialog.open) status(`🎲 ${from}님이 게임을 시작했어요`); else games.play(p, from); },
   addAccessory: world.addAccessory,
   onChange: onNetChange, afterHost: () => { if (!inVillage && !dialog.open) openVillages(); }, onAccepted: () => setTimeout(() => grantTitle('jay'), 3000)
@@ -2023,7 +2070,7 @@ frameId = requestAnimationFrame(animate);
 // ── 이어하기: 사파리가 잠들었다 깨며 페이지를 새로 열어도 20분 안이면 그 자리로 바로 돌아간다 ──
 const RESUME_KEY = 'bam-resume', RESUME_MS = 20 * 60000;
 function saveResume() {
-  if (!inVillage) return;
+  if (!inVillage || window.__bamNet?.passive) return;
   const t = state.table ? tableOf(state.table) : null;
   try { localStorage.setItem(RESUME_KEY, JSON.stringify({at: Date.now(), visitId: state.visitId, place, table: state.table || null, owned: !!t && state.owned === t.id, title: t?.title ?? '', opener: t?.opener ?? '',
     x: actor.position.x, z: actor.position.z, visitTables: state.visitTables ?? []})); } catch {}
@@ -2050,8 +2097,16 @@ async function resumeVillage(r) {
     seatMe(t); showConversation(t);
   }
   refresh();
+  online?.pumpInbox();
   status(t ? `🌙 다시 왔어요 · T${t.number} 자리 그대로예요` : '🌙 다시 왔어요 · 하던 곳에서 이어가요');
 }
+// 같은 기기에서 다른 탭을 새로 열면 이 탭은 쉬게 한다(캐릭터는 하나)
+addEventListener('bam-passive', () => {
+  const el = document.createElement('div'); el.className = 'bam-passive';
+  el.innerHTML = '<h2>☾ 다른 화면에서 열려 있어요</h2><p>같은 기기에서는 캐릭터가 하나예요.<br>마지막에 연 화면에서 이어서 놀고 있어요.</p><button class="action" id="takeHere">여기서 이어하기</button>';
+  document.body.appendChild(el); $('takeHere').onclick = () => location.reload();
+  try { dialog.open && dialog.close(); } catch {}
+});
 const resume = readResume();
 if (resume) resumeVillage(resume); else { clearResume(); openVillages(); }
 document.fonts?.load('64px Jua').then(() => world.drawSign("'Jua', sans-serif")).catch(() => {});
@@ -2062,7 +2117,7 @@ window.addEventListener('pagehide', () => { cancelAnimationFrame(frameId); frame
 window.addEventListener('pageshow', () => { if (!failed && !frameId) { resize(); last = performance.now(); frameId = requestAnimationFrame(animate); } });
 
 // 테스트용 훅: 상태를 읽기만 한다.
-window.__bam = {state, wallet, showMy, wide: ms => { wideUntil = performance.now() + ms; }, goOutside, goInside, get place() { return place; }, get town() { return town; }, get games() { return games; }, applyLook, checkWeekend, get online() { return online; }, get inVillage() { return inVillage; }, rounds, doEmote, standAt, get emoteAnim() { return emoteAnim; }, get level() { return level; }, get tutorial() { return tutorial; }, get myPet() { return myPet; }, actor, host, npcs, select: id => selectEntity(id), endRound: id => newRound(tableOf(id)), get drink() { return drink; }, get escorting() { return escorting; }, get path() { return path; }, get jumpY() { return jumpY; }};
+window.__bam = {state, wallet, showMy, wide: ms => { wideUntil = performance.now() + ms; }, goOutside, goInside, get place() { return place; }, get town() { return town; }, get games() { return games; }, applyLook, checkWeekend, get online() { return online; }, get inVillage() { return inVillage; }, rounds, doEmote, standAt, get emoteAnim() { return emoteAnim; }, get level() { return level; }, get tutorial() { return tutorial; }, get myPet() { return myPet; }, actor, host, npcs, select: id => selectEntity(id), endRound: id => newRound(tableOf(id)), get drink() { return drink; }, get escorting() { return escorting; }, get path() { return path; }, get jumpY() { return jumpY; }, get knock() { return knock; }, punch, punched, get hurt() { return {ouchUntil, stunUntil, now: performance.now()}; }};
 
 if (document.modelContext?.registerTool) {
   const spots = ['host', 'lounge', 'exit', 'table1', 'table2', 'table3', 'table4', 'table5'];

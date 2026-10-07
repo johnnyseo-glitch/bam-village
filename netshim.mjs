@@ -17,9 +17,19 @@ export function install({brokers = BROKERS} = {}) {
   let uid = store.get('bam-uid'); if (!uid) { uid = 'u_' + rand(10); store.set('bam-uid', uid); }
   if (params.has('host')) store.set('bam-host', '1');
   const isHost = store.get('bam-host') === '1';
-  // 화면(탭)마다 같은 peer 이름을 계속 쓴다: 폰이 잠겼다가 새로고침돼도 '같은 사람'으로 이어진다
-  const sess = {get: k => { try { return sessionStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { sessionStorage.setItem(k, v); } catch {} }};
-  let peerId = sess.get('bam-peer'); if (!peerId) { peerId = 'p_' + rand(6); sess.set('bam-peer', peerId); }
+  // 기기(브라우저) 하나 = 캐릭터 하나: peer 이름을 기기 번호에서 만든다. 탭을 여러 개 열거나 닫았다 열어도 같은 캐릭터다.
+  const peerId = 'p_' + uid.replace(/^u_/, '').slice(0, 14);
+  // 같은 기기에서 탭이 여러 개면 마지막에 연 탭만 조종한다. 나머지는 연결을 끊고 '다른 화면에서 열려 있어요'를 띄운다.
+  const tabAt = Date.now() + Math.random();
+  let passive = false;
+  const bc = 'BroadcastChannel' in window ? new BroadcastChannel('bam-tab-' + ROOM) : null;
+  bc?.addEventListener('message', e => {
+    if (e.data?.t !== 'claim' || passive || e.data.at < tabAt) return;
+    passive = true;
+    try { client?.end(false); } catch {} // 정상 종료라 '자리 비움'(will)이 나가지 않는다
+    dispatchEvent(new CustomEvent('bam-passive'));
+  });
+  bc?.postMessage({t: 'claim', at: tabAt});
   const AWAY_MS = 20 * 60000, STALE_MS = 40000; // 연결이 끊겨도 20분 동안은 '잠깐 자리 비움'으로 남아 있다
 
   // ── 연결: 브로커를 차례로 시도 ───────────────────────
@@ -34,6 +44,7 @@ export function install({brokers = BROKERS} = {}) {
         c.once('connect', () => { clearTimeout(timer); res(c); });
         c.once('error', e => { clearTimeout(timer); errors.push(url.replace(/^wss:\/\/([^@]*@)?/, '').split(/[:/]/)[0] + ': ' + (e?.message || 'error').slice(0, 60)); fail(); });
       });
+      if (ok && passive) { ok.end(false); return false; }
       if (ok) { client = ok; break; }
     }
     if (!client) return false;
@@ -42,6 +53,7 @@ export function install({brokers = BROKERS} = {}) {
     // 다시 연결되면(폰을 다시 켰을 때 등) 자리 비움 표시를 지우고 내 상태를 다시 알린다
     client.on('connect', () => { setAway(false); publishPresence(); });
     document.addEventListener('visibilitychange', () => {
+      if (passive) return;
       if (document.hidden) setAway(true);
       else { if (!client.connected) client.reconnect(); setAway(false); publishPresence(); }
     });
@@ -49,7 +61,7 @@ export function install({brokers = BROKERS} = {}) {
     publishPresence();
     setInterval(publishPresence, 8000, true);
     setInterval(sweep, 5000);
-    addEventListener('pagehide', () => { try { setAway(true); } catch {} });
+    addEventListener('pagehide', () => { if (!passive) try { setAway(true); } catch {} });
     setAway(false);
     return true;
   })();
@@ -67,7 +79,7 @@ export function install({brokers = BROKERS} = {}) {
   function setAway(on) { try { client?.publish(`${P}/w/${peerId}`, on ? '1' : '', {retain: true, qos: 0}); } catch {} }
   function publishPresence() {
     if (!client) return;
-    client.publish(`${P}/p/${peerId}`, JSON.stringify({by: uid, presence: myPresence, t: Date.now()}), {retain: true, qos: 0});
+    client.publish(`${P}/p/${peerId}`, JSON.stringify({by: uid, presence: myPresence, t: Date.now(), h: document.hidden ? 1 : 0}), {retain: true, qos: 0});
   }
   function sweep() {
     const now = Date.now(); let changed = false;
@@ -91,7 +103,7 @@ export function install({brokers = BROKERS} = {}) {
       if (!text) { if (others.delete(peer)) rebuild(); return; }
       try { const m = JSON.parse(text); const age = Date.now() - (m.t || 0); if (age > AWAY_MS) return;
         const prev = others.get(peer);
-        others.set(peer, {by: String(m.by || ''), presence: Object.freeze(m.presence || {}), seen: Date.now() - Math.max(0, Math.min(age, AWAY_MS)), away: (prev?.away && age > 1000) || age > STALE_MS}); purgeGhost(peer); rebuild(); } catch {}
+        others.set(peer, {by: String(m.by || ''), presence: Object.freeze(m.presence || {}), seen: Date.now() - Math.max(0, Math.min(age, AWAY_MS)), away: !!m.h || (prev?.away && !('h' in m) && age > 1000) || age > STALE_MS}); purgeGhost(peer); rebuild(); } catch {}
     } else if (rest.startsWith('w/')) {
       const peer = rest.slice(2); if (peer === peerId) return;
       const o = others.get(peer); if (!o) return;
@@ -158,6 +170,6 @@ export function install({brokers = BROKERS} = {}) {
   const native = window.claude?.use ? window.claude.use.bind(window.claude) : null;
   window.__bamNet = {room: ROOM, ready, get broker() { return client?.options?.href ?? null; },
     use: name => ready.then(ok => ok ? (caps[name] ?? null) : (native ? native(name).catch(() => null) : null)),
-    get via() { return client ? 'mqtt' : native ? 'claude' : 'off'; }, errors};
+    get via() { return client ? 'mqtt' : native ? 'claude' : 'off'; }, errors, get passive() { return passive; }};
   return ready;
 }

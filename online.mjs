@@ -5,7 +5,7 @@
 // 입장: 호스트 화면(QR + 1분마다 바뀌는 4자리 코드) → 손님이 코드 입력 → 호스트 화면이 확인하고
 // passes/<손님 id> 입장권을 쓴다. 입장권이 있는 사람만 마을에 들어오고, 서로의 화면에도 보인다.
 import * as T from './vendor/three.min.mjs';
-import {EMOTES, TABLES, SPOTS, PRAISE_TAGS} from './map-data.mjs';
+import {EMOTES, TABLES, SPOTS, PRAISE_TAGS, DRINKS} from './map-data.mjs';
 
 const PASS_MS = 6 * 3600 * 1000, CODE_MS = 60000, SEND_MS = 110;
 const NONCE_KEY = 'bam-net-nonce';
@@ -69,6 +69,7 @@ export function createOnline(G) {
       syncPeers(); if (net.hostMode && G.dialogLabel() === 'HOST · 입장 관리') renderHost();
     }, () => {});
     net.db.doc('praise/' + net.myId).onSnapshot(s => { net.praiseIn = s.exists ? (s.data().counts ?? {}) : {}; }, () => {});
+    net.db.collection('inbox').where('to', '==', net.myId).onSnapshot(s => onInbox(s.docs.map(d => ({id: d.id, ...d.data()}))), () => {});
     net.db.collection('friends').where('to', '==', net.myId).onSnapshot(s => { net.friendsIn = s.docs.map(d => ({id: d.id, ...d.data()})); G.onFriends?.(); }, () => {});
     net.db.collection('friends').where('from', '==', net.myId).onSnapshot(s => { net.friendsOut = s.docs.map(d => ({id: d.id, ...d.data()})); G.onFriends?.(); }, () => {});
     net.room.onPeers(() => syncPeers(), () => {});
@@ -214,7 +215,7 @@ export function createOnline(G) {
     hitbox.position.y = .8; hitbox.userData.ignorePick = true; root.add(hitbox);
     const tag = document.createElement('button'); tag.className = 'npc-tag player-tag'; tag.hidden = true;
     $('worldLabels').appendChild(tag);
-    const R = {peer: peer.peer, by: peer.by, p, root, c, tag, color: lookKey(p), phase: 0, jy: 0, jv: 0, lastEa: p.ea, lastJa: p.ja, lastPa: p.pa, punchUntil: 0, q: new T.Quaternion(), pet: null};
+    const R = {peer: peer.peer, by: peer.by, p, root, c, tag, color: lookKey(p), phase: 0, jy: 0, jv: 0, lastEa: p.ea, lastJa: p.ja, lastPa: p.pa, lastHt: p.ht, punchAt: -1e9, hitAt: -1e9, localHitAt: -1e9, q: new T.Quaternion(), pet: null};
     tag.onclick = () => openPlayer(R);
     remotes.set(peer.peer, R);
     return R;
@@ -243,9 +244,8 @@ export function createOnline(G) {
       if (!R) R = addRemote(peer);
       R.p = p; R.by = peer.by;
       R.tag.innerHTML = `${p.t ? `<small class="ttl">〈${esc(p.t)}〉</small>` : ''}<b class="mood-dot ${esc(p.md || 'talk')}"></b>${esc(p.n || '손님')} <i>${G.genderMark(p.g)}</i>${p.pt ? '<span>🐾</span>' : ''}${p.away ? '<small class="away">💤 자리 비움</small>' : ''}`;
-      // 폰이 잠들어도 캐릭터와 자리는 그대로 두고 살짝 흐리게만
-      const away = !!p.away;
-      if (R.away !== away) { R.away = away; R.tag.classList.toggle('is-away', away); R.root.traverse(o => { if (o.isMesh && o.material && 'opacity' in o.material && o.material.colorWrite !== false) { if (!o.userData.ownMat) { o.material = o.material.clone(); o.userData.ownMat = true; } o.material.transparent = away; o.material.opacity = away ? .55 : 1; } }); }
+      // 폰이 잠들어도 캐릭터와 자리는 그대로. 이름표에 '자리 비움'만 붙인다.
+      R.tag.classList.toggle('is-away', !!p.away);
     }
     for (const [k, R] of remotes) if (!seen.has(k)) removeRemote(R);
     // 방장이 연 판의 제목을 따라간다
@@ -282,12 +282,27 @@ export function createOnline(G) {
     } else { for (const part of [...c.legs, ...c.arms]) part.rotation.x *= .85; c.rig.position.y = Math.sin(now * .002) * .009; }
     if (p.ja !== R.lastJa) { R.lastJa = p.ja; if (p.ja) { R.jv = 4.2; R.jy = .0001; } }
     if (R.jy > 0) { R.jv -= 12 * dt; R.jy += R.jv * dt; if (R.jy <= 0) { R.jy = 0; R.jv = 0; } c.rig.position.y += R.jy; c.arms[0].rotation.x = c.arms[1].rotation.x = -2.5; }
-    if (p.pa !== R.lastPa) { // 때리기: 동작을 보여주고, 바로 앞에 내가 있으면 맞는다
-      R.lastPa = p.pa; R.punchUntil = now + 320;
-      const me = G.actor.position, dx = me.x - root.position.x, dz = me.z - root.position.z, d = Math.hypot(dx, dz), r = +p.r || 0;
-      if (p.pa && G.inVillage() && d < 1.25 && d > 0 && (dx * Math.sin(r) + dz * Math.cos(r)) / d > .35) G.onPunched?.(R);
+    if (p.pa !== R.lastPa) { // 때리기: 동작을 보여주고, 주먹이 뻗는 순간 바로 앞에 내가 있으면 맞는다(서 있을 때만 밀림)
+      R.lastPa = p.pa; R.punchAt = now;
+      if (p.pa && G.inVillage()) setTimeout(() => {
+        const me = G.actor.position, dx = me.x - root.position.x, dz = me.z - root.position.z, d = Math.hypot(dx, dz), r = +R.p.r || 0;
+        if (d < 1.35 && d > 0 && (dx * Math.sin(r) + dz * Math.cos(r)) / d > .35 && !G.state.table) G.onPunched?.(R);
+      }, 60);
     }
-    if (now < R.punchUntil) { const f = Math.sin((1 - (R.punchUntil - now) / 320) * Math.PI); c.arms[1].rotation.x = -1.65 * f; }
+    if (p.ht !== R.lastHt) { // 누가 맞았다: '> <' 표정 + 휘청. 내가 때려서 이미 보여준 거면 이펙트는 생략
+      R.lastHt = p.ht;
+      if (p.ht && now - R.localHitAt > 900) { G.hitFx?.(root.position); R.hitAt = now; }
+    }
+    const pt = now - R.punchAt;
+    if (pt >= 0 && pt < 380) {
+      const ext = pt < 90 ? -.35 * pt / 90 : Math.min(1, (pt - 90) / 50) * (1 - (pt - 90) / 290);
+      c.arms[1].rotation.x = -1.6 * Math.max(0, ext) + .5 * Math.max(0, -ext); c.rig.rotation.y = -.35 * Math.max(0, ext);
+      if (c.fist) c.fist.scale.setScalar(1 + 1.4 * Math.max(0, ext));
+    } else { c.rig.rotation.y = 0; if (c.fist && c.fist.scale.x !== 1) c.fist.scale.setScalar(1); }
+    const ht = now - R.hitAt, hurt = ht >= 0 && ht < 850;
+    if (c.ouch && c.ouch.visible !== hurt) { c.ouch.visible = hurt; for (const o of c.ouch.userData.hide) o.visible = !hurt; }
+    if (hurt && ht < 420) { const k = ht / 420; c.rig.rotation.x = -.35 * (1 - k); c.rig.rotation.z = Math.sin(k * 22) * .16 * (1 - k); }
+    else if (c.rig.rotation.x || c.rig.rotation.z) { c.rig.rotation.x = 0; c.rig.rotation.z = 0; }
     if (p.ea !== R.lastEa) { R.lastEa = p.ea; const e = EMOTES.find(e => e.id === p.e); if (e && p.ea) G.bubbleOver(root, e.text, e.bg, 3000, 2.05); }
     if (p.pt && !R.pet) R.pet = G.makePet(p.pt, p.pf || '#f2b675');
     if (!p.pt && R.pet) { G.scene.remove(R.pet.group); R.pet = null; }
@@ -328,6 +343,7 @@ export function createOnline(G) {
 
   // ── 플레이어 카드 · 손 흔들기 · 한 잔 보내기 ─────────
   function openPlayer(R) {
+    if (R.p.away) return openAway(R);
     const p = R.p, t = p.tb ? G.tableOf(p.tb) : null;
     const seatedWithMe = G.state.table && p.tb === G.state.table;
     G.show('TEAMMATE · 팀원', `${p.t ? `<p class="kicker">〈${esc(p.t)}〉</p>` : ''}<h2>${esc(p.n || '손님')} <i class="g">${G.genderMark(p.g)}</i> <em class="ok">QR 입장</em></h2>
@@ -341,6 +357,72 @@ export function createOnline(G) {
     if ($('pGift')) $('pGift').onclick = () => G.openMenu({to: {name: p.n || '손님', remote: R, root: R.root}});
     if ($('pTable')) $('pTable').onclick = () => G.openTable(t);
   }
+  // ── 자리 비운 사람에게 남기기: 돌아오면(폰을 다시 켜면) 바로 알림으로 뜬다 ──
+  const NOTES = ['돌아오면 같이 한잔해요 🍻', '저 지금 바에 있어요', '테이블에 자리 맡아뒀어요', '먼저 가요, 다음에 봐요 👋', '아까 얘기 재밌었어요!'];
+  function openAway(R) {
+    const p = R.p, t = p.tb ? G.tableOf(p.tb) : null;
+    G.show('TEAMMATE · 자리 비움', `<h2>${esc(p.n || '손님')} <i class="g">${G.genderMark(p.g)}</i> <em class="away-badge">💤 자리 비움</em></h2>
+      <p class="meta">${t ? `T${t.number} ${esc(t.title)} 자리 그대로` : '잠깐 화면을 껐어요'}</p>
+      <p>지금은 화면을 안 보고 있어요. 남겨두면 돌아왔을 때 바로 알려줘요.</p>
+      <button class="action" id="aWave">👋 손 흔들어 두기</button>
+      <button class="secondary" id="aNote">💬 한마디 남기기</button>
+      <button class="secondary" id="aDrink">🍸 한 잔 맡겨두기</button>`);
+    const done = msg => { G.closeDialog(); G.status(msg); };
+    $('aWave').onclick = () => { leave(R, {kind: 'wave'}); done(`${p.n}님이 돌아오면 손 흔든 걸 알려줄게요`); };
+    $('aNote').onclick = () => {
+      G.show('💬 한마디 남기기', `<h2>${esc(p.n)}님에게 남길 말</h2><div class="note-pick">${NOTES.map((x, i) => `<button class="secondary" data-note="${i}">${esc(x)}</button>`).join('')}</div>
+        <p class="note">현장 규칙대로 자유 채팅 대신 정해진 말만 남겨요.</p>`);
+      $('modalContent').querySelectorAll('[data-note]').forEach(b => b.onclick = () => { leave(R, {kind: 'note', text: NOTES[+b.dataset.note]}); done('남겨뒀어요. 돌아오면 바로 보여요'); });
+    };
+    $('aDrink').onclick = () => {
+      G.show('🍸 한 잔 맡겨두기', `<h2>${esc(p.n)}님에게 맡겨둘 한 잔</h2><div class="note-pick drinks">${DRINKS.slice(0, 12).map(d => `<button class="secondary" data-dr="${d.id}"><b style="color:${d.color}">●</b> ${esc(d.name)}</button>`).join('')}</div>
+        <p class="note">돌아와서 받기를 누르면 그때 바에서 만들어 자리로 가져다줘요. 마음만 받으면 결제되지 않아요.</p>`);
+      $('modalContent').querySelectorAll('[data-dr]').forEach(b => b.onclick = () => { const d = DRINKS.find(x => x.id === b.dataset.dr); leave(R, {kind: 'drink', drink: d.name, glass: d.glass, color: d.color}); done(`${G.eulreul(d.name)} 맡겨뒀어요 · 돌아오면 알려줘요`); });
+    };
+  }
+  function leave(R, item) {
+    if (net.status !== 'on' || !R.by) return;
+    net.db.collection('inbox').doc().set({to: R.by, from: net.myId, fromNick: G.state.profile.name || '팀원', at: Date.now(), ...item}).catch(() => {});
+  }
+  // 받는 쪽: 화면이 꺼져 있으면 알림(가능한 기기에서) + 탭 제목 숫자, 화면을 보면 하나씩 띄운다
+  let inbox = [], inboxBusy = false; const notified = new Set(), baseTitle = document.title;
+  function onInbox(list) {
+    inbox = list.filter(x => x.to === net.myId).sort((a, b) => a.at - b.at);
+    document.title = inbox.length && document.hidden ? `(${inbox.length}) ${baseTitle}` : baseTitle;
+    for (const x of inbox) if (!notified.has(x.id)) {
+      notified.add(x.id);
+      if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
+        try { new Notification('밤마을', {body: inboxText(x), tag: 'bam-' + x.id, icon: 'favicon.svg'}); } catch {}
+      }
+    }
+    pumpInbox();
+  }
+  const inboxText = x => x.kind === 'wave' ? `👋 ${x.fromNick}님이 손을 흔들었어요` : x.kind === 'note' ? `💬 ${x.fromNick}: ${x.text}` : x.kind === 'thanks' ? `🥂 ${x.fromNick}님이 맡겨둔 ${G.eulreul(String(x.drink))} 받았어요` : `🍸 ${x.fromNick}님이 ${x.drink} 한 잔을 맡겨뒀어요`;
+  function pumpInbox() {
+    if (inboxBusy || !inbox.length || document.hidden || !G.inVillage()) return;
+    if (G.dialogLabel()) { setTimeout(pumpInbox, 1500); return; }
+    const x = inbox[0]; inboxBusy = true;
+    const finish = msg => { net.db.doc('inbox/' + x.id).delete().catch(() => {}); inbox = inbox.filter(y => y.id !== x.id); inboxBusy = false; G.closeDialog(); if (msg) G.status(msg); setTimeout(pumpInbox, 500); };
+    const back = remotes.size && [...remotes.values()].find(R => R.by === x.from);
+    G.hideCalm?.();
+    if (x.kind === 'drink') {
+      G.show('🍸 자리 비운 사이에', `<h2>${esc(x.fromNick)}님이 ${esc(G.eulreul(String(x.drink)))} 맡겨뒀어요</h2><p>받으면 바에서 만들어 자리로 가져다드려요.</p>
+        <button class="action" id="ibYes">고마워요, 받을게요</button><button class="secondary" id="ibNo">마음만 받을게요</button>`, {lock: true});
+      $('ibYes').onclick = () => {
+        net.db.collection('inbox').doc().set({to: x.from, from: net.myId, fromNick: G.state.profile.name || '팀원', at: Date.now(), kind: 'thanks', drink: x.drink}).catch(() => {});
+        finish(`${x.fromNick}님에게 고맙다고 전했어요 · 곧 나와요`);
+        setTimeout(() => { G.serveToMe(x.glass, x.color, x.drink); G.status(`🎁 ${x.fromNick}님이 맡겨둔 ${G.iga(String(x.drink))} 나왔어요!`); if (back) G.bubbleOver(back.root, '건배!', '#ffdbe8', 2200); }, 3500);
+      };
+      $('ibNo').onclick = () => finish('마음만 받았어요');
+    } else {
+      G.show(x.kind === 'thanks' ? '🥂 전해졌어요' : '💌 자리 비운 사이에', `<h2>${esc(inboxText(x))}</h2><p class="meta">${new Date(x.at).getHours()}:${String(new Date(x.at).getMinutes()).padStart(2, '0')}</p>
+        ${x.kind !== 'thanks' && back ? '<button class="action" id="ibWave">👋 답인사</button>' : ''}<button class="${x.kind !== 'thanks' && back ? 'secondary' : 'action'}" id="ibOk">확인</button>`, {lock: true});
+      if ($('ibWave')) $('ibWave').onclick = () => { emit('wave', {to: back.peer}); G.wave(); finish(`${x.fromNick}님에게 손을 흔들었어요`); };
+      $('ibOk').onclick = () => finish('');
+    }
+  }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { document.title = baseTitle; setTimeout(pumpInbox, 800); } });
+
   function onWave(m) {
     if (m.sameTab) return;
     const R = remotes.get(m.peer); if (!R) return;
@@ -481,5 +563,7 @@ export function createOnline(G) {
     byRoot: root => [...remotes.values()].find(R => R.root === root) ?? null,
     praise, friendRequest, acceptFriend, friendStatus, leaveVillage, metList, hasPass,
     isHere: id => !!net.room?.peers().some(p => p.by === id && !p.sameTab && p.presence?.in),
+    pumpInbox: () => setTimeout(pumpInbox, 6000),
+    playHit: R => { const now = performance.now(); R.localHitAt = now; R.hitAt = now; },
     get count() { return remotes.size; }, players: () => [...remotes.values()]};
 }
