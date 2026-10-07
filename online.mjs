@@ -4,8 +4,8 @@
 //
 // 입장: 호스트 화면(QR + 1분마다 바뀌는 4자리 코드) → 손님이 코드 입력 → 호스트 화면이 확인하고
 // passes/<손님 id> 입장권을 쓴다. 입장권이 있는 사람만 마을에 들어오고, 서로의 화면에도 보인다.
-import * as T from './vendor/three.min.mjs?v=1791364675';
-import {EMOTES, TABLES, SPOTS, PRAISE_TAGS, DRINKS} from './map-data.mjs?v=1791364675';
+import * as T from './vendor/three.min.mjs?v=1791365203';
+import {EMOTES, TABLES, SPOTS, PRAISE_TAGS, DRINKS} from './map-data.mjs?v=1791365203';
 
 const PASS_MS = 6 * 3600 * 1000, CODE_MS = 60000, SEND_MS = 110;
 const NONCE_KEY = 'bam-net-nonce';
@@ -249,14 +249,14 @@ export function createOnline(G) {
     }
     for (const [k, R] of remotes) if (!seen.has(k)) removeRemote(R);
     // 방장이 연 판의 제목을 따라간다
-    for (const t of TABLES) if (t.open && G.state.owned !== t.id) {
+    for (const t of TABLES) if (t.open && !t.free && G.state.owned !== t.id) {
       const o = ownerOf(t.id), base = t.type === 'after' ? '빈 2인석' : '빈 테이블';
       const title = o ? (o.p.tt || base) : base;
       if (t.title !== title) { t.title = title; t.opener = o?.p.op || ''; const sp = SPOTS.find(s => s.id === t.id); if (sp) sp.title = title; }
     }
     // 방장이 떠났는데 내가 그 판에 앉아 있으면 내가 방장이 된다
     const mine = G.state.table && G.tableOf(G.state.table);
-    if (mine?.open && G.state.owned !== mine.id && !ownerOf(mine.id)) G.becomeOwner(mine);
+    if (mine?.open && !mine.free && G.state.owned !== mine.id && !ownerOf(mine.id)) G.becomeOwner(mine);
     const sig = [...remotes.values()].map(R => [R.peer, R.p.n, R.p.tb, R.p.s, R.p.own, R.p.tt, R.p.md, R.p.t].join('|')).sort().join(';');
     if (sig !== lastSig) { lastSig = sig; G.onChange(); }
   }

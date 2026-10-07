@@ -164,6 +164,8 @@ if (NO_NPC) for (const t of TABLES) {
   t.members = []; t.memberSeats = []; t.colors = []; t.species = []; t.furs = [];
   t.freeOrder = t.seats.map((_, i) => i); t.open = true; t.demoResponse = 'accept';
   t.title = t.type === 'after' ? '빈 2인석' : t.type === 'bar' ? '빈 바 테이블' : '빈 테이블'; t.opener = '';
+  // 가운데 링 바는 방장 없는 자유석: 누구나 바로 앉고, JAY가 첫 질문을 던진다
+  if (t.type === 'ring') { t.free = true; t.open = false; t.title = 'JAY의 바 · 자유석'; t.tag = '방장 없이 누구나 바로 · 6인 링 바'; t.opener = 'JAY: 오늘 기분을 술 한 잔으로 표현하면, 뭐예요?'; }
 }
 
 export const SPOTS = [

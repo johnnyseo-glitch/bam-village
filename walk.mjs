@@ -1,14 +1,14 @@
 // 밤마을 v0.7 — 카메라, 입력, 군중, 상호작용, 다이얼로그.
-import * as T from './vendor/three.min.mjs?v=1791364675';
-import {createBgm} from './bgm.mjs?v=1791364675';
-import {createWorld, HOST_STEP} from './world.mjs?v=1791364675';
-import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791364675';
+import * as T from './vendor/three.min.mjs?v=1791365203';
+import {createBgm} from './bgm.mjs?v=1791365203';
+import {createWorld, HOST_STEP} from './world.mjs?v=1791365203';
+import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791365203';
 import {TABLES, SPOTS, WANDERERS, LOUNGERS, DRINKS, ENTRY, ROOM, MOODS, JACKETS, ACCESSORIES, DRINK_MINUTES, PROFILE_TAGS, ROUND_MINUTES, NEXT_TOPICS, VILLAGES, RESIDENT_COUNT, RING, OBSTACLES,
-  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC, DOOR_Z} from './map-data.mjs?v=1791364675';
-import {createSession} from './session.mjs?v=1791364675';
-import {createOnline} from './online.mjs?v=1791364675';
-import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791364675';
-import {createGames} from './games.mjs?v=1791364675';
+  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC, DOOR_Z} from './map-data.mjs?v=1791365203';
+import {createSession} from './session.mjs?v=1791365203';
+import {createOnline} from './online.mjs?v=1791365203';
+import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791365203';
+import {createGames} from './games.mjs?v=1791365203';
 
 const $ = id => document.getElementById(id);
 const view = $('viewport'), dialog = $('villageDialog'), calm = $('calm');
@@ -133,6 +133,7 @@ const rounds = Object.fromEntries(TABLES.map(t => [t.id, {ends: Date.now() + (RO
 const minsLeft = t => Math.max(1, Math.ceil((rounds[t.id].ends - Date.now()) / 60000));
 function newRound(t) {
   const list = NEXT_TOPICS[t.id] ?? [], r = rounds[t.id];
+  if (t.free) { if (list.length) t.opener = 'JAY: ' + list[r.next++ % list.length][1].replace(/^JAY: /, ''); r.ends = Date.now() + 25 * 60000; return; } // 자유석은 이름 그대로, JAY 질문만 바뀐다
   if (list.length) { const [title, opener] = list[r.next++ % list.length]; t.title = title; t.opener = opener; }
   r.ends = Date.now() + 25 * 60000;
   const spot = SPOTS.find(s => s.id === t.id); if (spot) spot.title = t.title;
@@ -168,6 +169,7 @@ const npcTags = npcs.filter(n => !n.host).map(n => {
 });
 
 function tableBadge(t) {
+  if (t.free) { const n = session.occupancy(t.id); return state.table === t.id ? [`내 자리 · ${n}/${t.seats.length}`, 'mine'] : n >= t.seats.length ? ['만석', 'full'] : [`자유석 · 바로 앉기 · ${n}/${t.seats.length}`, 'open']; }
   const rOwner = t.open && state.table !== t.id ? online?.ownerOf(t.id) : null;
   if (rOwner) { const n = session.occupancy(t.id); return [`👑 ${rOwner.p.n || '팀원'} · ${n}/${t.seats.length}`, n >= t.seats.length ? 'full' : 'open']; }
   if (t.open && !t.members.length && state.table !== t.id && !(state.guests[t.id]?.length) && !online?.atTable(t.id).length) return ['비어 있음 · 방장 가능', 'open'];
@@ -429,6 +431,19 @@ function setMood(mood) { state.profile.mood = mood; saveProfile(); refresh(); }
 function openTable(t) {
   if (place === 'town') { status('바 안의 테이블이에요 · [바로 들어가기]를 눌러요'); return; }
   if (tutorial) tutorialEvent('table');
+  if (t.free && state.table !== t.id) { // 링 바 자유석: 묻지 않고 바로 앉기
+    const n = session.occupancy(t.id), full = n >= t.seats.length;
+    show('TABLE ' + String(t.number).padStart(2, '0'), `<h2>${esc(t.title)}</h2>
+      <p class="meta">${esc(t.tag)} · ${n}/${t.seats.length}석</p><div class="people">${playerChips(t)}</div>
+      <p class="note">${full ? '지금은 자리가 꽉 찼어요. 조금 뒤에 다시 와봐요.' : '방장 없이 누구나 앉는 자리예요. 앉으면 JAY가 첫 질문을 던져줘요.'}</p>
+      <button id="tableAction" class="action">${full ? '열린 테이블 보기' : '🍸 바로 앉기'}</button>`);
+    $('tableAction').onclick = () => {
+      if (full) { showMap(); return; }
+      if (state.table) { confirmStand(t.title, () => sitFreeSeat(t)); return; }
+      sitFreeSeat(t);
+    };
+    return;
+  }
   if (t.open && !t.members.length && state.table !== t.id && !(state.guests[t.id]?.length) && !online?.atTable(t.id).length) {
     if (!NO_NPC && !has('openRoom')) {
       show('EMPTY · T' + t.number, `<h2>아직 비어 있는 자리예요</h2><p>처음엔 이야기가 열린 판에 함께 앉아봐요. 한 번 앉아보면 여기서 직접 판을 열 수 있어요.</p>
@@ -2034,6 +2049,11 @@ function showPlayers() {
 function walkAndSit(t) {
   const arrive = () => { try { session.confirmSeat(t.id); } catch (e) { status(e.message); refresh(); return; } seatMe(t); showConversation(t); };
   arrive(); // 승인되면 걸어가지 않고 바로 앉는다
+}
+function sitFreeSeat(t) {
+  try { session.sitFree(t.id); } catch (e) { status(e.message); return; }
+  closeDialog(); seatMe(t); showConversation(t);
+  status(`🍸 ${t.title}에 앉았어요`);
 }
 function becomeOwner(t) { state.owned = t.id; status('👑 방장이 자리를 떠서 이제 내가 방장이에요'); refresh(); }
 function kicked() {

@@ -1,7 +1,7 @@
 // 밤마을 v0.5 — 한 손님의 체험 상태.
 // 서버가 없으므로 이 브라우저 안에서만 유지된다. 실제 파일럿에서는 좌석·요청·주문의
 // 최종 상태를 서버 한 곳에서만 확정해야 한다.
-import {TABLES, DRINKS} from './map-data.mjs?v=1791364675';
+import {TABLES, DRINKS} from './map-data.mjs?v=1791365203';
 
 export const ORDER_STEPS = ['접수', '준비 중', '서빙 완료'];
 
@@ -122,6 +122,17 @@ export function createSession() {
     return t;
   }
 
+  // 자유석(방장 없음): 빈 자리만 있으면 바로 앉는다
+  function sitFree(id) {
+    const t = findTable(id);
+    if (occupancy(id) >= t.seats.length && state.table !== id) throw new Error('지금은 자리가 꽉 찼어요.');
+    if (state.table && state.table !== id) leave();
+    state.pending = null; state.table = id;
+    if (!state.joined.includes(id)) state.joined.push(id);
+    record('자유석 · T' + t.number + ' ' + t.title);
+    return t;
+  }
+
   function praise(npcId, name, tag) {
     if (state.praised.has(npcId)) throw new Error('오늘은 이미 칭찬했어요.');
     state.praised.add(npcId);
@@ -201,5 +212,5 @@ export function createSession() {
   }
 
   return {state, record, occupancy, isFull, mySeat, setProfile, request, cancelRequest, declineRequest,
-    confirmSeat, leave, claim, hooks, mySeatIndex, praise, receivePraise, recentSame, order, addGuest, advanceOrder, cancelOrder, greet, summary, reset};
+    confirmSeat, leave, claim, sitFree, hooks, mySeatIndex, praise, receivePraise, recentSame, order, addGuest, advanceOrder, cancelOrder, greet, summary, reset};
 }
