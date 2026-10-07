@@ -1,14 +1,14 @@
 // 밤마을 v0.7 — 카메라, 입력, 군중, 상호작용, 다이얼로그.
-import * as T from './vendor/three.min.mjs?v=1791364165';
-import {createBgm} from './bgm.mjs?v=1791364165';
-import {createWorld, HOST_STEP} from './world.mjs?v=1791364165';
-import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791364165';
+import * as T from './vendor/three.min.mjs?v=1791364372';
+import {createBgm} from './bgm.mjs?v=1791364372';
+import {createWorld, HOST_STEP} from './world.mjs?v=1791364372';
+import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791364372';
 import {TABLES, SPOTS, WANDERERS, LOUNGERS, DRINKS, ENTRY, ROOM, MOODS, JACKETS, ACCESSORIES, DRINK_MINUTES, PROFILE_TAGS, ROUND_MINUTES, NEXT_TOPICS, VILLAGES, RESIDENT_COUNT, RING, OBSTACLES,
-  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC, DOOR_Z} from './map-data.mjs?v=1791364165';
-import {createSession} from './session.mjs?v=1791364165';
-import {createOnline} from './online.mjs?v=1791364165';
-import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791364165';
-import {createGames} from './games.mjs?v=1791364165';
+  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC, DOOR_Z} from './map-data.mjs?v=1791364372';
+import {createSession} from './session.mjs?v=1791364372';
+import {createOnline} from './online.mjs?v=1791364372';
+import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791364372';
+import {createGames} from './games.mjs?v=1791364372';
 
 const $ = id => document.getElementById(id);
 const view = $('viewport'), dialog = $('villageDialog'), calm = $('calm');
@@ -1823,6 +1823,8 @@ function animate(now) {
   }
   // 문턱을 넘어 걸어 나가면(조이스틱·탭 모두) 바로 골목으로
   if (place === 'bar' && inVillage && level === 1 && !state.table && !escorting && !dialog.open && actor.position.z > DOOR_Z && Math.abs(actor.position.x) < 1.7) exitToTown();
+  // 골목에서는 바 문 앞 문턱을 넘어 문 쪽으로 걸어가면 바로 바 안으로
+  else if (place === 'town' && !dialog.open && actor.position.z < DOOR_IN_Z && Math.abs(actor.position.x - (TOWN_X - 12.25)) < 1.0 && actor.position.z > DOOR_IN_Z - 2) goInside();
   if (place === 'bar') animateCrowd(now, dt); else town.update(now, dt, actor);
   animatePets(now, dt);
   if (fadeT && now > fadeT) { fadeT = 0; $('fade').classList.remove('on'); }
@@ -1864,7 +1866,16 @@ function ensureTown() {
     $('worldLabels').appendChild(b);
     townLabels.push({spot: s, button: b, y: s.kind === 'door' ? 3.4 : s.id === 'hotel' ? 3.6 : s.id === 'park' ? 3 : 2.6});
   }
+  // 바 문 앞 바닥: 'IN · 바로 들어가기' 빛 띠. 이 선을 넘어 문 쪽으로 걸어가면 바로 들어간다.
+  const door = TOWN_SPOTS.find(s => s.kind === 'door');
+  const c = document.createElement('canvas'); c.width = 512; c.height = 96; const g = c.getContext('2d');
+  const gr = g.createLinearGradient(0, 0, 0, 96); gr.addColorStop(0, '#ffb06600'); gr.addColorStop(.5, '#ffb066cc'); gr.addColorStop(1, '#ffb06600');
+  g.fillStyle = gr; g.fillRect(0, 0, 512, 96); g.fillStyle = '#fff3df'; g.font = "44px Jua, sans-serif"; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('↑ IN · 바로 들어가기', 256, 50);
+  const tex = new T.CanvasTexture(c); tex.colorSpace = T.SRGBColorSpace;
+  const strip = new T.Mesh(new T.PlaneGeometry(2.2, .42), new T.MeshBasicMaterial({map: tex, transparent: true, depthWrite: false, toneMapped: false}));
+  strip.rotation.x = -Math.PI / 2; strip.position.set(door.x, .03, DOOR_IN_Z + .05); strip.userData.ignorePick = true; town.group.add(strip);
 }
+const DOOR_IN_Z = 3.25; // 골목 바 문 앞 문턱(z가 이보다 작아지면 들어간다)
 function switchPlace(to) {
   place = to; bgm.setScene(to === 'town' ? 'town' : 'bar');
   for (const o of indoorObjs) o.visible = to === 'bar';
@@ -1905,9 +1916,7 @@ function walkTownSpot(id) {
 function openTownSpot(id) {
   const s = TOWN_SPOTS.find(s => s.id === id); if (!s) return;
   if (s.kind === 'door') {
-    show('밤마을 바', `<h2>바에 들어갈까요?</h2><p>오늘 방문은 계속 이어져요. 자리·주문·기록은 그대로예요.</p>
-      <button class="action" id="tIn">바에 들어가기</button><button class="secondary" id="tStay">조금 더 걸을래요</button>`);
-    $('tIn').onclick = () => { closeDialog(); goInside(); }; $('tStay').onclick = closeDialog; return;
+    goInside(); return; // 문까지 가면 묻지 않고 바로 들어간다
   }
   if (s.kind === 'view') { wideUntil = performance.now() + 7000; status('🌊 한강 너머로 남산서울타워, 오른쪽에 롯데월드타워, 왼쪽에 63빌딩이 보여요'); bubbleOver(actor, '와…', '#d8f0ff', 2200, 2.0); return; }
   show(s.name, `<p class="kicker">오픈 준비 중</p><h2>${esc(s.name)}</h2><p>${esc(s.note)}</p>

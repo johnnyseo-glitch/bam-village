@@ -1,7 +1,7 @@
 // 밤마을 v1.1 — 바 밖의 작은 서울. 해 질 무렵의 성수 골목 · 광장 · 한강 산책로 · 궁궐 돌담길.
 // 실제 서울 지도를 줄인 것이 아니라, 서울의 재료와 풍경을 짧은 산책 거리로 다시 짠 가상의 동네다.
 // 모든 그림은 코드와 캔버스로 만든다. 건물 내부는 없다(외관과 '오픈 준비 중' 안내까지).
-import * as T from './vendor/three.min.mjs?v=1791364165';
+import * as T from './vendor/three.min.mjs?v=1791364372';
 
 export const TOWN_X = 200;                 // 바 실내와 겹치지 않게 멀리 떨어진 곳에 둔다
 export const TOWN = {minX: -21.5, maxX: 21.5, minZ: -12, maxZ: 8.6};

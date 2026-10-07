@@ -1,8 +1,8 @@
 // 밤마을 v0.7 — 앰버 조명의 미드센추리 바 디오라마와 2등신 동물 주민.
 // 모든 그림은 코드와 캔버스로 직접 만든다(외부 이미지·모델 없음).
 // 무드: 월넛 루버 · 러스트 벨벳 커튼 · 웜다크 콘크리트 · 돌기둥 링 바 · 버섯 램프 · 캐러멜 가죽 · 앰버 빛 웅덩이.
-import * as T from './vendor/three.min.mjs?v=1791364165';
-import {TABLES, WANDERERS, LOUNGERS, ENTRY, DOOR_Z, ROOM, RING, SOFA, MEZZ, MEZZ_Y, STAIRS, WELCOME_ZONE, PEOPLE} from './map-data.mjs?v=1791364165';
+import * as T from './vendor/three.min.mjs?v=1791364372';
+import {TABLES, WANDERERS, LOUNGERS, ENTRY, DOOR_Z, ROOM, RING, SOFA, MEZZ, MEZZ_Y, STAIRS, WELCOME_ZONE, PEOPLE} from './map-data.mjs?v=1791364372';
 
 export const HOST_STEP = .32; // 링 바 안쪽 발판 높이: 호스트 얼굴이 카운터 위로 보이게
 const SKY = '#1c1411';
