@@ -1870,7 +1870,8 @@ function playerChips(t) {
 function netLine() {
   const st = online?.net.status;
   if (st === 'on') return `<p>👥 <b>팀 테스트 연결됨</b> <small>(${window.__bamNet?.via === 'mqtt' ? '공개 실시간 서버 · 로그인 없이 모두 같은 방' : 'Claude 로그인 사용자끼리'})</small> · 지금 마을에 ${online.count}명${online.net.isHost ? ' · 내가 호스트' : ''}</p>${online.net.isHost ? `<button class="secondary" id="netHost">${online.net.hostMode ? '호스트 화면 (켜짐)' : '호스트 화면 열기 · QR 입장 코드'}</button>` : ''}`;
-  if (st === 'off') return '<p>혼자 체험 모드예요. 실시간 서버에 연결하지 못했어요(회사·공용 와이파이가 막았을 수 있어요). 다른 네트워크나 휴대폰 데이터로 다시 열어보세요.</p>';
+  if (st === 'off') { const inClaude = /claude\.ai|claudeusercontent|anthropic/.test(location.hostname) || !!window.claude;
+    return `<p>혼자 체험 모드예요. 실시간 서버에 연결하지 못했어요.</p>${inClaude ? '<p>👉 이 Claude 링크에서는 외부 실시간 연결이 막혀 있을 수 있어요. <b>johnnyseo-glitch.github.io/bam-village</b> 주소로 열어주세요.</p>' : '<p>회사·공용 와이파이가 막았을 수 있어요. 휴대폰 데이터로 다시 열어보세요.</p>'}<p class="net-err">${(window.__bamNet?.errors ?? []).map(esc).join('<br>')}</p>`; }
   return '<p>팀 연결 확인 중…</p>';
 }
 function bindNetLine() { if ($('netHost')) $('netHost').onclick = () => online.openHost(); }

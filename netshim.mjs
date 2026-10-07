@@ -3,7 +3,9 @@
 // 테스트용: 공개 브로커라 같은 방 이름을 아는 사람은 메시지를 볼 수 있다. 실제 서비스에서는 전용 서버로 바꾼다.
 import mqtt from './vendor/mqtt.esm.js';
 
-const BROKERS = ['wss://broker.hivemq.com:8884/mqtt', 'wss://broker.emqx.io:8084/mqtt', 'wss://test.mosquitto.org:8081/mqtt'];
+// 차례대로 시도한다(모두 같은 순서라 같은 서버에서 만난다). shiftr는 443 포트라 회사·공용망에서도 잘 열린다.
+const BROKERS = ['wss://broker.hivemq.com:8884/mqtt', 'wss://public:public@public.cloud.shiftr.io', 'wss://broker.emqx.io:8084/mqtt'];
+const errors = [];
 const rand = n => Array.from(crypto.getRandomValues(new Uint8Array(n)), b => b.toString(16).padStart(2, '0')).join('');
 const store = {get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} }};
 
@@ -25,9 +27,9 @@ export function install({brokers = BROKERS} = {}) {
         const c = mqtt.connect(url, {clientId: 'bam_' + peerId + '_' + rand(2), clean: true, reconnectPeriod: 3000, connectTimeout: 7000, keepalive: 30,
           will: {topic: `${P}/p/${peerId}`, payload: '', retain: true, qos: 0}});
         const fail = () => { c.end(true); res(null); };
-        const timer = setTimeout(fail, 8000);
+        const timer = setTimeout(() => { errors.push(url.replace(/^wss:\/\/([^@]*@)?/, '').split(/[:/]/)[0] + ': 응답 없음'); fail(); }, 8000);
         c.once('connect', () => { clearTimeout(timer); res(c); });
-        c.once('error', () => { clearTimeout(timer); fail(); });
+        c.once('error', e => { clearTimeout(timer); errors.push(url.replace(/^wss:\/\/([^@]*@)?/, '').split(/[:/]/)[0] + ': ' + (e?.message || 'error').slice(0, 60)); fail(); });
       });
       if (ok) { client = ok; break; }
     }
@@ -129,6 +131,6 @@ export function install({brokers = BROKERS} = {}) {
   const native = window.claude?.use ? window.claude.use.bind(window.claude) : null;
   window.__bamNet = {room: ROOM, ready, get broker() { return client?.options?.href ?? null; },
     use: name => ready.then(ok => ok ? (caps[name] ?? null) : (native ? native(name).catch(() => null) : null)),
-    get via() { return client ? 'mqtt' : native ? 'claude' : 'off'; }};
+    get via() { return client ? 'mqtt' : native ? 'claude' : 'off'; }, errors};
   return ready;
 }

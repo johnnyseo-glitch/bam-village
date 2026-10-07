@@ -512,3 +512,5 @@ label.sw:has(input:checked) span { box-shadow: 0 0 0 3px var(--brown); }
 .pen-grid button { display: grid; justify-items: center; gap: 2px; padding: 8px 2px; border: 2px solid var(--cream-3); border-radius: 12px; background: #fff; font-family: var(--font-display); font-size: 12px; color: var(--brown); }
 .pen-grid button span { font-size: 24px; }
 .pen-grid button.on { border-color: var(--brown); background: #fff3cf; box-shadow: 0 3px 0 var(--brown); }
+
+.net-err { font-size: 11px !important; color: var(--brown-soft); opacity: .8; word-break: break-all; }
