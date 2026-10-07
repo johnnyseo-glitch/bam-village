@@ -1,5 +1,5 @@
 // 밤마을 — 가구를 피해 걷는 격자 경로 찾기(1층·2층 따로) + 계단으로 층 잇기.
-import {ROOM, OBSTACLES, OBSTACLES_UPPER, MEZZ, MEZZ_Y, STAIRS} from './map-data.mjs?v=1791363411';
+import {ROOM, OBSTACLES, OBSTACLES_UPPER, MEZZ, MEZZ_Y, STAIRS} from './map-data.mjs?v=1791364165';
 
 export const STEP = .25;
 
@@ -11,7 +11,8 @@ function createNav(bounds, {circles, rects}) {
     return true;
   }
   const cells = [], lookup = new Map();
-  for (let i = 0; i <= 66; i++) for (let j = 0; j <= 54; j++) {
+  const jMax = Math.floor((bounds.maxZ + 6.75) / STEP);
+  for (let i = 0; i <= 66; i++) for (let j = 0; j <= jMax; j++) {
     const x = -8.25 + i * STEP, z = -6.75 + j * STEP;
     if (valid(x, z)) { const c = {i, j, x, z, key: i + ',' + j}; cells.push(c); lookup.set(c.key, c); }
   }

@@ -1,14 +1,14 @@
 // 밤마을 v0.7 — 카메라, 입력, 군중, 상호작용, 다이얼로그.
-import * as T from './vendor/three.min.mjs?v=1791363411';
-import {createBgm} from './bgm.mjs?v=1791363411';
-import {createWorld, HOST_STEP} from './world.mjs?v=1791363411';
-import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791363411';
+import * as T from './vendor/three.min.mjs?v=1791364165';
+import {createBgm} from './bgm.mjs?v=1791364165';
+import {createWorld, HOST_STEP} from './world.mjs?v=1791364165';
+import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791364165';
 import {TABLES, SPOTS, WANDERERS, LOUNGERS, DRINKS, ENTRY, ROOM, MOODS, JACKETS, ACCESSORIES, DRINK_MINUTES, PROFILE_TAGS, ROUND_MINUTES, NEXT_TOPICS, VILLAGES, RESIDENT_COUNT, RING, OBSTACLES,
-  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC} from './map-data.mjs?v=1791363411';
-import {createSession} from './session.mjs?v=1791363411';
-import {createOnline} from './online.mjs?v=1791363411';
-import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791363411';
-import {createGames} from './games.mjs?v=1791363411';
+  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC, DOOR_Z} from './map-data.mjs?v=1791364165';
+import {createSession} from './session.mjs?v=1791364165';
+import {createOnline} from './online.mjs?v=1791364165';
+import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791364165';
+import {createGames} from './games.mjs?v=1791364165';
 
 const $ = id => document.getElementById(id);
 const view = $('viewport'), dialog = $('villageDialog'), calm = $('calm');
@@ -242,11 +242,10 @@ function renderDock() {
     dock.innerHTML = `<div class="dock-head">${moodChip}${orderChip}</div>
       <div class="dock-actions">
         <button id="toBar">바 앞으로</button>
-        <button id="toLounge">라운지</button>
         <button id="toMap">열린 테이블</button>
         <button class="quiet" id="toEntry">🚪 나가기</button>
       </div>`;
-    $('toBar').onclick = () => selectEntity('host'); $('toLounge').onclick = () => selectEntity('lounge');
+    $('toBar').onclick = () => selectEntity('host');
     $('toMap').onclick = showMap; $('toEntry').onclick = finishVisit;
     $('dockMood').onclick = openMood;
   }
@@ -422,13 +421,6 @@ function openEntity(id) {
   if (id === 'stairs' || id === 'stairsDown') { selectEntity(id); return; }
   if (id === 'host') { openHost(); return; }
   if (id === 'exit') { exitToTown(); return; }
-  if (id === 'lounge') {
-    show('QUIET CORNER', `<h2>오늘은 천천히 쉬어도 돼요</h2>
-      <p>혼술 코너에서는 먼저 말을 걸지 않아요. 상태를 ‘혼술 중’으로 바꾸면 인사와 초대도 받지 않아요.</p>
-      <button class="action" id="restHere">혼술 중으로 바꾸기</button><button class="secondary" id="restNo">그냥 둘러볼게요</button>`);
-    $('restHere').onclick = () => { setMood('rest'); session.record('라운지에서 잠깐 쉬었어요'); closeDialog(); status('천천히 쉬어요. 다시 대화하고 싶으면 상태를 바꾸면 돼요.'); };
-    $('restNo').onclick = closeDialog;
-  }
 }
 
 function setMood(mood) { state.profile.mood = mood; saveProfile(); refresh(); }
@@ -713,10 +705,10 @@ function recommendTable() {
 
 function soloGuide() {
   show('HOST JAY', `<h2>혼자 오신 거, 완전 좋아요</h2>
-    <div class="bubble-line">여기 오는 분 절반은 혼자예요. 링 바에 앉으면 제가 첫 질문을 던져드리고, 분위기 올라오면 빠질게요. 조용히 마시고 싶으면 혼술 코너도 있어요.</div>
-    <button class="action" id="soloRing">링 바에 앉아볼래요</button><button class="secondary" id="soloNook">혼술 코너로 갈게요</button>`);
+    <div class="bubble-line">여기 오는 분 절반은 혼자예요. 링 바에 앉으면 제가 첫 질문을 던져드리고, 분위기 올라오면 빠질게요. 앞쪽 긴 바 테이블은 마주 보고 얘기하기 좋아요.</div>
+    <button class="action" id="soloRing">링 바에 앉아볼래요</button><button class="secondary" id="soloNook">바 테이블 볼래요</button>`);
   $('soloRing').onclick = () => selectEntity('table5');
-  $('soloNook').onclick = () => selectEntity('lounge');
+  $('soloNook').onclick = () => selectEntity('bar1');
 }
 
 function openHostHelp() {
@@ -1107,29 +1099,28 @@ function showMap() {
 
 function drawMap() {
   const canvas = $('floorPlan'); if (!canvas) return;
-  const c = canvas.getContext('2d'), mx = x => 220 + x * 22, mz = z => 180 + z * 22;
+  const K = 17, c = canvas.getContext('2d'), mx = x => 220 + x * K, mz = z => 180 + (z - ROOM.cz) * K;
   c.clearRect(0, 0, 440, 360);
-  c.fillStyle = '#d9c7b0'; c.fillRect(mx(-9), mz(-7.5), 396, 330);
-  c.fillStyle = '#5a3a28'; c.fillRect(mx(-9), mz(-7.5), 396, 8); c.fillRect(mx(-9), mz(-7.5), 8, 330);
+  c.fillStyle = '#d9c7b0'; c.fillRect(mx(-9), mz(-7.5), 18 * K, (ROOM.maxZ + 7.5) * K);
+  c.fillStyle = '#5a3a28'; c.fillRect(mx(-9), mz(-7.5), 18 * K, 6); c.fillRect(mx(-9), mz(-7.5), 6, (ROOM.maxZ + 7.5) * K);
   c.font = '14px Jua, sans-serif'; c.textAlign = 'center';
   // 2층(메자닌) 띠와 계단
-  c.fillStyle = '#5a3a2899'; c.fillRect(mx(-8.4), mz(-7.5), 16.8 * 22, (MEZZ.front + 7.5) * 22);
+  c.fillStyle = '#5a3a2899'; c.fillRect(mx(-8.4), mz(-7.5), 16.8 * K, (MEZZ.front + 7.5) * K);
   c.fillStyle = '#fff7e6'; c.textAlign = 'left'; c.fillText('2F AFTER', mx(-6.9), mz(-5.45)); c.textAlign = 'center';
-  c.fillStyle = '#8a5636'; c.fillRect(mx(STAIRS.x - STAIRS.width / 2), mz(STAIRS.topZ), STAIRS.width * 22, (STAIRS.bottomZ - STAIRS.topZ) * 22);
+  c.fillStyle = '#8a5636'; c.fillRect(mx(STAIRS.x - STAIRS.width / 2), mz(STAIRS.topZ), STAIRS.width * K, (STAIRS.bottomZ - STAIRS.topZ) * K);
   // Welcome Zone
-  c.strokeStyle = '#ff8a3d'; c.setLineDash([5, 4]); c.beginPath(); c.arc(mx(WELCOME_ZONE.x), mz(WELCOME_ZONE.z), WELCOME_ZONE.r * 22, 0, 7); c.stroke(); c.setLineDash([]);
-  // 혼술 코너
-  const nook = OBSTACLES.rects[2];
-  c.fillStyle = '#c98a5c'; c.fillRect(mx(nook.minX), mz(nook.minZ), (nook.maxX - nook.minX) * 22, (nook.maxZ - nook.minZ) * 22);
-  c.fillStyle = '#3b2a22'; c.fillText('혼술', mx(-7.4), mz(4.5) + 5);
+  c.strokeStyle = '#ff8a3d'; c.setLineDash([5, 4]); c.beginPath(); c.arc(mx(WELCOME_ZONE.x), mz(WELCOME_ZONE.z), WELCOME_ZONE.r * K, 0, 7); c.stroke(); c.setLineDash([]);
+  // 문턱(골목으로)
+  c.fillStyle = '#ffb066'; c.fillRect(mx(-1.4), mz(DOOR_Z), 2.8 * K, 5);
   for (const t of TABLES) {
     const [, kind] = tableBadge(t);
     c.fillStyle = kind === 'mine' ? '#ff8a3d' : kind === 'full' ? '#a89a8c' : kind === 'pending' ? '#f4b942' : '#3cb98a';
     c.beginPath();
-    if (t.type === 'ring') { c.arc(mx(t.x), mz(t.z), RING.outer * 22, 0, Math.PI * 2); c.fill(); c.fillStyle = '#5a3a28'; c.beginPath(); c.arc(mx(t.x), mz(t.z), RING.inner * 22, 0, Math.PI * 2); }
+    if (t.type === 'ring') { c.arc(mx(t.x), mz(t.z), RING.outer * K, 0, Math.PI * 2); c.fill(); c.fillStyle = '#5a3a28'; c.beginPath(); c.arc(mx(t.x), mz(t.z), RING.inner * K, 0, Math.PI * 2); }
     else if (t.type === 'booth') { c.arc(mx(t.x), mz(t.z), 26, Math.PI, Math.PI * 2); c.lineTo(mx(t.x), mz(t.z)); }
-    else if (t.type === 'long') c.roundRect(mx(t.x - 1.3), mz(t.z - .5), 2.6 * 22, 22, 6);
-    else if (t.type === 'sofa') c.roundRect(mx(4.6), mz(.6), 3.2 * 22, 2.5 * 22, 10);
+    else if (t.type === 'long') c.roundRect(mx(t.x - 1.3), mz(t.z - .5), 2.6 * K, K, 6);
+    else if (t.type === 'bar') c.roundRect(mx(t.x - 1.6), mz(t.z - .45), 3.2 * K, .9 * K, 5);
+    else if (t.type === 'sofa') c.roundRect(mx(4.6), mz(.6), 3.2 * K, 2.5 * K, 10);
     else c.arc(mx(t.x), mz(t.z), 19, 0, Math.PI * 2);
     c.fill();
     c.fillStyle = '#ffffff'; c.fillText(t.type === 'ring' ? 'BAR' : 'T' + t.number, mx(t.x), mz(t.z) + 5);
@@ -1137,7 +1128,7 @@ function drawMap() {
   for (const n of npcs) { c.fillStyle = '#5a3a28'; c.beginPath(); c.arc(mx(n.root.position.x), mz(n.root.position.z), 3.5, 0, 7); c.fill(); }
   c.fillStyle = '#ff6a2b'; c.beginPath(); c.arc(mx(actor.position.x), mz(actor.position.z), 6.5, 0, 7); c.fill();
   c.fillStyle = '#3b2a22'; c.fillText('나', mx(actor.position.x), mz(actor.position.z) - 11);
-  c.fillText('입구', 220, mz(6.6));
+  c.fillText('입구 · 골목으로', 220, mz(DOOR_Z) - 6);
 }
 
 // 나가기는 두 가지로 나눈다(고르는 창 없음):
@@ -1461,7 +1452,7 @@ view.addEventListener('pointerdown', e => {
   if (escorting) { status('JAY가 안내하는 중이에요. 잠깐만요.'); return; }
   if (state.table) { seatedHint(); return; }
   if (picked?.object.userData.level === 2) { goTo(picked.point.x, picked.point.z, '', null, 2); return; }
-  if (raycaster.ray.intersectPlane(floor, hit) && Math.abs(hit.x) < ROOM.width / 2 && Math.abs(hit.z) < ROOM.depth / 2) goTo(hit.x, hit.z, '', null, 1);
+  if (raycaster.ray.intersectPlane(floor, hit) && Math.abs(hit.x) < ROOM.width / 2 && hit.z > ROOM.minZ - .1 && hit.z < ROOM.maxZ + .1) goTo(hit.x, hit.z, '', null, 1);
 });
 
 const mapping = {ArrowUp: 'up', w: 'up', W: 'up', ArrowDown: 'down', s: 'down', S: 'down', ArrowLeft: 'left', a: 'left', A: 'left', ArrowRight: 'right', d: 'right', D: 'right'};
@@ -1830,6 +1821,8 @@ function animate(now) {
     const target = blocking ? .12 : 1;
     if (Math.abs(l.opacity - target) > .01) { l.opacity = T.MathUtils.damp(l.opacity, target, 6, dt); for (const m of l.mats) m.opacity = l.opacity; }
   }
+  // 문턱을 넘어 걸어 나가면(조이스틱·탭 모두) 바로 골목으로
+  if (place === 'bar' && inVillage && level === 1 && !state.table && !escorting && !dialog.open && actor.position.z > DOOR_Z && Math.abs(actor.position.x) < 1.7) exitToTown();
   if (place === 'bar') animateCrowd(now, dt); else town.update(now, dt, actor);
   animatePets(now, dt);
   if (fadeT && now > fadeT) { fadeT = 0; $('fade').classList.remove('on'); }
@@ -2122,7 +2115,7 @@ window.addEventListener('pageshow', () => { if (!failed && !frameId) { resize();
 window.__bam = {state, wallet, showMy, wide: ms => { wideUntil = performance.now() + ms; }, goOutside, goInside, get place() { return place; }, get town() { return town; }, get games() { return games; }, applyLook, checkWeekend, get online() { return online; }, get inVillage() { return inVillage; }, rounds, doEmote, standAt, get emoteAnim() { return emoteAnim; }, get level() { return level; }, get tutorial() { return tutorial; }, get myPet() { return myPet; }, actor, host, npcs, select: id => selectEntity(id), endRound: id => newRound(tableOf(id)), get drink() { return drink; }, get escorting() { return escorting; }, get path() { return path; }, get jumpY() { return jumpY; }, get knock() { return knock; }, punch, punched, get hurt() { return {ouchUntil, stunUntil, now: performance.now()}; }};
 
 if (document.modelContext?.registerTool) {
-  const spots = ['host', 'lounge', 'exit', 'table1', 'table2', 'table3', 'table4', 'table5'];
+  const spots = ['host', 'exit', 'table1', 'table2', 'table3', 'table4', 'table5'];
   try {
     Promise.resolve(document.modelContext.registerTool({
       name: 'walk_to_village_spot',

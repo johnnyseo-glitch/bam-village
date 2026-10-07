@@ -3,9 +3,11 @@
 // 테이블은 종류마다 좌석 수와 좌석 위치가 다르다:
 //   round(원형 4인) · booth(벨벳 부스 4인) · ring(링 바 6인, 호스트가 가운데) · long(긴 테이블 6인) · sofa(소파 거실존 5석)
 
-export const ROOM = {width: 18, depth: 15, minX: -8.4, maxX: 8.4, minZ: -6.9, maxZ: 6.9};
-export const ENTRY = {x: 0, z: 5.8};
-export const WELCOME_ZONE = {x: 0, z: 5.3, r: 1.7};
+// v1.7: 앞쪽(입구 쪽)으로 4m 넓혔다. 입구는 맨 앞, 문턱(DOOR_Z)을 넘어 걸어 나가면 골목으로 나간다.
+export const ROOM = {width: 18, depth: 19, minX: -8.4, maxX: 8.4, minZ: -6.9, maxZ: 10.9, cz: 2};
+export const ENTRY = {x: 0, z: 9.3};
+export const DOOR_Z = 10.35;
+export const WELCOME_ZONE = {x: 0, z: 8.9, r: 1.7};
 
 // 복층(메자닌): 뒤쪽 벽을 따라 2층. 왼쪽 벽 계단으로 오르내린다.
 export const MEZZ_Y = 2.9;
@@ -48,6 +50,12 @@ function longSeats(cx, cz) {
     const x = cx + dx, z = cz + side * .85;
     seats.push({x, z, heading: side < 0 ? 0 : Math.PI, y: SEAT_HEIGHT.dining, kind: dx === 0 ? 'tub' : 'dining'});
   }
+  return seats;
+}
+// 마주 보는 하이 바 테이블: 긴 상판 양쪽에 스툴 3개씩, 서로 마주 본다.
+function barSeats(cx, cz) {
+  const seats = [];
+  for (const side of [-1, 1]) for (const dx of [-1.0, 0, 1.0]) seats.push({x: cx + dx, z: cz + side * .78, heading: side < 0 ? 0 : Math.PI, y: SEAT_HEIGHT.stool, kind: 'stool'});
   return seats;
 }
 // AFTER DRINK 존(2층): 2인 테이블. 의자 두 개가 마주 본다.
@@ -97,16 +105,23 @@ export const TABLES = [
   {id: 'table6', number: 6, type: 'round', open: true, title: '빈 테이블', tag: '먼저 앉으면 방장 · 원형 4인', x: -3.7, z: 4.75,
     approach: {x: -1.8, z: 4.6}, seats: roundSeats(-3.7, 4.75), memberSeats: [], freeOrder: [0, 3, 1, 2], rug: '#cfc6b8',
     colors: [], members: [], species: [], furs: [], demoResponse: 'accept', opener: ''},
+  // 앞쪽 마주 보는 바 테이블 두 개(6인)
+  {id: 'bar1', number: 7, type: 'bar', title: '빈 바 테이블', tag: '마주 보는 바 테이블 · 6인', x: -4.6, z: 7.3,
+    approach: {x: -2.35, z: 7.3}, seats: barSeats(-4.6, 7.3), memberSeats: [], freeOrder: [0, 3, 1, 4, 2, 5],
+    colors: [], members: [], species: [], furs: [], demoResponse: 'accept', opener: ''},
+  {id: 'bar2', number: 8, type: 'bar', title: '빈 바 테이블', tag: '마주 보는 바 테이블 · 6인', x: 4.6, z: 7.3,
+    approach: {x: 2.35, z: 7.3}, seats: barSeats(4.6, 7.3), memberSeats: [], freeOrder: [0, 3, 1, 4, 2, 5],
+    colors: [], members: [], species: [], furs: [], demoResponse: 'accept', opener: ''},
   // 2층 AFTER DRINK 존(2인)
-  {id: 'after1', number: 7, type: 'after', level: 2, title: '2차 대화', tag: 'AFTER DRINK · 2인', x: -4.0, z: -6.75,
+  {id: 'after1', number: 9, type: 'after', level: 2, title: '2차 대화', tag: 'AFTER DRINK · 2인', x: -4.0, z: -6.75,
     approach: {x: -4.0, z: -5.55}, seats: afterSeats(-4.0, -6.75), memberSeats: [0, 1], freeOrder: [],
     colors: ['#a7b98a', '#d38b5d'], members: ['IAN', 'SEO'], species: ['dog', 'cat'], furs: ['#d9a066', '#f6d2a2'], demoResponse: 'accept',
     opener: '아까 테이블에서 못 다 한 얘기, 이어서 해요.'},
-  {id: 'after2', number: 8, type: 'after', level: 2, title: '2차 대화', tag: 'AFTER DRINK · 2인', x: .8, z: -6.75,
+  {id: 'after2', number: 10, type: 'after', level: 2, title: '2차 대화', tag: 'AFTER DRINK · 2인', x: .8, z: -6.75,
     approach: {x: .8, z: -5.55}, seats: afterSeats(.8, -6.75), memberSeats: [0, 1], freeOrder: [],
     colors: ['#9daccc', '#ca858d'], members: ['HARU', 'ELLA'], species: ['bear', 'rabbit'], furs: ['#c08a5c', '#fbf3ea'], demoResponse: 'accept',
     opener: '오늘 제일 웃겼던 순간 하나만.'},
-  {id: 'after3', number: 9, type: 'after', level: 2, open: true, title: '빈 2인석', tag: '먼저 앉으면 방장 · AFTER 2인', x: 5.2, z: -6.75,
+  {id: 'after3', number: 11, type: 'after', level: 2, open: true, title: '빈 2인석', tag: '먼저 앉으면 방장 · AFTER 2인', x: 5.2, z: -6.75,
     approach: {x: 5.2, z: -5.55}, seats: afterSeats(5.2, -6.75), memberSeats: [], freeOrder: [0, 1],
     colors: [], members: [], species: [], furs: [], demoResponse: 'accept', opener: ''}
 ];
@@ -127,12 +142,13 @@ export const OBSTACLES = {
     [-5.6, -4.2, 1.62], [5.6, -4.4, 1.95],
     [-7.9, -6.4, .55], [7.9, -6.4, .55],   // 뒤쪽 모서리 화분
     [-3.7, 4.75, 1.62],                     // 빈 테이블(T6)
-    [-8.0, 6.5, .45], [8.0, 6.5, .45]      // 앞쪽 모서리 화분
+    [-8.0, 10.4, .45], [8.0, 10.4, .45]    // 앞쪽 모서리 화분
   ],
   rects: [
     {minX: -5.1, maxX: -2.1, minZ: .45, maxZ: 2.75},   // 긴 테이블
     {minX: 3.55, maxX: 8.5, minZ: .35, maxZ: 3.45},    // 소파 거실존
-    {minX: -8.5, maxX: -6.45, minZ: 2.9, maxZ: 6.0},   // 혼술 코너
+    {minX: -6.35, maxX: -2.85, minZ: 6.1, maxZ: 8.5},  // 바 테이블 1
+    {minX: 2.85, maxX: 6.35, minZ: 6.1, maxZ: 8.5},    // 바 테이블 2
     {minX: -8.5, maxX: -7.2, minZ: -5.3, maxZ: -1.25}  // 계단 아래
   ]
 };
@@ -147,13 +163,12 @@ export const NO_NPC = true;
 if (NO_NPC) for (const t of TABLES) {
   t.members = []; t.memberSeats = []; t.colors = []; t.species = []; t.furs = [];
   t.freeOrder = t.seats.map((_, i) => i); t.open = true; t.demoResponse = 'accept';
-  t.title = t.type === 'after' ? '빈 2인석' : '빈 테이블'; t.opener = '';
+  t.title = t.type === 'after' ? '빈 2인석' : t.type === 'bar' ? '빈 바 테이블' : '빈 테이블'; t.opener = '';
 }
 
 export const SPOTS = [
   {id: 'host', title: 'HOST JAY', x: 1.05, z: -1.05, kind: 'host'},
-  {id: 'lounge', title: '혼술 코너', x: -6.15, z: 4.6, kind: 'lounge'},
-  {id: 'exit', title: '입구', x: ENTRY.x, z: ENTRY.z, kind: 'exit'},
+  {id: 'exit', title: '입구', x: ENTRY.x, z: DOOR_Z + .2, kind: 'exit'},
   {id: 'stairs', title: '계단 · 2층', x: STAIRS.ground.x, z: STAIRS.ground.z, kind: 'stairs'},
   {id: 'stairsDown', title: '계단 · 1층', x: STAIRS.upper.x, z: STAIRS.upper.z, kind: 'stairs', level: 2},
   ...TABLES.map(t => ({id: t.id, title: t.title, x: t.approach.x, z: t.approach.z, kind: 'table', level: t.level ?? 1}))
