@@ -285,11 +285,12 @@ export function createOnline(G) {
       petTarget.set(root.position.x + petOff.x, seated ? (G.levelOf(p.tb)) : root.position.y, root.position.z + petOff.z);
       if (g.position.distanceTo(petTarget) > 4) g.position.copy(petTarget);
       const moving = g.position.distanceTo(petTarget) > .08;
-      g.position.lerp(petTarget, 1 - Math.exp(-dt * 3.5));
+      g.position.x += (petTarget.x - g.position.x) * (1 - Math.exp(-dt * 3.5)); g.position.z += (petTarget.z - g.position.z) * (1 - Math.exp(-dt * 3.5));
       if (moving) { tmp.set(petTarget.x - g.position.x, 0, petTarget.z - g.position.z); if (tmp.lengthSq() > 1e-4) { q.setFromAxisAngle(AX, Math.atan2(tmp.x, tmp.z)); g.quaternion.slerp(q, 1 - Math.exp(-dt * 8)); } }
       R.pet.phase += dt * (moving ? 14 : 2);
       R.pet.legs[0].rotation.x = moving ? Math.sin(R.pet.phase) * .6 : 0; R.pet.legs[1].rotation.x = moving ? -Math.sin(R.pet.phase) * .6 : 0;
-      g.position.y += R.jy * .8;
+      // 높이는 매 프레임 새로 정한다(더하면 점프할 때마다 쌓여서 펫이 날아다님)
+      g.position.y = petTarget.y + R.jy * .8 + (moving ? Math.abs(Math.sin(R.pet.phase)) * .05 : 0);
     }
   }
 

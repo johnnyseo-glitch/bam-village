@@ -1202,6 +1202,18 @@ function applyLook() {
   if (want && !myPet) { const item = SHOP.find(i => i.kind === 'pet' && i.value === want); myPet = {...makePet(want, item?.fur ?? '#e8bd85'), species: want}; myPet.group.position.set(actor.position.x + .5, actor.position.y, actor.position.z + .3); }
 }
 
+// 성수 카드의 실시간 숫자: 연결되기 전엔 '연결 중', 연결되면 지금 마을 안에 있는 실제 인원(나 포함)
+function liveText() {
+  const st = online?.net.status;
+  if (st === 'on') return `${online.count + (inVillage ? 1 : 0)} LIVE`;
+  return st === 'off' ? '오프라인' : '연결 중…';
+}
+function updateVillageCard() {
+  if (!$('vLive')) return;
+  $('vLive').textContent = '● ' + liveText();
+  if ($('vSolo')) $('vSolo').textContent = online?.count ?? 0;
+  if ($('vTables')) $('vTables').textContent = TABLES.filter(t => !session.isFull(t.id)).length;
+}
 // 매장 밖에서 보는 오늘의 마을: 숫자와 분위기만. 사람과 미니미는 체크인해야 보인다.
 function openVillages() {
   const openTables = TABLES.filter(t => !session.isFull(t.id)).length;
@@ -1209,8 +1221,8 @@ function openVillages() {
   const card = v => {
     const live = v.open ? (online?.count ?? 0) : v.live, s2 = v.open ? solo : v.solo, f = v.open ? live - solo : v.friends, tb = v.open ? openTables : v.tables;
     return `<article class="village${v.open ? ' is-open' : ''}">
-      <header><b>${v.name}</b><span class="live">● ${live} LIVE</span></header>
-      <dl><div><dt>혼자</dt><dd>${s2}</dd></div><div><dt>일행</dt><dd>${f}</dd></div><div><dt>열린 판</dt><dd>${tb}</dd></div><div><dt>평균 체류</dt><dd>${v.stay}</dd></div></dl>
+      <header><b>${v.name}</b><span class="live"${v.open ? ' id="vLive"' : ''}>● ${v.open ? liveText() : live + ' LIVE'}</span></header>
+      <dl><div><dt>혼자</dt><dd${v.open ? ' id="vSolo"' : ''}>${s2}</dd></div><div><dt>일행</dt><dd>${f}</dd></div><div><dt>열린 판</dt><dd${v.open ? ' id="vTables"' : ''}>${tb}</dd></div><div><dt>평균 체류</dt><dd>${v.stay}</dd></div></dl>
       <p class="vibe">오늘 분위기 · ${v.vibe}</p>
       ${v.open ? `<button class="action" id="goVillage">${v.name} 마을로 놀러가기</button>` : '<button class="secondary" disabled>예시 지점 · 준비 중</button>'}
     </article>`;
@@ -1886,6 +1898,7 @@ function onNetChange() {
   $('netChip').hidden = !on;
   if (on) $('netChip').innerHTML = `<i></i>${online.count + (inVillage ? 1 : 0)}${online.net.hostMode ? '<small>HOST</small>' : ''}`;
   if ($('netLine')) { $('netLine').innerHTML = netLine(); bindNetLine(); }
+  updateVillageCard();
   refresh();
 }
 function teamBlock() {
