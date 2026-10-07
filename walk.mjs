@@ -3,7 +3,7 @@ import * as T from './vendor/three.min.mjs';
 import {createWorld, HOST_STEP} from './world.mjs';
 import {route, valid, navs, levelRoute, levelY} from './navigation.mjs';
 import {TABLES, SPOTS, WANDERERS, LOUNGERS, DRINKS, ENTRY, ROOM, MOODS, JACKETS, ACCESSORIES, DRINK_MINUTES, PROFILE_TAGS, ROUND_MINUTES, NEXT_TOPICS, VILLAGES, RESIDENT_COUNT, RING, OBSTACLES,
-  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE} from './map-data.mjs';
+  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC} from './map-data.mjs';
 import {createSession} from './session.mjs';
 import {createOnline} from './online.mjs';
 import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs';
@@ -33,6 +33,7 @@ view.appendChild(renderer.domElement);
 const world = createWorld();
 const {makePet, npcPets, scene, actor, rig, legs, arms, eyes, shadow, marker, entities, npcs, glassGroup, setGlass, setFill, setAccessory, makeBubble, jacket, lampShades, emoteTextures, flags, clock} = world;
 const host = npcs.find(n => n.host);
+if (NO_NPC) host.root.visible = false; // 테스트판: 호스트 곰도 숨긴다(도움 요청 기능은 그대로)
 const indoorObjs = scene.children.filter(o => o !== actor && o !== world.shadow && o !== world.marker);
 const indoorSky = {bg: scene.background, fog: scene.fog};
 
@@ -192,7 +193,7 @@ function refresh() {
   const p = state.profile;
   $('nameplate').innerHTML = `<b class="mood-dot ${p.mood}"></b>${wallet.title && has('titles') ? `<small class="ttl">〈${esc(titleName(wallet.title))}〉</small>` : ''}${esc(p.name)} <i>${genderMark(p.gender)}</i>${wallet.equipped.pet ? '🐾' : ''}`;
   const open = TABLES.filter(t => !session.isFull(t.id)).length;
-  $('placeLine').textContent = place === 'town' ? '밤마을 골목 · 산책 중 · 방문은 계속돼요' : online?.net.status === 'on' && inVillage ? `성수 · 팀 ${online.count + 1}명 접속 · 열린 테이블 ${open}개` : `성수 · 예시 주민 ${RESIDENT_COUNT}명 · 열린 테이블 ${open}개`;
+  $('placeLine').textContent = place === 'town' ? '밤마을 골목 · 산책 중 · 방문은 계속돼요' : online?.net.status === 'on' && inVillage ? `성수 · 팀 ${online.count + 1}명 접속 · 열린 테이블 ${open}개` : `성수 · 열린 테이블 ${open}개`;
   renderDock();
 }
 
@@ -267,7 +268,7 @@ function stand() {
   level = t.level ?? 1;
   actor.position.set(t.approach.x, levelY(level), t.approach.z); rig.position.y = 0;
   const wasOwner = state.owned === t.id;
-  if (unlock('openRoom')) unlock('games', {quiet: true});
+  unlock('openRoom', {quiet: true}); unlock('games');
   session.leave(); for (const l of legs) l.rotation.x = 0;
   if (wasOwner) closeRoom(t);
   refresh();
@@ -378,7 +379,7 @@ function openTable(t) {
   if (place === 'town') { status('바 안의 테이블이에요 · [바로 들어가기]를 눌러요'); return; }
   if (tutorial) tutorialEvent('table');
   if (t.open && !t.members.length && state.table !== t.id && !(state.guests[t.id]?.length) && !online?.atTable(t.id).length) {
-    if (!has('openRoom')) {
+    if (!NO_NPC && !has('openRoom')) {
       show('EMPTY · T' + t.number, `<h2>아직 비어 있는 자리예요</h2><p>처음엔 이야기가 열린 판에 함께 앉아봐요. 한 번 앉아보면 여기서 직접 판을 열 수 있어요.</p>
         <button class="action" id="eOpen">열린 테이블 추천받기</button><button class="secondary" id="eNow">그래도 지금 판 열기</button>`);
       $('eOpen').onclick = recommendTable; $('eNow').onclick = () => { unlock('openRoom', {quiet: true}); openRoomDialog(t); };
@@ -474,6 +475,7 @@ function hostBack() {
 // 호스트와 내 캐릭터가 둘 다 자리에 도착해야 앉는다. 호스트가 늦으면 8초 뒤에는 그냥 앉는다.
 function startEscort(t) {
   if (state.pending?.table !== t.id) return;
+  if (NO_NPC) { escorting = true; sit(t); return; } // 테스트판: 승인되면 바로 앉는다
   escorting = true; refresh();
   const spot = SPOTS.find(s => s.id === t.id), token = ++flowToken;
   let me = false, jay = false;
@@ -498,7 +500,7 @@ function sit(t) {
   setTimeout(hostBack, 1400);
   showConversation(t);
   // 체험: 처음 앉으면 잠시 뒤 테이블의 누군가가 한 잔을 제안한다. 받을지는 내가 정한다(무응답·이탈·퇴장이면 받지 않음).
-  if (!giftDemoDone) {
+  if (!giftDemoDone && !NO_NPC) {
     giftDemoDone = true;
     const visit = state.visitId;
     setTimeout(() => offerDemoGift(t, visit), 15000);
@@ -1203,9 +1205,9 @@ function applyLook() {
 // 매장 밖에서 보는 오늘의 마을: 숫자와 분위기만. 사람과 미니미는 체크인해야 보인다.
 function openVillages() {
   const openTables = TABLES.filter(t => !session.isFull(t.id)).length;
-  const solo = WANDERERS.length + LOUNGERS.length + 5;
+  const solo = online?.count ?? 0;
   const card = v => {
-    const live = v.open ? RESIDENT_COUNT : v.live, s2 = v.open ? solo : v.solo, f = v.open ? live - solo : v.friends, tb = v.open ? openTables : v.tables;
+    const live = v.open ? (online?.count ?? 0) : v.live, s2 = v.open ? solo : v.solo, f = v.open ? live - solo : v.friends, tb = v.open ? openTables : v.tables;
     return `<article class="village${v.open ? ' is-open' : ''}">
       <header><b>${v.name}</b><span class="live">● ${live} LIVE</span></header>
       <dl><div><dt>혼자</dt><dd>${s2}</dd></div><div><dt>일행</dt><dd>${f}</dd></div><div><dt>열린 판</dt><dd>${tb}</dd></div><div><dt>평균 체류</dt><dd>${v.stay}</dd></div></dl>
@@ -1304,8 +1306,8 @@ function showRules(next) {
 
 // ── Welcome Zone 튜토리얼: 걷기 → 점프 → 판 구경 → 자리로 ──
 const TUT = [
-  {key: 'table', text: '테이블 이름표를 누르면 오늘의 판을 보고 앉을 수 있어요'},
-  {key: 'sit', text: '마음에 드는 판이면 [같이 앉아도 될까요?]를 눌러요. 호스트가 자리로 안내해요'},
+  {key: 'table', text: '테이블 이름표를 눌러요. 빈 테이블이면 내가 판을 열고, 팀원이 연 판이면 같이 앉자고 물어봐요'},
+  {key: 'sit', text: '주제를 고르고 [판 열고 앉기]를 누르면 바로 앉아요. 팀원 판은 방장이 수락하면 바로 앉아요'},
   {key: 'done', text: '앉았어요! 아래 [한잔 주문]과 😊 표현이 생겼어요. 도움이 필요하면 언제든 [호스트]'}
 ];
 function startTutorial() { tutorial = {step: 0}; renderTutorial(); }
@@ -1331,7 +1333,7 @@ function showWelcomeBoard() {
   const open = TABLES.filter(t => !session.isFull(t.id)).length;
   const b = $('welcomeBoard');
   b.innerHTML = `<small>WELCOME TO</small><b>SEONGSU VILLAGE</b>
-    <ul><li>오늘 주민 <em>${RESIDENT_COUNT}</em></li><li>열린 판 <em>${open}</em></li><li>오늘의 Host <em>JAY</em></li><li>새로운 이야기 <em>${TABLES.length}</em></li></ul>`;
+    <ul><li>지금 마을에 <em>${(online?.count ?? 0) + 1}</em></li><li>빈 테이블 <em>${open}</em></li><li>먼저 앉으면 <em>방장</em></li><li>테이블 <em>${TABLES.length}</em></li></ul>`;
   b.hidden = false; b.classList.remove('out');
   setTimeout(() => b.classList.add('out'), 4200);
   setTimeout(() => { b.hidden = true; status('바닥을 톡 누르면 걸어가요. 사람이나 테이블을 누르면 가까이 가요.'); }, 4800);
@@ -1733,7 +1735,7 @@ function animate(now) {
 // '마을로 나가기'는 공간 이동일 뿐이다. 방문·주문·자리 기록·관계 잠금은 그대로 이어진다.
 function ensureTown() {
   if (town) return;
-  town = createTown({scene, critter: world.critter});
+  town = createTown({scene, critter: world.critter, noNpc: NO_NPC});
   for (const s of TOWN_SPOTS) {
     const b = document.createElement('button'); b.className = 'world-label town-label' + (s.kind === 'door' ? ' is-door' : '');
     b.innerHTML = `${esc(s.name)}<small>${s.kind === 'door' ? '들어가기' : s.kind === 'view' ? '바라보기' : '오픈 준비 중'}</small>`; b.hidden = true;
@@ -1893,13 +1895,13 @@ function showPlayers() {
   show('ONLINE · 팀 테스트', `<h2>지금 마을에 ${list.length + (inVillage ? 1 : 0)}명</h2>
     <ul class="pass-list">${inVillage ? `<li><div><b>${esc(state.profile.name)} (나)</b><small>${where(state.table)}</small></div></li>` : ''}${list.map(R => `<li><div><b>👤 ${esc(R.p.n || '팀원')} <i class="g">${genderMark(R.p.g)}</i></b><small>${where(R.p.tb)}</small></div><button data-find="${esc(R.peer)}">프로필</button></li>`).join('')}</ul>
     ${online.net.isHost ? `<button class="action" id="openHostPanel">호스트 화면 · QR 입장 코드${online.net.hostMode ? ' (켜짐)' : ''}</button>` : ''}
-    <p class="note">QR 입장 코드를 넣은 팀원만 서로 보여요. 팀원 이름표는 코랄 테두리, 테두리 없는 동물은 예시 주민이에요.</p>`);
+    <p class="note">QR 입장 코드를 넣은 팀원만 서로 보여요. 지금은 예시 주민 없이 실제 접속한 사람만 보여요.</p>`);
   $('modalContent').querySelectorAll('[data-find]').forEach(b => b.onclick = () => { const R = online.players().find(R => R.peer === b.dataset.find); closeDialog(); R?.tag.onclick(); });
   if ($('openHostPanel')) $('openHostPanel').onclick = () => online.openHost();
 }
 function walkAndSit(t) {
   const arrive = () => { try { session.confirmSeat(t.id); } catch (e) { status(e.message); refresh(); return; } seatMe(t); showConversation(t); };
-  if (!goTo(t.approach.x, t.approach.z, 'T' + t.number + ' 자리로', arrive, t.level ?? 1)) arrive();
+  arrive(); // 승인되면 걸어가지 않고 바로 앉는다
 }
 function becomeOwner(t) { state.owned = t.id; status('👑 방장이 자리를 떠서 이제 내가 방장이에요'); refresh(); }
 function kicked() {

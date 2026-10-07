@@ -142,8 +142,16 @@ export const OBSTACLES_UPPER = {
   rects: []
 };
 
+// 테스트판: 예시 주민(NPC) 없이 실제 접속한 사람만. 모든 테이블이 빈 판이 되고, 먼저 앉는 사람이 방장이다.
+export const NO_NPC = true;
+if (NO_NPC) for (const t of TABLES) {
+  t.members = []; t.memberSeats = []; t.colors = []; t.species = []; t.furs = [];
+  t.freeOrder = t.seats.map((_, i) => i); t.open = true; t.demoResponse = 'accept';
+  t.title = t.type === 'after' ? '빈 2인석' : '빈 테이블'; t.opener = '';
+}
+
 export const SPOTS = [
-  {id: 'host', title: 'HOST JAY', x: 1.05, z: -1.05, kind: 'host'},
+  {id: 'host', title: '바 카운터', x: 1.05, z: -1.05, kind: 'host'},
   {id: 'lounge', title: '혼술 코너', x: -6.15, z: 4.6, kind: 'lounge'},
   {id: 'exit', title: '입구', x: ENTRY.x, z: ENTRY.z, kind: 'exit'},
   {id: 'stairs', title: '계단 · 2층', x: STAIRS.ground.x, z: STAIRS.ground.z, kind: 'stairs'},
@@ -358,6 +366,7 @@ export const VILLAGES = [
   {id: 'cheongdam', name: '청담', open: false, live: 18, solo: 7, friends: 11, tables: 3, stay: '1h 05m', vibe: '여유'}
 ];
 
+if (NO_NPC) { WANDERERS.length = 0; LOUNGERS.length = 0; }
 export const RESIDENT_COUNT = TABLES.reduce((n, t) => n + t.members.length, 0) + WANDERERS.length + LOUNGERS.length + 1;
 
 // ── 캐릭터 꾸미기(오리지널 디자인) ─────────────────────

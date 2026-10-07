@@ -540,7 +540,7 @@ export function createWorld() {
   const lounge = new T.Group(); scene.add(lounge);
   const lr = mesh(new T.CircleGeometry(1.3, 40), toon('#5c4a3e'), -7.4, .012, 4.5, lounge, false); lr.rotation.x = -Math.PI / 2;
   {
-    const y = LOUNGERS[0];
+    const y = LOUNGERS[0] ?? {x: -7.55, z: 4.2, heading: Math.PI / 2 + .35}; // 예시 주민이 없어도 의자는 둔다
     const gc = new T.Group(); gc.position.set(y.x, 0, y.z); gc.rotation.y = y.heading; lounge.add(gc);
     outline(box(.7, .2, .6, M.greenVelvet, 0, .32, .02, gc), .35, .015);
     const gb = box(.7, .55, .16, M.greenVelvet, 0, .68, -.28, gc); gb.rotation.x = -.15; outline(gb, .35, .015);

@@ -21,7 +21,7 @@ export const TOWN_SPOTS = [
 ].map(s => ({...s, wx: W(s.x)}));
 export const TOWN_SPAWN = {x: W(-12.25), z: 4.1}; // 바 문 앞(상호작용 지점과 떨어져 있다)
 
-export function createTown({scene, critter, makeBubbleSprite}) {
+export function createTown({scene, critter, makeBubbleSprite, noNpc = false}) {
   const group = new T.Group(); group.position.x = TOWN_X; group.visible = false; scene.add(group);
   const grad = new T.DataTexture(new Uint8Array([110, 185, 255]), 3, 1, T.RedFormat);
   grad.minFilter = grad.magFilter = T.NearestFilter; grad.needsUpdate = true;
@@ -421,10 +421,12 @@ export function createTown({scene, critter, makeBubbleSprite}) {
     root.traverse(o => { if (o.isMesh) o.userData.ignorePick = true; });
     const n = {root, c, route, ri: 0, phase: rnd() * 6, line, seated, wait: 0}; townNpcs.push(n); return n;
   }
+  if (!noNpc) {
   npc({species: 'bear', fur: '#a77a52', outfit: '#6f8fb8', x: -1.6, z: -2.6, seated: true, heading: Math.PI / 2, line: '좋은 저녁이에요'});
   npc({species: 'rabbit', fur: '#f4e8de', outfit: '#d98b6a', x: -5.2, z: 5.0, heading: Math.PI, line: '커피 언제 열려요?'});
   npc({species: 'cat', fur: '#7b6d65', outfit: '#8fb07a', x: 5, z: -10, route: [[5, -10], [-9, -10], [-9, -9.2], [12, -9.2], [12, -10]], line: '강바람 좋다'});
   npc({species: 'dog', fur: '#e1c194', outfit: '#c96a5a', x: 15, z: 4.8, route: [[15, 4.8], [20, 4.8], [20, 5.6], [13.5, 5.6]], line: '돌담길 예쁘죠?'});
+  }
 
   // ── 길찾기 ────────────────────────────────────────────
   const STEP = .3, R = .32;
