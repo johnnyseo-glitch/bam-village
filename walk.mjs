@@ -33,7 +33,7 @@ view.appendChild(renderer.domElement);
 const world = createWorld();
 const {makePet, npcPets, scene, actor, rig, legs, arms, eyes, shadow, marker, entities, npcs, glassGroup, setGlass, setFill, setAccessory, makeBubble, jacket, lampShades, emoteTextures, flags, clock} = world;
 const host = npcs.find(n => n.host);
-if (NO_NPC) host.root.visible = false; // 테스트판: 호스트 곰도 숨긴다(도움 요청 기능은 그대로)
+// 테스트판에서도 호스트 JAY는 바 안에 그대로 있다(다른 예시 주민만 없음)
 const indoorObjs = scene.children.filter(o => o !== actor && o !== world.shadow && o !== world.marker);
 const indoorSky = {bg: scene.background, fog: scene.fog};
 

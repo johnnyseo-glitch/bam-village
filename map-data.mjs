@@ -151,7 +151,7 @@ if (NO_NPC) for (const t of TABLES) {
 }
 
 export const SPOTS = [
-  {id: 'host', title: '바 카운터', x: 1.05, z: -1.05, kind: 'host'},
+  {id: 'host', title: 'HOST JAY', x: 1.05, z: -1.05, kind: 'host'},
   {id: 'lounge', title: '혼술 코너', x: -6.15, z: 4.6, kind: 'lounge'},
   {id: 'exit', title: '입구', x: ENTRY.x, z: ENTRY.z, kind: 'exit'},
   {id: 'stairs', title: '계단 · 2층', x: STAIRS.ground.x, z: STAIRS.ground.z, kind: 'stairs'},

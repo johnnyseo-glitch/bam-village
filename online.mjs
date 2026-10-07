@@ -42,6 +42,8 @@ export function createOnline(G) {
   // 테스트판 기본값: QR 입장 확인 꺼짐(링크로 들어온 팀원은 바로 입장). 호스트가 켜면 코드 확인.
   function hasPass() { if (!net.gateOn) return true; const p = passFor(net.myId); return validPass(p) && !!p.nonce && p.nonce === myNonce(); }
   const admitted = id => !net.gateOn || validPass(passFor(id));
+  // 이벤트 받는 사람은 계정(id)이 아니라 열린 화면(peer)으로 정한다 — 같은 계정으로 여러 기기에서 들어와도 따로 동작
+  const myPeer = () => net.room?.peers().find(p => p.sameTab)?.peer ?? null;
   const emit = (topic, data) => net.room?.emit(topic, data).catch(() => {});
 
   // ── 연결 ────────────────────────────────────────────────
@@ -78,7 +80,7 @@ export function createOnline(G) {
     net.room.on('gift', onGift, () => {});
     net.room.on('giftans', onGiftAns, () => {});
     net.room.on('giftserved', onGiftServed, () => {});
-    net.room.on('game', m => { const d = m.data || {}; if (m.isMe || !d.tb || d.tb !== G.state.table || !d.p) return; const R = remotes.get(m.peer); G.onGame?.(d.p, R?.p.n || '팀원'); }, () => {});
+    net.room.on('game', m => { const d = m.data || {}; if (m.sameTab || !d.tb || d.tb !== G.state.table || !d.p) return; const R = remotes.get(m.peer); G.onGame?.(d.p, R?.p.n || '팀원'); }, () => {});
     settleReady(); G.onChange();
   }
 
@@ -222,7 +224,7 @@ export function createOnline(G) {
     if (net.status !== 'on') return;
     const seen = new Set();
     for (const peer of net.room.peers()) {
-      if (peer.isMe || peer.kind !== 'viewer') continue;
+      if (peer.sameTab || peer.kind !== 'viewer') continue; // 같은 계정의 다른 기기(폰·패드)도 다른 사람처럼 보여야 한다
       const p = peer.presence || {};
       if (!p.in || !admitted(peer.by)) continue;
       seen.add(peer.peer);
@@ -315,32 +317,32 @@ export function createOnline(G) {
       ${G.state.table ? '<button class="secondary" id="pGift">🍸 한 잔 보내기</button>' : ''}
       ${t && !seatedWithMe ? '<button class="secondary" id="pTable">이 테이블 살펴보기</button>' : ''}
       <p class="note">실제 팀원이에요. 🌙 현장에서는 연락처·친구 신청·칭찬을 부탁하지 않아요. 퇴장한 뒤 ‘오늘의 기억’에서 전해요.</p>`);
-    $('pWave').onclick = () => { emit('wave', {to: R.by}); G.wave(); G.closeDialog(); G.status(`${p.n}님에게 손을 흔들었어요`); };
+    $('pWave').onclick = () => { emit('wave', {to: R.peer}); G.wave(); G.closeDialog(); G.status(`${p.n}님에게 손을 흔들었어요`); };
     if ($('pGift')) $('pGift').onclick = () => G.openMenu({to: {name: p.n || '손님', remote: R, root: R.root}});
     if ($('pTable')) $('pTable').onclick = () => G.openTable(t);
   }
   function onWave(m) {
-    if (m.isMe) return;
+    if (m.sameTab) return;
     const R = remotes.get(m.peer); if (!R) return;
     G.bubbleOver(R.root, '👋 안녕!', '#ffffff', 2200);
-    if (m.data?.to === net.myId) G.status(`👋 ${R.p.n}님이 나에게 손을 흔들어요`);
+    if (m.data?.to === myPeer()) G.status(`👋 ${R.p.n}님이 나에게 손을 흔들어요`);
   }
   // 보내는 쪽: 상대가 받기를 눌러야 제조가 시작된다.
   function sendGift(o, R, cb) {
     giftWaits.set(o.id, {cb, R});
-    emit('gift', {to: R.by, oid: o.id, drink: o.drink});
+    emit('gift', {to: R.peer, oid: o.id, drink: o.drink});
     setTimeout(() => { const w = giftWaits.get(o.id); if (w) { giftWaits.delete(o.id); cb(false, 'timeout'); } }, 40000);
   }
   function onGiftAns(m) {
-    const d = m.data || {}; if (d.to !== net.myId) return;
+    const d = m.data || {}; if (d.to !== myPeer()) return;
     const w = giftWaits.get(d.oid); if (!w) return;
     giftWaits.delete(d.oid); w.cb(!!d.ok);
   }
-  function giftServed(o, R) { emit('giftserved', {to: R.by, oid: o.id, drink: o.drink, glass: o.glass, color: o.color}); }
+  function giftServed(o, R) { emit('giftserved', {to: R.peer, oid: o.id, drink: o.drink, glass: o.glass, color: o.color}); }
   const giftQueue = [];
   function onGift(m) {
-    const d = m.data || {}; if (d.to !== net.myId || m.isMe) return;
-    if (G.state.profile.mood !== 'talk') { emit('giftans', {to: m.by, oid: d.oid, ok: false}); return; }
+    const d = m.data || {}; if (d.to !== myPeer() || m.sameTab) return;
+    if (G.state.profile.mood !== 'talk') { emit('giftans', {to: m.peer, oid: d.oid, ok: false}); return; }
     giftQueue.push({m, d}); pumpGift();
   }
   function pumpGift() {
@@ -352,12 +354,12 @@ export function createOnline(G) {
     G.show('🎁 한 잔 도착', `<h2>${esc(name)}님이 ${esc(G.eulreul(String(d.drink || '한 잔')))} 보내고 싶어해요</h2>
       <p>받으면 바에서 만들어 자리로 가져다드려요. 마음만 받아도 상대에게는 “마음만 받을게요”로만 전해지고, 결제되지 않아요.</p>
       <button class="action" id="gYes">고마워요, 받을게요</button><button class="secondary" id="gNo">마음만 받을게요</button>`);
-    const answer = ok => { emit('giftans', {to: m.by, oid: d.oid, ok}); if (ok) giftAccepted.set(m.by + ':' + d.oid, true); G.closeDialog(); G.status(ok ? `${name}님에게 고맙다고 전했어요` : '마음만 받았어요'); setTimeout(pumpGift, 400); };
+    const answer = ok => { emit('giftans', {to: m.peer, oid: d.oid, ok}); if (ok) giftAccepted.set(m.peer + ':' + d.oid, true); G.closeDialog(); G.status(ok ? `${name}님에게 고맙다고 전했어요` : '마음만 받았어요'); setTimeout(pumpGift, 400); };
     $('gYes').onclick = () => answer(true); $('gNo').onclick = () => answer(false);
   }
   function onGiftServed(m) {
-    const d = m.data || {}; if (d.to !== net.myId || !giftAccepted.has(m.by + ':' + d.oid)) return;
-    giftAccepted.delete(m.by + ':' + d.oid);
+    const d = m.data || {}; if (d.to !== myPeer() || !giftAccepted.has(m.peer + ':' + d.oid)) return;
+    giftAccepted.delete(m.peer + ':' + d.oid);
     const R = remotes.get(m.peer);
     G.serveToMe(d.glass, d.color, d.drink);
     G.status(`🎁 ${R?.p.n ?? '팀원'}님이 보낸 ${G.iga(String(d.drink))} 나왔어요!`);
@@ -368,8 +370,8 @@ export function createOnline(G) {
   function requestSeat(t) {
     const o = ownerOf(t.id); if (!o) return;
     try { G.session.request(t.id); } catch (e) { G.status(e.message); return; }
-    const tok = ++reqTok; pendingReq = {t, by: o.by, tok};
-    emit('req', {to: o.by, tb: t.id});
+    const tok = ++reqTok; pendingReq = {t, by: o.by, peer: o.peer, tok};
+    emit('req', {to: o.peer, tb: t.id});
     G.refresh();
     G.show('REQUEST · T' + t.number, `<h2>${esc(o.p.n || '방장')}님에게 물어보는 중이에요</h2>
       <p>방장이 수락하면 자리로 걸어가 앉아요. 패스하면 “지금은 자리가 어려워요”로만 전해져요.</p>
@@ -384,11 +386,11 @@ export function createOnline(G) {
   }
   function cancelReq(tell) {
     if (!pendingReq) return;
-    if (tell) emit('reqcancel', {to: pendingReq.by, tb: pendingReq.t.id});
+    if (tell) emit('reqcancel', {to: pendingReq.peer, tb: pendingReq.t.id});
     pendingReq = null; G.session.cancelRequest(); G.refresh();
   }
   function onReqAns(m) {
-    const d = m.data || {}; if (d.to !== net.myId || !pendingReq || d.tb !== pendingReq.t.id) return;
+    const d = m.data || {}; if (d.to !== myPeer() || !pendingReq || d.tb !== pendingReq.t.id) return;
     const {t} = pendingReq; pendingReq = null;
     if (!d.ok) {
       G.session.declineRequest(); G.refresh();
@@ -399,21 +401,21 @@ export function createOnline(G) {
     G.walkAndSit(t);
   }
   function onReq(m) {
-    const d = m.data || {}; if (d.to !== net.myId || m.isMe) return;
-    if (G.state.table !== d.tb) { emit('reqans', {to: m.by, tb: d.tb, ok: false}); return; }
+    const d = m.data || {}; if (d.to !== myPeer() || m.sameTab) return;
+    if (G.state.table !== d.tb) { emit('reqans', {to: m.peer, tb: d.tb, ok: false}); return; }
     reqQueue.push({by: m.by, peer: m.peer, tb: d.tb}); pumpReq();
   }
   function onReqCancel(m) {
-    const d = m.data || {}; if (d.to !== net.myId) return;
-    const i = reqQueue.findIndex(r => r.by === m.by); if (i >= 0) reqQueue.splice(i, 1);
-    if (currentReq?.by === m.by && G.dialogLabel()?.startsWith('JOIN REQUEST')) { currentReq = null; G.closeDialog(); G.status('상대가 요청을 취소했어요'); }
+    const d = m.data || {}; if (d.to !== myPeer()) return;
+    const i = reqQueue.findIndex(r => r.peer === m.peer); if (i >= 0) reqQueue.splice(i, 1);
+    if (currentReq?.peer === m.peer && G.dialogLabel()?.startsWith('JOIN REQUEST')) { currentReq = null; G.closeDialog(); G.status('상대가 요청을 취소했어요'); }
   }
   function pumpReq() {
     if (!reqQueue.length) return;
     if (G.dialogLabel()) { if (!reqQueue[0].nudged) { reqQueue[0].nudged = true; G.status('💌 같이 앉고 싶다는 요청이 와 있어요 · 지금 창을 닫으면 보여요'); } setTimeout(pumpReq, 1500); return; }
     const r = reqQueue.shift(), R = remotes.get(r.peer) ?? byId(r.by), t = G.tableOf(r.tb);
-    if (!R || G.state.table !== r.tb) { emit('reqans', {to: r.by, tb: r.tb, ok: false}); pumpReq(); return; }
-    if (G.session.occupancy(t.id) >= t.seats.length) { emit('reqans', {to: r.by, tb: r.tb, ok: false}); pumpReq(); return; }
+    if (!R || G.state.table !== r.tb) { emit('reqans', {to: r.peer, tb: r.tb, ok: false}); pumpReq(); return; }
+    if (G.session.occupancy(t.id) >= t.seats.length) { emit('reqans', {to: r.peer, tb: r.tb, ok: false}); pumpReq(); return; }
     currentReq = r;
     const p = R.p;
     G.hideCalm?.();
@@ -421,7 +423,7 @@ export function createOnline(G) {
       <p class="meta">${p.t ? `〈${esc(p.t)}〉 · ` : ''}${p.a ? esc(p.a) + '세 · ' : ''}${esc(p.j || '')}${p.m ? ' · ' + esc(p.m) : ''}</p>
       <p class="note">실제 팀원의 요청이에요. 패스해도 상대에게는 “지금은 자리가 어려워요”로만 전해져요.</p>
       <button class="action" id="rqAccept">수락</button><button class="secondary" id="rqPass">이번엔 패스</button>`);
-    const answer = ok => { currentReq = null; emit('reqans', {to: r.by, tb: r.tb, ok}); G.closeDialog(); G.status(ok ? `${p.n}님을 수락했어요. 자리로 오는 중이에요` : `${p.n}님에게 정중히 전했어요`); if (ok) G.onAccepted?.(); setTimeout(pumpReq, 400); };
+    const answer = ok => { currentReq = null; emit('reqans', {to: r.peer, tb: r.tb, ok}); G.closeDialog(); G.status(ok ? `${p.n}님을 수락했어요. 자리로 오는 중이에요` : `${p.n}님에게 정중히 전했어요`); if (ok) G.onAccepted?.(); setTimeout(pumpReq, 400); };
     $('rqAccept').onclick = () => answer(true); $('rqPass').onclick = () => answer(false);
   }
 
@@ -455,6 +457,6 @@ export function createOnline(G) {
   return {net, settled, gate, openHost, tick, overlay, atTable, ownerOf, takenSeats, requestSeat, sendGift, giftServed,
     shareGame: (tb, p) => emit('game', {tb, p}),
     praise, friendRequest, acceptFriend, friendStatus, leaveVillage, metList, hasPass,
-    isHere: id => !!net.room?.peers().some(p => p.by === id && !p.isMe && p.presence?.in),
+    isHere: id => !!net.room?.peers().some(p => p.by === id && !p.sameTab && p.presence?.in),
     get count() { return remotes.size; }, players: () => [...remotes.values()]};
 }
