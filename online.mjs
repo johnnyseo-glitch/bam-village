@@ -215,7 +215,7 @@ export function createOnline(G) {
     hitbox.position.y = .8; hitbox.userData.ignorePick = true; root.add(hitbox);
     const tag = document.createElement('button'); tag.className = 'npc-tag player-tag'; tag.hidden = true;
     $('worldLabels').appendChild(tag);
-    const R = {peer: peer.peer, by: peer.by, p, root, c, tag, color: lookKey(p), phase: 0, jy: 0, jv: 0, lastEa: p.ea, lastJa: p.ja, lastPa: p.pa, lastHt: p.ht, punchAt: -1e9, hitAt: -1e9, localHitAt: -1e9, q: new T.Quaternion(), pet: null};
+    const R = {peer: peer.peer, by: peer.by, p, root, c, tag, color: lookKey(p), phase: 0, jy: 0, jv: 0, lastEa: p.ea, lastJa: p.ja, lastPa: p.pa, lastHt: p.ht, side: 1, punchAt: -1e9, hitAt: -1e9, localHitAt: -1e9, q: new T.Quaternion(), pet: null};
     tag.onclick = () => openPlayer(R);
     remotes.set(peer.peer, R);
     return R;
@@ -283,7 +283,7 @@ export function createOnline(G) {
     if (p.ja !== R.lastJa) { R.lastJa = p.ja; if (p.ja) { R.jv = 4.2; R.jy = .0001; } }
     if (R.jy > 0) { R.jv -= 12 * dt; R.jy += R.jv * dt; if (R.jy <= 0) { R.jy = 0; R.jv = 0; } c.rig.position.y += R.jy; c.arms[0].rotation.x = c.arms[1].rotation.x = -2.5; }
     if (p.pa !== R.lastPa) { // 때리기: 동작을 보여주고, 주먹이 뻗는 순간 바로 앞에 내가 있으면 맞는다(서 있을 때만 밀림)
-      R.lastPa = p.pa; R.punchAt = now;
+      R.lastPa = p.pa; R.punchAt = now; R.side = p.ps === 0 ? 0 : 1;
       if (p.pa && G.inVillage()) setTimeout(() => {
         const me = G.actor.position, dx = me.x - root.position.x, dz = me.z - root.position.z, d = Math.hypot(dx, dz), r = +R.p.r || 0;
         if (d < 1.35 && d > 0 && (dx * Math.sin(r) + dz * Math.cos(r)) / d > .35 && !G.state.table) G.onPunched?.(R);
@@ -296,9 +296,10 @@ export function createOnline(G) {
     const pt = now - R.punchAt;
     if (pt >= 0 && pt < 380) {
       const ext = pt < 90 ? -.35 * pt / 90 : Math.min(1, (pt - 90) / 50) * (1 - (pt - 90) / 290);
-      c.arms[1].rotation.x = -1.6 * Math.max(0, ext) + .5 * Math.max(0, -ext); c.rig.rotation.y = -.35 * Math.max(0, ext);
-      if (c.fist) c.fist.scale.setScalar(1 + 1.4 * Math.max(0, ext)); c.rig.position.z = .16 * Math.max(0, ext);
-    } else { c.rig.rotation.y = 0; c.rig.position.z = 0; if (c.fist && c.fist.scale.x !== 1) c.fist.scale.setScalar(1); }
+      const sg = R.side ? 1 : -1, f = c.fists?.[R.side];
+      c.arms[R.side].rotation.x = -1.6 * Math.max(0, ext) + .5 * Math.max(0, -ext); c.rig.rotation.y = sg * -.35 * Math.max(0, ext);
+      if (f) f.scale.setScalar(1 + 1.4 * Math.max(0, ext)); c.rig.position.z = .16 * Math.max(0, ext);
+    } else { c.rig.rotation.y = 0; c.rig.position.z = 0; for (const f of c.fists ?? []) if (f.scale.x !== 1) f.scale.setScalar(1); }
     const ht = now - R.hitAt, hurt = ht >= 0 && ht < 850;
     if (c.ouch && c.ouch.visible !== hurt) { c.ouch.visible = hurt; for (const o of c.ouch.userData.hide) o.visible = !hurt; }
     if (hurt && ht < 420) { const k = ht / 420; c.rig.rotation.x = -.35 * (1 - k); c.rig.rotation.z = Math.sin(k * 22) * .16 * (1 - k); }

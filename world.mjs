@@ -627,7 +627,7 @@ export function createWorld() {
       const arm = new T.Group(); arm.position.set(s * .2, .62, 0); rig.add(arm);
       const sleeve = cyl(.06, .065, .16, clothes, 0, -.07, 0, arm); sleeve.rotation.z = s * .25; outline(sleeve, .06);
       const hand = sphere(.065, species === 'panda' ? DARK : furM, s * .04, -.17, 0, arm); outline(hand, .065);
-      parts.arms.push(arm); if (s > 0) parts.fist = hand;
+      parts.arms.push(arm); (parts.fists ??= []).push(hand); if (s > 0) parts.fist = hand;
     }
     // 머리
     const head = new T.Group(); head.position.y = 1.0; rig.add(head);
@@ -736,7 +736,7 @@ export function createWorld() {
       const ey = species === 'frog' ? .3 : .04, ez = species === 'frog' ? .32 : .372, x = s * (species === 'frog' ? .16 : .14);
       for (const k of [-1, 1]) { const bar = box(.085, .028, .03, DARK, x, ey + k * .022, ez, ouch, false); bar.rotation.z = s * k * .55; }
     }
-    return {rig, head, legs: parts.legs, arms: parts.arms, eyes: parts.eyes, collar, clothes, fist: parts.fist, ouch};
+    return {rig, head, legs: parts.legs, arms: parts.arms, eyes: parts.eyes, collar, clothes, fist: parts.fist, fists: parts.fists, ouch};
   }
 
   // ── 주민 배치 ─────────────────────────────────────────
@@ -871,7 +871,7 @@ export function createWorld() {
     const c = critter({species, fur, outfit: '#cddc83', accent: '#f4b942', extra});
     c.rig.traverse(o => { if (!o.isMesh) return; if (species !== 'ghost' && o.material === c.clothes) o.material = ownJacket; o.userData.ignorePick = true; });
     rig.add(c.rig);
-    fox.rig = c.rig; fox.head = c.head; fox.fist = c.fist; fox.ouch = c.ouch;
+    fox.rig = c.rig; fox.head = c.head; fox.fist = c.fist; fox.fists = c.fists; fox.ouch = c.ouch;
     fox.legs.length = 0; fox.legs.push(...c.legs); fox.arms.length = 0; fox.arms.push(...c.arms); fox.eyes.length = 0; fox.eyes.push(...c.eyes);
     c.arms[1].add(glassGroup);
     for (const g of Object.values(acc)) c.head.add(g);
@@ -893,6 +893,6 @@ export function createWorld() {
   function drawSign(font) { currentFont = font; for (const t of drawables) t.userData.redraw(font); }
   drawSign('sans-serif');
 
-  return {get fist() { return fox.fist; }, get ouch() { return fox.ouch; }, critter, setLook, addAccessory, makePet, npcPets, scene, actor, rig, legs: fox.legs, arms: fox.arms, eyes: fox.eyes, shadow, marker, entities, npcs, glassGroup, setGlass, setFill, setAccessory, makeBubble,
+  return {get fist() { return fox.fist; }, get fists() { return fox.fists; }, get ouch() { return fox.ouch; }, critter, setLook, addAccessory, makePet, npcPets, scene, actor, rig, legs: fox.legs, arms: fox.arms, eyes: fox.eyes, shadow, marker, entities, npcs, glassGroup, setGlass, setFill, setAccessory, makeBubble,
     seatAngles, jacket: ownJacket, drawSign, lampShades, emoteTextures, flags: flagTexes, clock: {hourHand, minHand}};
 }

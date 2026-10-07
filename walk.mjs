@@ -50,7 +50,7 @@ camera.position.copy(followPoint).add(cameraOffset); camera.lookAt(followPoint);
 let path = [], arrival = '', onArrival = null, phase = 0, last = 0, frameId = 0, walking = false, failed = false;
 let flowToken = 0, escorting = false, nearestEntity = null, lastNear = '', onDialogClose = null, toastTimer = 0, orderGen = 0;
 let place = 'bar', town = null, townLabels = [], games = null, fadeT = 0;
-let online = null, inVillage = false, netEmote = {id: null, at: 0}, netJumpAt = 0, netPunchAt = 0, netHitAt = 0, punchAt = -1e9, knock = null, stunUntil = 0, ouchUntil = 0, shakeUntil = 0, hitStop = 0;
+let online = null, inVillage = false, netEmote = {id: null, at: 0}, netJumpAt = 0, netPunchAt = 0, netPunchSide = 1, netHitAt = 0, punchAt = -1e9, knock = null, stunUntil = 0, ouchUntil = 0, shakeUntil = 0, hitStop = 0;
 let hostTask = null, drink = null, giftDemoDone = false, praiseDemoDone = false, level = 1, tutorial = null, myPet = null;
 const npcLevel = n => n.root.position.y > 2 ? 2 : 1;
 const genderMark = g => g === 'F' ? '♀' : g === 'M' ? '♂' : '';
@@ -192,6 +192,7 @@ function refreshLabels() {
 }
 function refresh() {
   refreshLabels();
+  $('exitButton').hidden = !inVillage;
   const p = state.profile;
   $('nameplate').innerHTML = `<b class="mood-dot ${p.mood}"></b>${wallet.title && has('titles') ? `<small class="ttl">〈${esc(titleName(wallet.title))}〉</small>` : ''}${esc(p.name)} <i>${genderMark(p.gender)}</i>${wallet.equipped.pet ? '🐾' : ''}`;
   const open = TABLES.filter(t => !session.isFull(t.id)).length;
@@ -242,10 +243,10 @@ function renderDock() {
         <button id="toBar">바 앞으로</button>
         <button id="toLounge">라운지</button>
         <button id="toMap">열린 테이블</button>
-        <button class="quiet" id="toEntry">입구 · 마무리</button>
+        <button class="quiet" id="toEntry">🚪 나가기</button>
       </div>`;
     $('toBar').onclick = () => selectEntity('host'); $('toLounge').onclick = () => selectEntity('lounge');
-    $('toMap').onclick = showMap; $('toEntry').onclick = () => selectEntity('exit');
+    $('toMap').onclick = showMap; $('toEntry').onclick = openExit;
     $('dockMood').onclick = openMood;
   }
   if (o) $('dockOrder').onclick = showJournal;
@@ -313,7 +314,7 @@ function punch() {
   if (state.table) { seatedHint(); return; }
   const now = performance.now();
   if (now - punchAt < 520 || now < stunUntil) return;
-  punchAt = now; netPunchAt = Date.now();
+  punchAt = now; netPunchAt = Date.now(); netPunchSide = 1 - netPunchSide; // 왼손·오른손 번갈아
   setTimeout(() => { // 주먹이 뻗는 순간 판정: 맞은 쪽 화면에서도 같은 규칙으로 판정한다
     const fx = Math.sin(netEuler.setFromQuaternion(actor.quaternion, 'YXZ').y), fz = Math.cos(netEuler.y);
     let hit = false;
@@ -1140,8 +1141,9 @@ function drawMap() {
 
 function openExit() {
   const s = session.summary();
-  show('ENTRANCE · 입구', `<h2>${has('town') ? '밖으로 나가볼까요?' : '오늘 밤, 여기까지 할까요?'}</h2>
-    ${has('town') ? `<button class="action" id="toTown">🌆 마을로 나가기 <small>산책 · 방문은 계속돼요</small></button>
+  const canTown = has('town') && place !== 'town';
+  show('EXIT · 나가기', `<h2>${canTown ? '밖으로 나가볼까요?' : '오늘 밤, 여기까지 할까요?'}</h2>
+    ${canTown ? `<button class="action" id="toTown">🌆 마을로 나가기 <small>산책 · 방문은 계속돼요</small></button>
     <p class="note">바 밖 작은 서울 골목을 걸어요. 주문·자리·기록은 그대로고, 다시 문으로 들어오면 돼요.</p>
     <h3>오늘 방문을 끝낼 때</h3>` : ''}
     <dl class="recap">
@@ -1160,6 +1162,7 @@ function openExit() {
     const memory = makeMemory();
     wallet.memories.unshift(memory); wallet.memories = wallet.memories.slice(0, 20); saveWallet();
     online?.leaveVillage(); inVillage = false; clearResume();
+    if (place === 'town') { actor.position.set(ENTRY.x, 0, ENTRY.z); switchPlace('bar'); }
     stand(); orderGen++; flowToken++; releaseGuests(); session.reset(); glassGroup.visible = false; drink = null; giftDemoDone = false; refresh();
     showPostcard(memory.id, {fresh: true});
   };
@@ -1804,15 +1807,15 @@ function animate(now) {
   if (jumpY > 0) { arms[0].rotation.x = -2.5; if (!glassGroup.visible) arms[1].rotation.x = -2.5; legs[0].rotation.x = -.5; legs[1].rotation.x = .3; }
   shadow.scale.setScalar(Math.max(.55, 1 - jumpY * .55));
   // 때리기 동작: 뒤로 살짝 → 주먹이 커지며 쭉 → 원위치. 히트스톱 동안은 그 자세로 멈춘다.
-  const pt = Math.min(now, hitStop > now ? punchAt + STRIKE_AT + 40 : now) - punchAt, fist = world.fist;
+  const pt = Math.min(now, hitStop > now ? punchAt + STRIKE_AT + 40 : now) - punchAt, side = netPunchSide, fist = world.fists?.[side], sg = side ? 1 : -1, arm = arms[side];
   if (pt >= 0 && pt < PUNCH_MS) {
     const wind = pt < STRIKE_AT ? pt / STRIKE_AT : 0, out = pt >= STRIKE_AT ? Math.max(0, 1 - (pt - STRIKE_AT) / (PUNCH_MS - STRIKE_AT)) : 0;
     const ext = pt < STRIKE_AT ? -.35 * wind : Math.min(1, (pt - STRIKE_AT) / 50) * out;
-    arms[1].rotation.x = -1.6 * Math.max(0, ext) + .5 * Math.max(0, -ext); arms[1].rotation.z = -.1 * ext;
-    rig.rotation.x = .16 * Math.max(0, ext) - .08 * wind; rig.rotation.y = -.35 * Math.max(0, ext) + .2 * wind;
+    arm.rotation.x = -1.6 * Math.max(0, ext) + .5 * Math.max(0, -ext); arm.rotation.z = -.1 * sg * ext;
+    rig.rotation.x = .16 * Math.max(0, ext) - .08 * wind; rig.rotation.y = sg * (-.35 * Math.max(0, ext) + .2 * wind);
     if (fist) fist.scale.setScalar(1 + 1.4 * Math.max(0, ext));
     rig.position.z = .16 * Math.max(0, ext) - .05 * wind; // 몸만 살짝 앞으로(실제 위치는 그대로라 버벅이지 않는다)
-  } else { rig.rotation.x = 0; rig.rotation.y = 0; rig.position.z = 0; if (fist && fist.scale.x !== 1) fist.scale.setScalar(1); }
+  } else { rig.rotation.x = 0; rig.rotation.y = 0; rig.position.z = 0; for (const f of world.fists ?? []) if (f.scale.x !== 1) f.scale.setScalar(1); }
   if (knock && now >= knock.start) { // 맞으면 밀리면서 몸이 휘청인다
     const k = Math.min(1, (now - knock.start) / (knock.until - knock.start)), want = .75 * (1 - (1 - k) ** 2), v = want - (knock.done ?? 0); // 프레임이 끊겨도 총 0.75m는 밀린다
     knock.done = want; tryStep(actor.position.x + knock.x * v, actor.position.z + knock.z * v);
@@ -1992,7 +1995,7 @@ function netMe() {
     t: wallet.title ? titleName(wallet.title) ?? '' : '', md: p.mood || 'talk', c: j.color, pt: wallet.equipped.pet || null, pf: petItem?.fur || null,
     x: r2(actor.position.x), y: r2(actor.position.y), z: r2(actor.position.z), r: r2(netEuler.setFromQuaternion(actor.quaternion, 'YXZ').y), w: walking ? 1 : 0,
     tb: state.table || null, s: t ? (state.seatIdx ?? -1) : -1, own: owner ? 1 : 0, tt: owner ? t.title : '', op: owner ? t.opener : '',
-    e: netEmote.id, ea: netEmote.at, ja: netJumpAt, pa: netPunchAt, ht: netHitAt,
+    e: netEmote.id, ea: netEmote.at, ja: netJumpAt, pa: netPunchAt, ps: netPunchSide, ht: netHitAt,
     sp: wallet.look?.species ?? 'fox', fu: wallet.look?.fur ?? '#f08a3c', ex: wallet.look?.extra ?? 'none', ac: wallet.equipped.accessory ?? 'none', pl: place};
 }
 const netEuler = new T.Euler();
@@ -2046,6 +2049,7 @@ function kicked() {
   $('kOk').onclick = closeDialog;
 }
 $('netChip').onclick = showPlayers;
+$('exitButton').onclick = () => { if (!inVillage) return; hideCalm(); if (dialog.open) closeDialog(); openExit(); };
 online = createOnline({
   scene, critter: world.critter, makePet, eulreul, iga, qrImg: QR_IMG, camera, view, actor, state, session, esc, genderMark,
   bubbleOver, status, show, closeDialog, refresh, tableOf, openMenu, openTable, serveToMe, hideCalm,

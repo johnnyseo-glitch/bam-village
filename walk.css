@@ -532,3 +532,5 @@ label.sw:has(input:checked) span { box-shadow: 0 0 0 3px var(--brown); }
 .pen-grid button.on { border-color: var(--brown); background: #fff3cf; box-shadow: 0 3px 0 var(--brown); }
 
 .net-err { font-size: 11px !important; color: var(--brown-soft); opacity: .8; word-break: break-all; }
+
+.top-actions .exit-btn { padding-left: 11px; padding-right: 11px; }
