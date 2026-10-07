@@ -1,14 +1,14 @@
 // 밤마을 v0.7 — 카메라, 입력, 군중, 상호작용, 다이얼로그.
-import * as T from './vendor/three.min.mjs?v=1791363073';
-import {createBgm} from './bgm.mjs?v=1791363073';
-import {createWorld, HOST_STEP} from './world.mjs?v=1791363073';
-import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791363073';
+import * as T from './vendor/three.min.mjs?v=1791363411';
+import {createBgm} from './bgm.mjs?v=1791363411';
+import {createWorld, HOST_STEP} from './world.mjs?v=1791363411';
+import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791363411';
 import {TABLES, SPOTS, WANDERERS, LOUNGERS, DRINKS, ENTRY, ROOM, MOODS, JACKETS, ACCESSORIES, DRINK_MINUTES, PROFILE_TAGS, ROUND_MINUTES, NEXT_TOPICS, VILLAGES, RESIDENT_COUNT, RING, OBSTACLES,
-  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC} from './map-data.mjs?v=1791363073';
-import {createSession} from './session.mjs?v=1791363073';
-import {createOnline} from './online.mjs?v=1791363073';
-import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791363073';
-import {createGames} from './games.mjs?v=1791363073';
+  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC} from './map-data.mjs?v=1791363411';
+import {createSession} from './session.mjs?v=1791363411';
+import {createOnline} from './online.mjs?v=1791363411';
+import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791363411';
+import {createGames} from './games.mjs?v=1791363411';
 
 const $ = id => document.getElementById(id);
 const view = $('viewport'), dialog = $('villageDialog'), calm = $('calm');
@@ -185,7 +185,7 @@ function refreshLabels() {
       const [text, kind] = tableBadge(t);
       l.button.innerHTML = `<i>T${t.number}</i>${esc(t.title)}<small class="${kind}">${text}</small>`;
     } else if (l.spot.kind === 'exit') {
-      l.button.innerHTML = '입구<small>마을 · 마무리</small>';
+      l.button.innerHTML = '입구<small>🌆 골목으로</small>';
     } else {
       l.button.textContent = l.spot.title;
     }
@@ -247,7 +247,7 @@ function renderDock() {
         <button class="quiet" id="toEntry">🚪 나가기</button>
       </div>`;
     $('toBar').onclick = () => selectEntity('host'); $('toLounge').onclick = () => selectEntity('lounge');
-    $('toMap').onclick = showMap; $('toEntry').onclick = openExit;
+    $('toMap').onclick = showMap; $('toEntry').onclick = finishVisit;
     $('dockMood').onclick = openMood;
   }
   if (o) $('dockOrder').onclick = showJournal;
@@ -421,7 +421,7 @@ function openEntity(id) {
   const t = tableOf(id); if (t) { openTable(t); return; }
   if (id === 'stairs' || id === 'stairsDown') { selectEntity(id); return; }
   if (id === 'host') { openHost(); return; }
-  if (id === 'exit') { openExit(); return; }
+  if (id === 'exit') { exitToTown(); return; }
   if (id === 'lounge') {
     show('QUIET CORNER', `<h2>오늘은 천천히 쉬어도 돼요</h2>
       <p>혼술 코너에서는 먼저 말을 걸지 않아요. 상태를 ‘혼술 중’으로 바꾸면 인사와 초대도 받지 않아요.</p>
@@ -1099,7 +1099,7 @@ function showMap() {
   show('SEONGSU · 매장 지도', `<h2>어디로 가볼까요?</h2>
     <canvas id="floorPlan" class="map-plan" width="440" height="360" aria-label="매장 평면도. 아래 버튼으로 구역을 고르세요."></canvas>
     <div class="place-list">${SPOTS.map(s => { const t = tableOf(s.id); const b = t ? tableBadge(t) : null;
-      return `<button data-spot="${s.id}">${t ? `<i>T${t.number}</i>` : ''}${esc(s.title)}<small class="${b ? b[1] : ''}">${b ? b[0] : s.kind === 'exit' ? '오늘 마무리' : '찾아가기'}</small></button>`; }).join('')}</div>
+      return `<button data-spot="${s.id}">${t ? `<i>T${t.number}</i>` : ''}${esc(s.title)}<small class="${b ? b[1] : ''}">${b ? b[0] : s.kind === 'exit' ? '골목으로' : '찾아가기'}</small></button>`; }).join('')}</div>
     <p class="note">가상 배치예요. 실제 매장 치수와 통로는 실측 후 다시 그려요.</p>`);
   drawMap();
   $('modalContent').querySelectorAll('[data-spot]').forEach(b => b.onclick = () => selectEntity(b.dataset.spot));
@@ -1140,33 +1140,24 @@ function drawMap() {
   c.fillText('입구', 220, mz(6.6));
 }
 
-function openExit() {
-  const s = session.summary();
-  const canTown = has('town') && place !== 'town';
-  show('EXIT · 나가기', `<h2>${canTown ? '밖으로 나가볼까요?' : '오늘 밤, 여기까지 할까요?'}</h2>
-    ${canTown ? `<button class="action" id="toTown">🌆 마을로 나가기 <small>산책 · 방문은 계속돼요</small></button>
-    <p class="note">바 밖 작은 서울 골목을 걸어요. 주문·자리·기록은 그대로고, 다시 문으로 들어오면 돼요.</p>
-    <h3>오늘 방문을 끝낼 때</h3>` : ''}
-    <dl class="recap">
-      <div><dt>앉았던 테이블</dt><dd>${s.tables.length ? s.tables.map(esc).join(', ') : '없음'}</dd></div>
-      <div><dt>인사한 주민</dt><dd>${s.greeted}명</dd></div>
-      <div><dt>주문</dt><dd>${s.orders}잔 · ${won(s.total)}</dd></div>
-    </dl>
-    ${s.unfinished ? `<p class="warn">아직 준비 중인 주문이 ${s.unfinished}잔 있어요. 마무리하면 호스트가 확인해요.</p>` : ''}
-    <p class="note">실제 매장에서는 이때 자리가 정리되고 정산을 확인해요. 체험판은 여기서 초기화돼요.</p>
-    <button class="secondary" id="exitGo">오늘 방문 마무리 (퇴장)</button><button class="secondary" id="exitStay">조금 더 있을래요</button>`);
-  $('exitStay').onclick = closeDialog;
-  if ($('toTown')) $('toTown').onclick = () => { closeDialog(); goOutside(); };
-  $('exitGo').onclick = () => {
-    if (wallet.visits === 1) { grantTitle('arrived'); grantTitle('firstnight'); }
-    unlock('titles', {quiet: true}); unlock('postcards', {quiet: true});
-    const memory = makeMemory();
-    wallet.memories.unshift(memory); wallet.memories = wallet.memories.slice(0, 20); saveWallet();
-    online?.leaveVillage(); inVillage = false; clearResume();
-    if (place === 'town') { actor.position.set(ENTRY.x, 0, ENTRY.z); switchPlace('bar'); }
-    stand(); orderGen++; flowToken++; releaseGuests(); session.reset(); glassGroup.visible = false; drink = null; giftDemoDone = false; refresh();
-    showPostcard(memory.id, {fresh: true});
-  };
+// 나가기는 두 가지로 나눈다(고르는 창 없음):
+//  · 위 🚪 / 아래 '나가기' 버튼 → 오늘 방문을 바로 마무리(퇴장)
+//  · 걸어서 입구에 도착 → 바깥 골목(마을)으로 나간다
+function finishVisit() {
+  if (!inVillage) return;
+  hideCalm(); if (dialog.open) closeDialog();
+  if (wallet.visits === 1) { grantTitle('arrived'); grantTitle('firstnight'); }
+  unlock('titles', {quiet: true}); unlock('postcards', {quiet: true});
+  const memory = makeMemory();
+  wallet.memories.unshift(memory); wallet.memories = wallet.memories.slice(0, 20); saveWallet();
+  online?.leaveVillage(); inVillage = false; clearResume();
+  if (place === 'town') { actor.position.set(ENTRY.x, 0, ENTRY.z); switchPlace('bar'); }
+  stand(); orderGen++; flowToken++; releaseGuests(); session.reset(); glassGroup.visible = false; drink = null; giftDemoDone = false; refresh();
+  showPostcard(memory.id, {fresh: true});
+}
+function exitToTown() {
+  unlock('town', {quiet: true});
+  goOutside();
 }
 
 // ── 오늘의 기억 · 밤의 엽서 ──────────────────────────────
@@ -2056,7 +2047,7 @@ bgm.onChange(on => { $('bgmBtn').classList.toggle('off', !on); $('bgmBtn').setAt
 addEventListener('pointerdown', e => { if (e.target.id !== 'bgmBtn') try { bgm.start(); } catch {} }, {once: true, capture: true});
 addEventListener('keydown', () => { try { bgm.start(); } catch {} }, {once: true, capture: true});
 $('bgmBtn').onclick = e => { e.stopPropagation(); if (!bgm.started && bgm.on) { bgm.start(); status('🎵 배경음악을 켰어요'); return; } const on = bgm.toggle(); status(on ? '🎵 배경음악을 켰어요' : '🔇 배경음악을 껐어요'); };
-$('exitButton').onclick = () => { if (!inVillage) return; hideCalm(); if (dialog.open) closeDialog(); openExit(); };
+$('exitButton').onclick = finishVisit;
 online = createOnline({
   scene, critter: world.critter, makePet, eulreul, iga, qrImg: QR_IMG, camera, view, actor, state, session, esc, genderMark,
   bubbleOver, status, show, closeDialog, refresh, tableOf, openMenu, openTable, serveToMe, hideCalm,
