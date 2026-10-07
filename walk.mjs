@@ -316,7 +316,6 @@ function punch() {
   punchAt = now; netPunchAt = Date.now();
   setTimeout(() => { // 주먹이 뻗는 순간 판정: 맞은 쪽 화면에서도 같은 규칙으로 판정한다
     const fx = Math.sin(netEuler.setFromQuaternion(actor.quaternion, 'YXZ').y), fz = Math.cos(netEuler.y);
-    const nx = actor.position.x + fx * .22, nz = actor.position.z + fz * .22; if (place === 'bar' ? tryStep(nx, nz) : true) {} // 살짝 파고들기
     let hit = false;
     for (const R of online?.players() ?? []) {
       const dx = R.root.position.x - actor.position.x, dz = R.root.position.z - actor.position.z, d = Math.hypot(dx, dz);
@@ -1812,7 +1811,8 @@ function animate(now) {
     arms[1].rotation.x = -1.6 * Math.max(0, ext) + .5 * Math.max(0, -ext); arms[1].rotation.z = -.1 * ext;
     rig.rotation.x = .16 * Math.max(0, ext) - .08 * wind; rig.rotation.y = -.35 * Math.max(0, ext) + .2 * wind;
     if (fist) fist.scale.setScalar(1 + 1.4 * Math.max(0, ext));
-  } else { rig.rotation.x = 0; rig.rotation.y = 0; if (fist && fist.scale.x !== 1) fist.scale.setScalar(1); }
+    rig.position.z = .16 * Math.max(0, ext) - .05 * wind; // 몸만 살짝 앞으로(실제 위치는 그대로라 버벅이지 않는다)
+  } else { rig.rotation.x = 0; rig.rotation.y = 0; rig.position.z = 0; if (fist && fist.scale.x !== 1) fist.scale.setScalar(1); }
   if (knock && now >= knock.start) { // 맞으면 밀리면서 몸이 휘청인다
     const k = Math.min(1, (now - knock.start) / (knock.until - knock.start)), want = .75 * (1 - (1 - k) ** 2), v = want - (knock.done ?? 0); // 프레임이 끊겨도 총 0.75m는 밀린다
     knock.done = want; tryStep(actor.position.x + knock.x * v, actor.position.z + knock.z * v);

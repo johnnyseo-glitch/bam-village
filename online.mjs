@@ -297,8 +297,8 @@ export function createOnline(G) {
     if (pt >= 0 && pt < 380) {
       const ext = pt < 90 ? -.35 * pt / 90 : Math.min(1, (pt - 90) / 50) * (1 - (pt - 90) / 290);
       c.arms[1].rotation.x = -1.6 * Math.max(0, ext) + .5 * Math.max(0, -ext); c.rig.rotation.y = -.35 * Math.max(0, ext);
-      if (c.fist) c.fist.scale.setScalar(1 + 1.4 * Math.max(0, ext));
-    } else { c.rig.rotation.y = 0; if (c.fist && c.fist.scale.x !== 1) c.fist.scale.setScalar(1); }
+      if (c.fist) c.fist.scale.setScalar(1 + 1.4 * Math.max(0, ext)); c.rig.position.z = .16 * Math.max(0, ext);
+    } else { c.rig.rotation.y = 0; c.rig.position.z = 0; if (c.fist && c.fist.scale.x !== 1) c.fist.scale.setScalar(1); }
     const ht = now - R.hitAt, hurt = ht >= 0 && ht < 850;
     if (c.ouch && c.ouch.visible !== hurt) { c.ouch.visible = hurt; for (const o of c.ouch.userData.hide) o.visible = !hurt; }
     if (hurt && ht < 420) { const k = ht / 420; c.rig.rotation.x = -.35 * (1 - k); c.rig.rotation.z = Math.sin(k * 22) * .16 * (1 - k); }
