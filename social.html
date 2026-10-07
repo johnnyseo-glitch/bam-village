@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#171c32"><title>밤마을 · 오늘의 작은 만남</title><meta name="description" content="미니미와 함께 돌아다니고, 대화 테이블에 앉아보는 소셜 바 체험."><link rel="icon" href="favicon.svg"><link rel="stylesheet" href="style.css"><script src="app.js" defer></script></head>
+<body>
+<header><a href="./" class="brand"><span class="brand-icon">☾</span> 밤마을 <small>BAM VILLAGE</small></a><span class="demo">체험판</span><button id="editMe" class="subtle">내 미니미</button></header>
+<main>
+<section class="play">
+<div class="section-head"><div><p class="eyebrow">TONIGHT IN SEONGSU</p><h1>성수 마을 <span class="moon">☾</span></h1></div><div class="night"><span>예시 주민 <b id="population">12</b>명</span><span>열린 테이블 <b id="openCount">3</b>개</span></div></div>
+<div class="map-wrap"><div class="map-top"><span>LOUNGE 01</span><span id="mapStatus">마을 구경 중</span></div>
+<div id="map" class="map" aria-label="마을 지도. 테이블이나 호스트를 눌러 이동하세요." tabindex="0">
+<button class="bar" id="host"><span class="host-emoji">🧑‍🍳</span><span><b>HOST JAY</b><small>한잔 · 테이블 추천</small></span><span class="bar-icon">🍸</span></button>
+<div class="zone-title">오늘은 어떤 이야기?</div>
+<div id="tableMap"></div>
+<div class="lounge-label">혼자 쉬어도 좋아요</div><button class="rest" id="rest">☾ 라운지</button>
+<div id="wanderers"></div>
+<div id="player" class="player" hidden><span class="avatar" id="playerAvatar">🦊</span><span id="heldDrink" class="held"></span><span class="nameplate" id="playerName">JOHNNY <b>나</b></span></div>
+<div class="entrance">ENTRANCE</div>
+</div><div class="map-bottom"><span id="hint">입장하면 내 미니미가 나타나요</span><button id="enter" class="primary">마을 들어가기</button></div></div>
+<p class="footnote">예시 주민과 테이블로 체험해요. 실제 방문 현황·주문·결제는 연결되지 않았어요.</p>
+</section>
+<aside>
+<div class="me-card"><div class="me-title"><p class="eyebrow">MY LITTLE NIGHT</p><button id="customize" class="text-button">꾸미기</button></div><div class="me-portrait"><span id="meAvatar">🦊</span><span class="accessory" id="meAccessory"></span><div><h2 id="meName">JOHNNY</h2><p id="meMood">💬 이야기하고 싶어</p></div></div><div class="level"><span>오늘의 산책 <b id="questCount">0 / 3</b></span><div class="progress"><div id="progress"></div></div></div><div class="quests" id="quests"><span>○ 마을에 입장하기</span><span>○ 대화판에 앉아보기</span><span>○ 호스트에게 인사하기</span></div><div id="reward" hidden class="reward">✨ 밤 산책 배지 획득! 미니미에 별이 생겼어요.</div></div>
+<div class="stories"><div class="list-heading"><h2>열린 이야기</h2><span>오늘의 예시</span></div><div id="tableList"></div></div>
+<div class="order-card"><div class="list-heading"><h2>내 밤의 기록</h2><button id="reset" class="text-button">처음부터</button></div><p id="emptyLog">첫 이야기를 시작해볼까요?</p><ul id="log" aria-live="polite"></ul><div id="orderSummary" hidden><span>체험 주문 합계</span><b id="total">0원</b></div></div>
+</aside>
+</main>
+<footer><span>놀러 왔다가, 이야기가 생기는 밤.</span></footer>
+<dialog id="dialog"><div class="dialog-head"><span id="dialogLabel" class="eyebrow"></span><button id="closeDialog" aria-label="닫기" class="close">×</button></div><div id="dialogContent"></div></dialog>
+<div id="toast" role="status" class="toast"></div>
+</body></html>
