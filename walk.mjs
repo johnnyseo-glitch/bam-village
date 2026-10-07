@@ -1236,7 +1236,7 @@ function openOnboarding() {
       <p class="meta">방문 ${wallet.visits + 1}번째${wallet.title ? ` · 〈${esc(titleName(wallet.title))}〉` : ''}</p>
       <p>오늘도 편하게 놀다 가요.</p>
       <fieldset><legend>오늘의 상태</legend>${moodOptions('moodStart')}</fieldset>
-      <button class="action" id="enter">마을로 들어가기</button><button class="secondary" id="reverify">정보 다시 입력</button>`, {onClose: enterVillage, lock: true});
+      <button class="action" id="enter">마을로 들어가기</button><button class="secondary" id="reverify">다른 이름으로 들어가기</button>`, {onClose: enterVillage, lock: true});
     $('enter').onclick = () => { state.profile.mood = document.querySelector('input[name=moodStart]:checked')?.value ?? p.mood; closeDialog(); };
     $('reverify').onclick = stepProfile; return;
   }
@@ -1248,7 +1248,7 @@ function stepProfile() {
   const p = state.profile, L = wallet.look ?? CHAR_DEFAULT;
   const basicFur = ['#f08a3c', '#f2b675', '#fbf3ea', '#8a8290', '#2f2b30', '#a9b8f0'];
   show('CHECK-IN · 오늘 밤의 나', `<h2>오늘 밤의 나</h2>
-    <label class="field" for="nick"><span>닉네임</span><input id="nick" maxlength="10" autocomplete="off" value="${esc(p.name)}"></label>
+    <label class="field" for="nick"><span>닉네임 (이 기기에서 쓸 이름)</span><input id="nick" maxlength="10" autocomplete="off" placeholder="예: 미나, 별밤, 하이볼러" value="${esc(p.name)}"></label>
     <fieldset><legend>기본 외형</legend><div class="char-grid six">${BASIC_SPECIES.map(id => { const sp = CHAR_SPECIES.find(x => x[0] === id); return `<label class="pick"><input type="radio" name="sp" value="${id}" ${L.species === id ? 'checked' : ''}><span>${sp[2]}</span>${sp[1]}</label>`; }).join('')}</div>
       <div class="swatches">${basicFur.map((c, i) => `<label class="sw"><input type="radio" name="fur" value="${c}" ${L.fur === c || (!basicFur.includes(L.fur) && i === 0) ? 'checked' : ''}><span style="--sw:${c}"></span></label>`).join('')}</div></fieldset>
     <fieldset class="jackets"><legend>성별 (이름표에 표시 · 선택)</legend>${[['M', '남 ♂'], ['F', '여 ♀'], ['', '말 안 함']].map(([v, l]) => `<label><input type="radio" name="gender" value="${v}" ${(p.gender ?? '') === v ? 'checked' : ''}>${l}</label>`).join('')}</fieldset>
@@ -1257,9 +1257,10 @@ function stepProfile() {
     <button class="action" id="profileNext">마을로 들어가기</button>
     <p class="note">테스트판이라 승인 단계 없이 바로 들어가요. 나이·직업·MBTI는 MY에서 원할 때만 적어요. 꾸미기는 다시 방문하면 더 열려요.</p>`, {lock: true});
   $('profileNext').onclick = () => {
+    if (!($('nick').value || '').trim()) { status('닉네임을 적어주세요'); $('nick').focus(); return; }
     if (!$('adult').checked) { status('만 19세 이상만 입장할 수 있어요'); return; }
     const pick = n => document.querySelector(`input[name=${n}]:checked`)?.value;
-    session.setProfile({name: ($('nick').value || '').trim().slice(0, 10) || '손님', gender: pick('gender') ?? '', adult: true, mood: pick('moodStart') ?? p.mood, fav: p.fav ?? 'highball'});
+    session.setProfile({name: ($('nick').value || '').trim().slice(0, 10), gender: pick('gender') ?? '', adult: true, mood: pick('moodStart') ?? p.mood, fav: p.fav ?? 'highball'});
     wallet.look = {species: pick('sp') ?? 'fox', fur: pick('fur') ?? '#f08a3c', extra: 'none'}; saveWallet();
     closeDialog(); enterVillage();
   };

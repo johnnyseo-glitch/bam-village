@@ -7,8 +7,8 @@ export const ORDER_STEPS = ['접수', '준비 중', '서빙 완료'];
 
 export function createSession() {
   const state = {
-    profile: {name: 'JOHNNY', mood: 'talk', jacket: 'lime', fav: 'highball', accessory: 'none', pet: null,
-      gender: 'M', age: 31, job: '', jobType: '직장인', mbti: '', verified: false, jobVerified: false},
+    profile: {name: '', mood: 'talk', jacket: 'lime', fav: 'highball', accessory: 'none', pet: null,
+      gender: '', age: null, job: '', jobType: '직장인', mbti: '', verified: false, jobVerified: false},
     owned: null,          // 내가 방장인 테이블 id
     praised: new Set(),   // 오늘 칭찬을 보낸 주민
     praiseIn: {},         // 내가 받은 칭찬 {태그: 횟수}
