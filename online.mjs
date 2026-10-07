@@ -214,7 +214,7 @@ export function createOnline(G) {
     hitbox.position.y = .8; hitbox.userData.ignorePick = true; root.add(hitbox);
     const tag = document.createElement('button'); tag.className = 'npc-tag player-tag'; tag.hidden = true;
     $('worldLabels').appendChild(tag);
-    const R = {peer: peer.peer, by: peer.by, p, root, c, tag, color: lookKey(p), phase: 0, jy: 0, jv: 0, lastEa: p.ea, lastJa: p.ja, q: new T.Quaternion(), pet: null};
+    const R = {peer: peer.peer, by: peer.by, p, root, c, tag, color: lookKey(p), phase: 0, jy: 0, jv: 0, lastEa: p.ea, lastJa: p.ja, lastPa: p.pa, punchUntil: 0, q: new T.Quaternion(), pet: null};
     tag.onclick = () => openPlayer(R);
     remotes.set(peer.peer, R);
     return R;
@@ -276,6 +276,12 @@ export function createOnline(G) {
     } else { for (const part of [...c.legs, ...c.arms]) part.rotation.x *= .85; c.rig.position.y = Math.sin(now * .002) * .009; }
     if (p.ja !== R.lastJa) { R.lastJa = p.ja; if (p.ja) { R.jv = 4.2; R.jy = .0001; } }
     if (R.jy > 0) { R.jv -= 12 * dt; R.jy += R.jv * dt; if (R.jy <= 0) { R.jy = 0; R.jv = 0; } c.rig.position.y += R.jy; c.arms[0].rotation.x = c.arms[1].rotation.x = -2.5; }
+    if (p.pa !== R.lastPa) { // 때리기: 동작을 보여주고, 바로 앞에 내가 있으면 맞는다
+      R.lastPa = p.pa; R.punchUntil = now + 320;
+      const me = G.actor.position, dx = me.x - root.position.x, dz = me.z - root.position.z, d = Math.hypot(dx, dz), r = +p.r || 0;
+      if (p.pa && G.inVillage() && d < 1.25 && d > 0 && (dx * Math.sin(r) + dz * Math.cos(r)) / d > .35) G.onPunched?.(R);
+    }
+    if (now < R.punchUntil) { const f = Math.sin((1 - (R.punchUntil - now) / 320) * Math.PI); c.arms[1].rotation.x = -1.65 * f; }
     if (p.ea !== R.lastEa) { R.lastEa = p.ea; const e = EMOTES.find(e => e.id === p.e); if (e && p.ea) G.bubbleOver(root, e.text, e.bg, 3000, 2.05); }
     if (p.pt && !R.pet) R.pet = G.makePet(p.pt, p.pf || '#f2b675');
     if (!p.pt && R.pet) { G.scene.remove(R.pet.group); R.pet = null; }

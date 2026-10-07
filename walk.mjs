@@ -26,7 +26,8 @@ const PET_UNLOCK_DAYS = 3; // 임시: 서로 다른 날 3번 방문하면 펫 �
 // ── 렌더러와 카메라 (v0.4에서 승인된 가까운 시점 유지) ─────────
 const renderer = new T.WebGLRenderer({antialias: true, alpha: false, powerPreference: 'low-power'});
 renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.5));
-renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap;
+const touchDevice = matchMedia('(hover: none)').matches;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = touchDevice ? T.PCFShadowMap : T.PCFSoftShadowMap; // 폰은 가벼운 그림자로 프레임 확보
 renderer.outputColorSpace = T.SRGBColorSpace; renderer.toneMapping = T.NoToneMapping;
 view.appendChild(renderer.domElement);
 
@@ -39,6 +40,7 @@ const indoorSky = {bg: scene.background, fog: scene.fog};
 
 const camera = new T.PerspectiveCamera(36, 1, .1, 80);
 const cameraOffset = new T.Vector3(.8, 4.5, 8.5);
+let camNarrow = 0; // 폰 세로 화면이면 1
 // 마을 전경 보기: 잠깐 뒤로 물러나 남산·한강·관람차를 보여준 뒤 원래 시점으로 돌아온다.
 const camOff = cameraOffset.clone(), WIDE = new T.Vector3(1.5, 12, 27), lookAt = new T.Vector3();
 let wideUntil = 0;
@@ -48,7 +50,7 @@ camera.position.copy(followPoint).add(cameraOffset); camera.lookAt(followPoint);
 let path = [], arrival = '', onArrival = null, phase = 0, last = 0, frameId = 0, walking = false, failed = false;
 let flowToken = 0, escorting = false, nearestEntity = null, lastNear = '', onDialogClose = null, toastTimer = 0, orderGen = 0;
 let place = 'bar', town = null, townLabels = [], games = null, fadeT = 0;
-let online = null, inVillage = false, netEmote = {id: null, at: 0}, netJumpAt = 0;
+let online = null, inVillage = false, netEmote = {id: null, at: 0}, netJumpAt = 0, netPunchAt = 0, punchAt = -1e9, knock = null;
 let hostTask = null, drink = null, giftDemoDone = false, praiseDemoDone = false, level = 1, tutorial = null, myPet = null;
 const npcLevel = n => n.root.position.y > 2 ? 2 : 1;
 const genderMark = g => g === 'F' ? '♀' : g === 'M' ? '♂' : '';
@@ -252,6 +254,9 @@ function renderDock() {
 function resize() {
   const w = view.clientWidth, h = view.clientHeight; if (!w || !h) return;
   renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+  // 폰 세로 화면은 좌우가 좁아서 너무 붙어 보인다 → 카메라를 한 걸음 뒤·위로 빼서 주변이 보이게
+  const narrow = camNarrow = w / h < .8 ? 1 : w / h < 1.15 ? .5 : 0;
+  cameraOffset.set(.8 + .4 * narrow, 4.5 + 4 * narrow, 8.5 + 7.5 * narrow);
 }
 new ResizeObserver(resize).observe(view); resize();
 
@@ -259,7 +264,7 @@ function status(text) {
   const el = $('status'); el.textContent = text; el.classList.add('show');
   clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), 3400);
 }
-function release() { keys.clear(); document.querySelectorAll('[data-dir]').forEach(b => b.classList.remove('active')); }
+function release() { keys.clear(); joy?.end?.(); document.querySelectorAll('[data-dir]').forEach(b => b.classList.remove('active')); }
 
 // ── 자리 ─────────────────────────────────────────────────
 function stand() {
@@ -299,6 +304,27 @@ function jump() {
   if (jumpY > .001 || jumpV !== 0) return;
   jumpV = JUMP_SPEED; netJumpAt = Date.now();
   if (myPet) setTimeout(() => { if (myPet && !myPet.jy) myPet.jv = JUMP_SPEED * .8; }, 110); // 펫도 살짝 늦게 같이 점프
+}
+
+// 때리기: HP 없는 장난. 앞에 있는 사람은 '아야!' 하고 살짝 밀려난다.
+function punch() {
+  if (failed || dialog.open || !calm.hidden || escorting) return;
+  if (state.table) { seatedHint(); return; }
+  const now = performance.now();
+  if (now - punchAt < 450) return;
+  punchAt = now; netPunchAt = Date.now();
+  const fx = Math.sin(netEuler.setFromQuaternion(actor.quaternion, 'YXZ').y), fz = Math.cos(netEuler.y);
+  for (const R of online?.players() ?? []) {
+    const dx = R.root.position.x - actor.position.x, dz = R.root.position.z - actor.position.z, d = Math.hypot(dx, dz);
+    if (d < 1.25 && d > 0 && (dx * fx + dz * fz) / d > .35) bubbleOver(R.root, '퍽!', '#ffe1d6', 900, 1.95);
+  }
+}
+// 누가 나를 때렸을 때: 앉아 있으면 말풍선만, 서 있으면 맞은 방향으로 살짝 밀린다
+function punched(R) {
+  bubbleOver(actor, '아야!', '#ffe1d6', 1200, 2.0);
+  if (state.table || dialog.open) return;
+  const dx = actor.position.x - R.root.position.x, dz = actor.position.z - R.root.position.z, d = Math.hypot(dx, dz) || 1;
+  knock = {x: dx / d, z: dz / d, until: performance.now() + 260, start: performance.now()};
 }
 
 function goTo(x, z, label = '', done = null, toLevel = level) {
@@ -1417,9 +1443,11 @@ function keyStart(d) {
   return true;
 }
 window.addEventListener('keydown', e => {
-  if (dialog.open || e.altKey || e.ctrlKey || e.metaKey || ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
+  if (e.key === 'Control' && !e.repeat && !dialog.open && !['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) { punch(); return; }
+  if (dialog.open || e.altKey || e.metaKey || ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
   if (!calm.hidden) { if (e.key === 'Escape') hideCalm(); return; }
   if (e.code === 'Space' || e.key === ' ') { e.preventDefault(); if (!e.repeat) jump(); return; }
+  if (e.ctrlKey) return;
   if (e.key.toLowerCase() === 'e' && nearestEntity && !$('interact').hidden) { e.preventDefault(); $('interact').click(); return; }
   if (!mapping[e.key]) return;
   e.preventDefault(); if (!e.repeat) keyStart(mapping[e.key]);
@@ -1427,7 +1455,35 @@ window.addEventListener('keydown', e => {
 window.addEventListener('keyup', e => { if (mapping[e.key]) keys.delete(mapping[e.key]); if ((e.code === 'Space' || e.key === ' ') && !dialog.open && !['INPUT', 'TEXTAREA'].includes(e.target.tagName)) e.preventDefault(); });
 $('jumpBtn').addEventListener('pointerdown', e => { e.preventDefault(); jump(); });
 $('jumpBtn').addEventListener('click', e => { if (e.detail === 0) jump(); });
+$('punchBtn').addEventListener('pointerdown', e => { e.preventDefault(); punch(); });
+$('punchBtn').addEventListener('click', e => { if (e.detail === 0) punch(); });
 window.addEventListener('blur', release);
+// 조이스틱: 누른 자리에서 끄는 방향·거리만큼 걷는다(화면 기준, 끝까지 끌면 최고 속도)
+const joy = {on: false, x: 0, y: 0, id: null};
+{
+  const pad = $('joystick'), knob = pad.querySelector('.joy-knob');
+  const R = () => pad.clientWidth / 2;
+  const setKnob = () => { knob.style.transform = `translate(${joy.x * R() * .62}px, ${joy.y * R() * .62}px)`; };
+  const move = e => {
+    const b = pad.getBoundingClientRect(), r = b.width / 2;
+    let x = (e.clientX - b.left - r) / (r * .62), y = (e.clientY - b.top - r) / (r * .62);
+    const m = Math.hypot(x, y); if (m > 1) { x /= m; y /= m; }
+    joy.x = x; joy.y = y; setKnob();
+  };
+  pad.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    if (dialog.open || !calm.hidden) return;
+    if (escorting) { status('JAY가 안내하는 중이에요. 잠깐만요.'); return; }
+    if (state.table) { seatedHint(); return; }
+    pad.setPointerCapture(e.pointerId); joy.on = true; joy.id = e.pointerId; pad.classList.add('active');
+    path = []; onArrival = null; marker.visible = false; arrival = '';
+    move(e);
+  });
+  pad.addEventListener('pointermove', e => { if (joy.on && e.pointerId === joy.id) move(e); });
+  const end = () => { joy.on = false; joy.x = joy.y = 0; joy.id = null; pad.classList.remove('active'); setKnob(); };
+  for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) pad.addEventListener(ev, end);
+  joy.end = end;
+}
 document.querySelectorAll('[data-dir]').forEach(b => {
   b.addEventListener('pointerdown', e => { e.preventDefault(); b.setPointerCapture(e.pointerId); if (keyStart(b.dataset.dir)) b.classList.add('active'); });
   for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) b.addEventListener(ev, () => { keys.delete(b.dataset.dir); b.classList.remove('active'); });
@@ -1661,11 +1717,14 @@ function animate(now) {
   if (document.hidden) { last = now; return; }
   const dt = Math.min((now - last) / 1000 || 0, .045); last = now;
   direction.set(0, 0, 0); let moved = false;
-  if (!dialog.open && keys.size && !state.table) {
+  const joyMag = joy.on ? Math.hypot(joy.x, joy.y) : 0;
+  if (!dialog.open && (keys.size || joyMag > .18) && !state.table) {
     if (keys.has('up')) direction.add(up); if (keys.has('down')) direction.sub(up);
     if (keys.has('right')) direction.add(right); if (keys.has('left')) direction.sub(right);
+    if (joyMag > .18) direction.addScaledVector(up, -joy.y).addScaledVector(right, joy.x);
     direction.normalize();
-    const nx = actor.position.x + direction.x * speed * dt, nz = actor.position.z + direction.z * speed * dt;
+    const sp = speed * (keys.size ? 1 : Math.min(1, .35 + joyMag * .75));
+    const nx = actor.position.x + direction.x * sp * dt, nz = actor.position.z + direction.z * sp * dt;
     if (tryStep(nx, nz)) moved = direction.lengthSq() > 0;
     else if (tryStep(nx, actor.position.z)) { direction.z = 0; moved = Math.abs(direction.x) > .01; }
     else if (tryStep(actor.position.x, nz)) { direction.x = 0; moved = Math.abs(direction.z) > .01; }
@@ -1709,6 +1768,14 @@ function animate(now) {
   rig.position.y += jumpY;
   if (jumpY > 0) { arms[0].rotation.x = -2.5; if (!glassGroup.visible) arms[1].rotation.x = -2.5; legs[0].rotation.x = -.5; legs[1].rotation.x = .3; }
   shadow.scale.setScalar(Math.max(.55, 1 - jumpY * .55));
+  const pk = (now - punchAt) / 320;
+  if (pk >= 0 && pk < 1) { const f = Math.sin(pk * Math.PI); arms[1].rotation.x = -1.65 * f; arms[1].rotation.z = -.15 * f; rig.rotation.x = .12 * f; }
+  else rig.rotation.x = 0;
+  if (knock) { // 맞으면 짧게 밀리고 몸이 흔들린다
+    const k = (now - knock.start) / (knock.until - knock.start);
+    if (k >= 1) knock = null;
+    else { const v = 3.2 * (1 - k) * dt, nx = actor.position.x + knock.x * v, nz = actor.position.z + knock.z * v; if (tryStep(nx, nz)) actor.position.set(nx, actor.position.y, nz); rig.rotation.z = Math.sin(k * 20) * .12 * (1 - k); }
+  }
   if (emoteAnim) { // 감정 표현 동작
     const k = (now - emoteAnim.start) / 1000;
     if (now > emoteAnim.until) emoteAnim = null;
@@ -1734,7 +1801,7 @@ function animate(now) {
     else setFill(f);
   }
   for (const f of flags) f.quaternion.copy(camera.quaternion);
-  desiredFocus.set(actor.position.x, .6 + (state.table ? levelY(level) : actor.position.y), actor.position.z - .75);
+  desiredFocus.set(actor.position.x, .6 + (state.table ? levelY(level) : actor.position.y), actor.position.z - .75 - 1.4 * camNarrow); // 폰: 시선을 앞으로 → 내 캐릭터는 화면 아래쪽, 앞쪽 공간이 더 보임
   followPoint.lerp(desiredFocus, reduced ? 1 : 1 - Math.exp(-dt * 5));
   camOff.lerp(place === 'town' && now < wideUntil ? WIDE : cameraOffset, reduced ? 1 : 1 - Math.exp(-dt * 2.2));
   const wk = Math.min(1, Math.max(0, (camOff.y - cameraOffset.y) / (WIDE.y - cameraOffset.y)));
@@ -1878,7 +1945,7 @@ function netMe() {
     t: wallet.title ? titleName(wallet.title) ?? '' : '', md: p.mood || 'talk', c: j.color, pt: wallet.equipped.pet || null, pf: petItem?.fur || null,
     x: r2(actor.position.x), y: r2(actor.position.y), z: r2(actor.position.z), r: r2(netEuler.setFromQuaternion(actor.quaternion, 'YXZ').y), w: walking ? 1 : 0,
     tb: state.table || null, s: t ? (state.seatIdx ?? -1) : -1, own: owner ? 1 : 0, tt: owner ? t.title : '', op: owner ? t.opener : '',
-    e: netEmote.id, ea: netEmote.at, ja: netJumpAt,
+    e: netEmote.id, ea: netEmote.at, ja: netJumpAt, pa: netPunchAt,
     sp: wallet.look?.species ?? 'fox', fu: wallet.look?.fur ?? '#f08a3c', ex: wallet.look?.extra ?? 'none', ac: wallet.equipped.accessory ?? 'none', pl: place};
 }
 const netEuler = new T.Euler();
@@ -1937,7 +2004,7 @@ online = createOnline({
   bubbleOver, status, show, closeDialog, refresh, tableOf, openMenu, openTable, serveToMe, hideCalm,
   inVillage: () => inVillage, me: netMe, dialogLabel: () => dialog.open ? $('modalLabel').textContent : '',
   moodShort: md => MOODS[md]?.short ?? '', levelOf: tb => levelY(tableOf(tb)?.level ?? 1),
-  walkAndSit, becomeOwner, onPassLost: kicked, wave: () => bubbleOver(actor, '👋 안녕!', '#ffffff', 2000, 2.0),
+  walkAndSit, becomeOwner, onPassLost: kicked, onPunched: punched, wave: () => bubbleOver(actor, '👋 안녕!', '#ffffff', 2000, 2.0),
   onGame: (p, from) => { if (dialog.open) status(`🎲 ${from}님이 게임을 시작했어요`); else games.play(p, from); },
   addAccessory: world.addAccessory,
   onChange: onNetChange, afterHost: () => { if (!inVillage && !dialog.open) openVillages(); }, onAccepted: () => setTimeout(() => grantTitle('jay'), 3000)
