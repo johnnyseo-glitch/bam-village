@@ -227,10 +227,16 @@ export function createOnline(G) {
   function syncPeers() {
     if (net.status !== 'on') return;
     const seen = new Set();
-    for (const peer of net.room.peers()) {
-      if (peer.sameTab || peer.kind !== 'viewer') continue; // 같은 계정의 다른 기기(폰·패드)도 다른 사람처럼 보여야 한다
-      const p = peer.presence || {};
-      if (!p.in || !admitted(peer.by)) continue;
+    // 유령 정리: '자리 비움'인데 같은 기기(by)나 같은 이름으로 지금 활동 중인 사람이 있으면(나 포함) 예전 화면이라 숨긴다.
+    // 같은 기기의 자리 비움이 여러 개면 가장 최근 것 하나만 남긴다.
+    const list = net.room.peers().filter(peer => !peer.sameTab && peer.kind === 'viewer' && peer.presence?.in && admitted(peer.by));
+    const activeBy = new Set(list.filter(x => !x.presence.away).map(x => x.by)), activeName = new Set(list.filter(x => !x.presence.away).map(x => x.presence.n));
+    if (G.inVillage()) { activeBy.add(net.myId); activeName.add(G.state.profile.name); }
+    const newestAway = new Map();
+    for (const x of list) if (x.presence.away) { const k = x.by || x.peer, o = newestAway.get(k); if (!o || (x.updatedAt ?? 0) > (o.updatedAt ?? 0)) newestAway.set(k, x); }
+    for (const peer of list) {
+      const p = peer.presence;
+      if (p.away && (activeBy.has(peer.by) || activeName.has(p.n) || newestAway.get(peer.by || peer.peer) !== peer)) continue;
       seen.add(peer.peer);
       let R = remotes.get(peer.peer);
       if (R && R.color !== lookKey(p)) { removeRemote(R); R = null; }

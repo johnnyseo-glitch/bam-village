@@ -77,6 +77,13 @@ export function install({brokers = BROKERS} = {}) {
     }
     if (changed) rebuild();
   }
+  // 같은 기기(같은 uid)에서 예전에 열었던 탭이 '자리 비움'으로 남아 있으면 지운다: 새 탭이 곧 그 사람이다
+  function purgeGhost(peer) {
+    const o = others.get(peer); if (!o || !o.away || o.by !== uid || peer === peerId) return false;
+    others.delete(peer);
+    client?.publish(`${P}/p/${peer}`, '', {retain: true}); client?.publish(`${P}/w/${peer}`, '', {retain: true});
+    return true;
+  }
   function onMessage(topic, buf) {
     const rest = topic.slice(P.length + 1), text = buf.toString();
     if (rest.startsWith('p/')) {
@@ -84,11 +91,11 @@ export function install({brokers = BROKERS} = {}) {
       if (!text) { if (others.delete(peer)) rebuild(); return; }
       try { const m = JSON.parse(text); const age = Date.now() - (m.t || 0); if (age > AWAY_MS) return;
         const prev = others.get(peer);
-        others.set(peer, {by: String(m.by || ''), presence: Object.freeze(m.presence || {}), seen: Date.now() - Math.max(0, Math.min(age, AWAY_MS)), away: (prev?.away && age > 1000) || age > STALE_MS}); rebuild(); } catch {}
+        others.set(peer, {by: String(m.by || ''), presence: Object.freeze(m.presence || {}), seen: Date.now() - Math.max(0, Math.min(age, AWAY_MS)), away: (prev?.away && age > 1000) || age > STALE_MS}); purgeGhost(peer); rebuild(); } catch {}
     } else if (rest.startsWith('w/')) {
       const peer = rest.slice(2); if (peer === peerId) return;
       const o = others.get(peer); if (!o) return;
-      const away = text === '1'; if (o.away !== away) { o.away = away; if (!away) o.seen = Date.now(); rebuild(); }
+      const away = text === '1'; if (o.away !== away) { o.away = away; if (!away) o.seen = Date.now(); purgeGhost(peer); rebuild(); }
     } else if (rest.startsWith('e/')) {
       const t = rest.slice(2);
       try { const m = JSON.parse(text); const self = m.peer === peerId;
