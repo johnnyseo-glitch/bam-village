@@ -1,13 +1,14 @@
 // 밤마을 v0.7 — 카메라, 입력, 군중, 상호작용, 다이얼로그.
-import * as T from './vendor/three.min.mjs';
-import {createWorld, HOST_STEP} from './world.mjs';
-import {route, valid, navs, levelRoute, levelY} from './navigation.mjs';
+import * as T from './vendor/three.min.mjs?v=1791363073';
+import {createBgm} from './bgm.mjs?v=1791363073';
+import {createWorld, HOST_STEP} from './world.mjs?v=1791363073';
+import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791363073';
 import {TABLES, SPOTS, WANDERERS, LOUNGERS, DRINKS, ENTRY, ROOM, MOODS, JACKETS, ACCESSORIES, DRINK_MINUTES, PROFILE_TAGS, ROUND_MINUTES, NEXT_TOPICS, VILLAGES, RESIDENT_COUNT, RING, OBSTACLES,
-  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC} from './map-data.mjs';
-import {createSession} from './session.mjs';
-import {createOnline} from './online.mjs';
-import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs';
-import {createGames} from './games.mjs';
+  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC} from './map-data.mjs?v=1791363073';
+import {createSession} from './session.mjs?v=1791363073';
+import {createOnline} from './online.mjs?v=1791363073';
+import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791363073';
+import {createGames} from './games.mjs?v=1791363073';
 
 const $ = id => document.getElementById(id);
 const view = $('viewport'), dialog = $('villageDialog'), calm = $('calm');
@@ -1881,7 +1882,7 @@ function ensureTown() {
   }
 }
 function switchPlace(to) {
-  place = to;
+  place = to; bgm.setScene(to === 'town' ? 'town' : 'bar');
   for (const o of indoorObjs) o.visible = to === 'bar';
   town.group.visible = to === 'town';
   camera.far = to === 'town' ? 170 : 80; camera.updateProjectionMatrix(); wideUntil = 0;
@@ -2049,6 +2050,12 @@ function kicked() {
   $('kOk').onclick = closeDialog;
 }
 $('netChip').onclick = showPlayers;
+// 배경음악: 오리지널 BGM(바 안 재즈 라운지 · 골목 왈츠). 첫 터치에 시작, 🎵로 끄고 켠다.
+const bgm = createBgm();
+bgm.onChange(on => { $('bgmBtn').classList.toggle('off', !on); $('bgmBtn').setAttribute('aria-pressed', on ? 'true' : 'false'); });
+addEventListener('pointerdown', e => { if (e.target.id !== 'bgmBtn') try { bgm.start(); } catch {} }, {once: true, capture: true});
+addEventListener('keydown', () => { try { bgm.start(); } catch {} }, {once: true, capture: true});
+$('bgmBtn').onclick = e => { e.stopPropagation(); if (!bgm.started && bgm.on) { bgm.start(); status('🎵 배경음악을 켰어요'); return; } const on = bgm.toggle(); status(on ? '🎵 배경음악을 켰어요' : '🔇 배경음악을 껐어요'); };
 $('exitButton').onclick = () => { if (!inVillage) return; hideCalm(); if (dialog.open) closeDialog(); openExit(); };
 online = createOnline({
   scene, critter: world.critter, makePet, eulreul, iga, qrImg: QR_IMG, camera, view, actor, state, session, esc, genderMark,

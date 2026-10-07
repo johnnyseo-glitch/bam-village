@@ -534,3 +534,7 @@ label.sw:has(input:checked) span { box-shadow: 0 0 0 3px var(--brown); }
 .net-err { font-size: 11px !important; color: var(--brown-soft); opacity: .8; word-break: break-all; }
 
 .top-actions .exit-btn { padding-left: 11px; padding-right: 11px; }
+.bgm-btn { position: absolute; top: 66px; right: 12px; z-index: 3; width: 40px; height: 40px; border-radius: 50%; border: var(--line); background: var(--cream); box-shadow: 0 3px 0 var(--brown); font-size: 18px; line-height: 1; padding: 0; }
+.bgm-btn.off { opacity: .6; filter: grayscale(1); }
+.bgm-btn.off::after { content: ''; position: absolute; left: 8px; right: 8px; top: 50%; height: 3px; background: var(--brown); transform: rotate(-40deg); border-radius: 2px; }
+.bgm-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--brown); }
