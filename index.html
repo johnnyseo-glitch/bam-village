@@ -76,8 +76,8 @@
 </dialog>
 
 <script type="module">
-// Claude 밖(일반 웹 주소)에서는 공개 실시간 서버로 연결하는 얇은 어댑터를 먼저 깐다.
-(window.claude ? Promise.resolve() : import('./netshim.mjs').then(m => { m.install(); }).catch(e => console.warn('online off', e)))
+// 실시간 연결 어댑터를 먼저 깐다: 공개 실시간 서버(모두 같은 방) → 안 되면 Claude 자체 실시간.
+import('./netshim.mjs').then(m => { m.install(); }).catch(e => console.warn('online off', e))
 .then(() => import('./walk.mjs')).catch(error => {
   console.error(error);
   document.getElementById('loading').hidden = true;

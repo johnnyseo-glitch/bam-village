@@ -50,8 +50,9 @@ export function createOnline(G) {
   async function start() {
     await 0;
     try {
-      if (!window.claude?.use) throw 0;
-      const [room, db, user] = await Promise.all(['room', 'db', 'user'].map(n => window.claude.use(n).catch(() => null)));
+      const use = window.__bamNet?.use ?? (window.claude?.use ? window.claude.use.bind(window.claude) : null);
+      if (!use) throw 0;
+      const [room, db, user] = await Promise.all(['room', 'db', 'user'].map(n => use(n).catch(() => null)));
       if (!room || !db || !user) throw 0;
       const myId = await user.id();
       if (!myId) throw 0;

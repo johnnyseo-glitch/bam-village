@@ -124,7 +124,11 @@ export function install({brokers = BROKERS} = {}) {
     profiles: async ids => Object.fromEntries([].concat(ids).map(i => [i, {id: i, name: '', avatarUrl: '', color: '#888', email: null, isMe: i === uid, guest: false}]))});
 
   const caps = {room, db, user};
-  window.claude = Object.freeze({use: name => ready.then(ok => ok ? (caps[name] ?? null) : null)});
-  window.__bamNet = {room: ROOM, get broker() { return client?.options?.href ?? null; }, ready};
+  // 모두가 같은 공개 실시간 방에서 만난다(Claude 링크든 GitHub 주소든, 로그인 여부와 상관없이).
+  // 공개 서버에 못 붙으면(회사망·차단 등) Claude 로그인 사용자는 Claude 자체 실시간으로 대신 연결한다.
+  const native = window.claude?.use ? window.claude.use.bind(window.claude) : null;
+  window.__bamNet = {room: ROOM, ready, get broker() { return client?.options?.href ?? null; },
+    use: name => ready.then(ok => ok ? (caps[name] ?? null) : (native ? native(name).catch(() => null) : null)),
+    get via() { return client ? 'mqtt' : native ? 'claude' : 'off'; }};
   return ready;
 }
