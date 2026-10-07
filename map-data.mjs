@@ -278,10 +278,38 @@ export const SHOP = [
   {id: 'acc-ribbon', kind: 'accessory', value: 'ribbon', name: '리본', price: 200},
   {id: 'acc-shades', kind: 'accessory', value: 'shades', name: '선글라스', price: 250},
   {id: 'acc-beret', kind: 'accessory', value: 'beret', name: '베레모', price: 300},
+  {id: 'acc-tophat', kind: 'accessory', value: 'tophat', name: '실크햇', price: 400},
+  {id: 'acc-bucket', kind: 'accessory', value: 'bucket', name: '버킷햇', price: 250},
+  {id: 'acc-party', kind: 'accessory', value: 'party', name: '파티 고깔', price: 200},
+  {id: 'acc-chef', kind: 'accessory', value: 'chef', name: '셰프 모자', price: 300},
+  {id: 'acc-flowercrown', kind: 'accessory', value: 'flowercrown', name: '꽃 화관', price: 350},
+  {id: 'acc-bandana', kind: 'accessory', value: 'bandana', name: '반다나', price: 200},
+  {id: 'acc-bowtie', kind: 'accessory', value: 'bowtie', name: '나비넥타이', price: 200},
+  {id: 'acc-heartglasses', kind: 'accessory', value: 'heartglasses', name: '하트 안경', price: 300},
+  {id: 'acc-mask', kind: 'accessory', value: 'mask', name: '가면무도회 가면', price: 350},
+  {id: 'acc-starpin', kind: 'accessory', value: 'starpin', name: '별 머리핀', price: 150},
+  {id: 'acc-earmuff', kind: 'accessory', value: 'earmuff', name: '귀마개', price: 250},
+  {id: 'acc-sakura', kind: 'accessory', value: 'sakura', name: '벚꽃 핀', price: 150},
   {id: 'pet-hamster', kind: 'pet', value: 'hamster', fur: '#f3c48e', name: '아기 햄찌', price: 700},
   {id: 'pet-cat', kind: 'pet', value: 'cat', fur: '#f2b675', name: '아기 고양이', price: 900},
-  {id: 'pet-dog', kind: 'pet', value: 'dog', fur: '#e8bd85', name: '아기 강아지', price: 1100}
+  {id: 'pet-dog', kind: 'pet', value: 'dog', fur: '#e8bd85', name: '아기 강아지', price: 1100},
+  {id: 'pet-rabbit', kind: 'pet', value: 'rabbit', fur: '#fbf3ea', name: '아기 토끼', price: 900},
+  {id: 'pet-panda', kind: 'pet', value: 'panda', fur: '#fbfbf6', name: '아기 판다', price: 1200},
+  {id: 'pet-penguin', kind: 'pet', value: 'penguin', fur: '#2f2b30', name: '아기 펭귄', price: 1000},
+  {id: 'pet-fox', kind: 'pet', value: 'fox', fur: '#f08a3c', name: '아기 여우', price: 1000},
+  {id: 'pet-tiger', kind: 'pet', value: 'tiger', fur: '#f2a03c', name: '아기 호랑이', price: 1300},
+  {id: 'pet-sheep', kind: 'pet', value: 'sheep', fur: '#f6f1e6', name: '아기 양', price: 900},
+  {id: 'pet-koala', kind: 'pet', value: 'koala', fur: '#a9a6ad', name: '아기 코알라', price: 1100},
+  {id: 'pet-frog', kind: 'pet', value: 'frog', fur: '#8fcf6a', name: '아기 개구리', price: 700},
+  {id: 'pet-mouse', kind: 'pet', value: 'mouse', fur: '#c9bdb4', name: '아기 생쥐', price: 600},
+  {id: 'pet-raccoon', kind: 'pet', value: 'raccoon', fur: '#8a7a6c', name: '아기 너구리', price: 900},
+  {id: 'pet-dragon', kind: 'pet', value: 'dragon', fur: '#7fc99a', name: '아기 용', price: 1800},
+  {id: 'pet-ghost', kind: 'pet', value: 'ghost', fur: '#f6f2ff', name: '꼬마 유령', price: 1500},
+  {id: 'pet-robot', kind: 'pet', value: 'robot', fur: '#a9b8c8', name: '꼬마 로봇', price: 1500},
+  {id: 'pet-dokkaebi', kind: 'pet', value: 'dokkaebi', fur: '#e8735a', name: '꼬마 도깨비', price: 1600}
 ];
+// 테스트판: 코인 무한(사도 줄지 않음) · 펫 방문일 잠금 해제
+export const TEST_MODE = {infiniteCoins: true, petsOpen: true};
 export const DEMO_WALLET = {coins: 1000, visits: 0}; // 테스트판: 시작 코인 1,000
 
 // 마을 규칙(첫 방문 때 한 번 확인)
