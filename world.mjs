@@ -1,18 +1,18 @@
 // 밤마을 v0.7 — 앰버 조명의 미드센추리 바 디오라마와 2등신 동물 주민.
 // 모든 그림은 코드와 캔버스로 직접 만든다(외부 이미지·모델 없음).
 // 무드: 월넛 루버 · 러스트 벨벳 커튼 · 웜다크 콘크리트 · 돌기둥 링 바 · 버섯 램프 · 캐러멜 가죽 · 앰버 빛 웅덩이.
-import * as T from './vendor/three.min.mjs?v=1791364372';
-import {TABLES, WANDERERS, LOUNGERS, ENTRY, DOOR_Z, ROOM, RING, SOFA, MEZZ, MEZZ_Y, STAIRS, WELCOME_ZONE, PEOPLE} from './map-data.mjs?v=1791364372';
+import * as T from './vendor/three.min.mjs?v=1791364585';
+import {TABLES, WANDERERS, LOUNGERS, ENTRY, DOOR_Z, ROOM, RING, SOFA, MEZZ, MEZZ_Y, STAIRS, WELCOME_ZONE, PEOPLE} from './map-data.mjs?v=1791364585';
 
 export const HOST_STEP = .32; // 링 바 안쪽 발판 높이: 호스트 얼굴이 카운터 위로 보이게
-const SKY = '#1c1411';
+const SKY = '#211b17'; // v1.8 젠 하이엔드: 바깥은 깊은 웜 차콜
 const OUTLINE_COLOR = '#2e1f17';
 const AMBER = '#ff9a4d';
 
 export function createWorld() {
   const scene = new T.Scene();
   scene.background = new T.Color(SKY);
-  scene.fog = new T.Fog(SKY, 17, 32);
+  scene.fog = new T.Fog(SKY, 24, 44);
 
   // ── 공용 재질 ─────────────────────────────────────────
   const grad = new T.DataTexture(new Uint8Array([105, 180, 255]), 3, 1, T.RedFormat);
@@ -73,21 +73,24 @@ export function createWorld() {
   }
   const rep = (t, x, y) => { const c = t.clone(); c.repeat.set(x, y); c.needsUpdate = true; return c; };
 
-  // 웜다크 콘크리트 바닥
+  // 트래버틴 석재 타일 바닥(따뜻한 그레이지 · 결 무늬 · 얇은 줄눈)
   const floorTex = canvasTex(1024, 1024, (c, w, h) => {
-    c.fillStyle = '#6a574a'; c.fillRect(0, 0, w, h);
-    for (let i = 0; i < 2600; i++) { c.fillStyle = rnd() > .5 ? '#735f51' : '#5e4c40'; c.globalAlpha = .3; const r = 4 + rnd() * 34; c.beginPath(); c.arc(rnd() * w, rnd() * h, r, 0, 7); c.fill(); }
-    c.globalAlpha = 1; c.fillStyle = '#54443a';
-    for (let i = 0; i <= 4; i++) { c.fillRect(i * 256 - 1, 0, 3, h); c.fillRect(0, i * 256 - 1, w, 3); }
+    c.fillStyle = '#a8927b'; c.fillRect(0, 0, w, h);
+    for (let ty = 0; ty < 4; ty++) for (let tx = 0; tx < 2; tx++) { c.fillStyle = ['#ab957e', '#a38d76', '#ae9983', '#a6907a'][(tx + ty * 3) % 4]; c.fillRect(tx * 512, ty * 256, 512, 256); }
+    for (let y = 0; y < h; y += 3) { c.fillStyle = rnd() > .5 ? '#b8a48d' : '#98826c'; c.globalAlpha = .18; c.fillRect(0, y, w, 1 + rnd() * 2); }
+    for (let i = 0; i < 900; i++) { c.fillStyle = rnd() > .5 ? '#c2ae96' : '#8f7a65'; c.globalAlpha = .22; c.beginPath(); c.ellipse(rnd() * w, rnd() * h, 2 + rnd() * 14, 1 + rnd() * 3, 0, 0, 7); c.fill(); }
+    c.globalAlpha = 1; c.fillStyle = '#7f6c5a';
+    for (let i = 0; i <= 2; i++) c.fillRect(i * 512 - 1, 0, 2, h);
+    for (let i = 0; i <= 4; i++) c.fillRect(0, i * 256 - 1, w, 2);
   }, [4.5, 3.75]);
 
   // 월넛 루버 벽
   const slatTex = canvasTex(512, 256, (c, w, h) => {
-    c.fillStyle = '#1a110c'; c.fillRect(0, 0, w, h);
-    const tones = ['#5a3726', '#62402c', '#553424', '#6b4632'];
+    c.fillStyle = '#3a2c22'; c.fillRect(0, 0, w, h);
+    const tones = ['#b08b64', '#b9946c', '#a8845e', '#bf9b72'];
     for (let x = 0, i = 0; x < w; x += 32, i++) {
       c.fillStyle = tones[i % tones.length]; c.fillRect(x + 6, 0, 22, h);
-      c.fillStyle = '#ffffff0c'; c.fillRect(x + 6, 0, 4, h);
+      c.fillStyle = '#ffffff1a'; c.fillRect(x + 6, 0, 4, h);
     }
   }, [14, 1]);
 
@@ -101,7 +104,7 @@ export function createWorld() {
     const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#00000055'); g.addColorStop(.45, '#00000000'); g.addColorStop(1, '#0000002a');
     c.fillStyle = g; c.fillRect(0, 0, w, h);
   });
-  const rustVelvet = velvetTex('#c4582a');
+  const rustVelvet = velvetTex('#d8c4a6'); // 리넨(오트밀) 커튼
 
   // 트래버틴(결 있는 돌)과 거친 돌기둥
   const travertine = canvasTex(512, 256, (c, w, h) => {
@@ -118,7 +121,7 @@ export function createWorld() {
 
   // 벽 위쪽 앰버 백라이트 띠
   const bandTex = canvasTex(64, 128, (c, w, h) => {
-    const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#ffb066'); g.addColorStop(.6, '#ff8c3f'); g.addColorStop(1, '#c4582a');
+    const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#fff1d6'); g.addColorStop(.55, '#ffd9a6'); g.addColorStop(1, '#e9b77c');
     c.fillStyle = g; c.fillRect(0, 0, w, h);
   });
 
@@ -147,10 +150,11 @@ export function createWorld() {
 
   // ── 재질 팔레트 ───────────────────────────────────────
   const M = {
-    oak: toon('#c99a68'), oakDark: toon('#a87a4f'), walnut: toon('#6a4430'), walnutDark: toon('#3e271b'),
-    darkTop: toon('#2f221b'), boucle: toon('#efe4d4'), tweed: toon('#9b8b7d'), tweedDark: toon('#857669'),
-    leather: toon('#b06a2e'), leatherDark: toon('#8c5222'), velvet: toon('#b5532c'), velvetDark: toon('#8f3d1e'),
-    brownVelvet: toon('#7d4125'), greenVelvet: toon('#2f5d47'),
+    // v1.8 젠 하이엔드 팔레트: 내추럴 오크 · 트래버틴 · 리넨 · 올리브 벨벳 · 블랙 스톤 · 브라스
+    oak: toon('#d2ab7c'), oakDark: toon('#b48c62'), walnut: toon('#a07a55'), walnutDark: toon('#5c4535'),
+    darkTop: toon('#2b2724'), boucle: toon('#f1e9dc'), tweed: toon('#b3a594'), tweedDark: toon('#9a8c7c'),
+    leather: toon('#b07a4a'), leatherDark: toon('#8c5f38'), velvet: toon('#7f8a63'), velvetDark: toon('#5f6a48'),
+    brownVelvet: toon('#9c6c48'), greenVelvet: toon('#566b4f'),
     chrome: toon('#d5d8da'), brass: toon('#d6a856'), stone: toon('#ece6dc'), rug: toon('#d8ccb8'), rug2: toon('#7c6a5c'),
     ceramic: toon('#e6ddcf'), black: toon('#231c18'), branch: toon('#8a6a45'), dryLeaf: toon('#c9995a'), olive: toon('#5f7350'),
     glass: toon('#f1e2c8', {transparent: true, opacity: .6})
@@ -159,7 +163,7 @@ export function createWorld() {
 
   // ── 바닥 · 벽 (디오라마) ──────────────────────────────
   const CZ = ROOM.cz, DEPTH = ROOM.depth; // 앞쪽으로 넓힌 바닥(가운데 z = CZ)
-  box(18.6, .7, DEPTH + .6, toon('#4a3b32'), 0, -.36, CZ);
+  box(18.6, .7, DEPTH + .6, toon('#6b5a4c'), 0, -.36, CZ);
   box(18.8, .14, DEPTH + .8, M.walnutDark, 0, -.68, CZ);
   const floor = mesh(new T.PlaneGeometry(18, DEPTH), toon('#ffffff', {map: rep(floorTex, 4.5, 4.75)}), 0, .001, CZ, scene, false);
   floor.rotation.x = -Math.PI / 2;
@@ -367,10 +371,10 @@ export function createWorld() {
     const start = Math.PI / 2 - a1, len = a1 - a0;
     arcWall(1.32, .32, start, len, M.velvet, 0, .16, 0, g);
     arcWall(.9, .32, start, len, M.velvetDark, 0, .16, 0, g);
-    arcTop(.9, 1.32, start, len, toon('#c4602f', {side: T.DoubleSide}), 0, .33, 0, g);
-    const back = arcWall(1.55, .72, start, len, toon('#b5532c', {side: T.DoubleSide}), 0, .62, 0, g); outline(back, 1.55, .02);
-    arcWall(1.38, .5, start, len, toon('#a84b27', {side: T.DoubleSide}), 0, .62, 0, g);
-    arcTop(1.38, 1.55, start, len, toon('#c4602f', {side: T.DoubleSide}), 0, .98, 0, g);
+    arcTop(.9, 1.32, start, len, toon('#8e9a70', {side: T.DoubleSide}), 0, .33, 0, g);
+    const back = arcWall(1.55, .72, start, len, toon('#7f8a63', {side: T.DoubleSide}), 0, .62, 0, g); outline(back, 1.55, .02);
+    arcWall(1.38, .5, start, len, toon('#6f7a56', {side: T.DoubleSide}), 0, .62, 0, g);
+    arcTop(1.38, 1.55, start, len, toon('#8e9a70', {side: T.DoubleSide}), 0, .98, 0, g);
     // 테이블
     outline(cyl(.62, .62, .05, M.darkTop, 0, .72, 0, g, true, 32), .62, .02);
     cyl(.63, .63, .02, M.brass, 0, .695, 0, g, false, 32);
@@ -433,10 +437,10 @@ export function createWorld() {
     const g = new T.Group(); scene.add(g);
     const rug = mesh(geo('rugS', () => new T.CircleGeometry(1.95, 48)), M.rug, SOFA.coffee.x + .2, .012, SOFA.coffee.z, g, false); rug.rotation.x = -Math.PI / 2;
     outline(box(1.0, .26, 2.6, M.brownVelvet, SOFA.x + .05, .17, SOFA.z, g), .5, .02);
-    for (const z of [1.1, 1.85, 2.6]) outline(box(.82, .16, .72, toon('#8a4a2b'), SOFA.x - .02, .38, z, g), .36, .015);
+    for (const z of [1.1, 1.85, 2.6]) outline(box(.82, .16, .72, toon('#a87b55'), SOFA.x - .02, .38, z, g), .36, .015);
     const back = capsule(.2, 2.25, M.brownVelvet, SOFA.x + .42, .62, SOFA.z, g); back.rotation.x = Math.PI / 2; outline(back, .2);
     for (const z of [.55, 3.15]) outline(capsule(.15, .5, M.brownVelvet, SOFA.x + .1, .42, z, g), .15).rotation.z = Math.PI / 2;
-    outline(box(.1, .34, .34, toon('#a35a33'), SOFA.x + .25, .64, 2.85, g), .17).rotation.y = -.2;
+    outline(box(.1, .34, .34, toon('#7f8a63'), SOFA.x + .25, .64, 2.85, g), .17).rotation.y = -.2;
     outline(box(.1, .32, .32, toon('#d8c3a4'), SOFA.x + .25, .62, 1.0, g), .16).rotation.y = .2;
     // 페데스탈 커피 테이블 2단(레퍼런스 2)
     outline(cyl(.52, .52, .04, M.darkTop, SOFA.coffee.x, .44, SOFA.coffee.z, g, true, 32), .52, .015);
@@ -590,12 +594,12 @@ export function createWorld() {
   }
 
   // ── 조명: 낮은 전체광 + 따뜻한 빛 웅덩이 ─────────────
-  scene.add(new T.HemisphereLight('#ffdcb8', '#3d2b22', 1.05));
-  const sun = new T.DirectionalLight('#ffd2a0', 1.0);
+  scene.add(new T.HemisphereLight('#fff0dc', '#5a4636', 1.3));
+  const sun = new T.DirectionalLight('#ffe4c2', 1.05);
   sun.position.set(5, 13, 8); sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024);
   Object.assign(sun.shadow.camera, {left: -13, right: 13, top: 14, bottom: -14, near: .5, far: 45});
   sun.shadow.bias = -.0015; sun.shadow.normalBias = .05; scene.add(sun);
-  const frontFill = new T.PointLight('#ffcf9a', 5, 9, 1.4); frontFill.position.set(0, 2.6, 3.8); scene.add(frontFill);
+  const frontFill = new T.PointLight('#ffe0b8', 6, 10, 1.4); frontFill.position.set(0, 2.6, 3.8); scene.add(frontFill);
   const frontFill2 = new T.PointLight('#ffcf9a', 4, 9, 1.4); frontFill2.position.set(0, 2.6, 8.2); scene.add(frontFill2);
   const seatAngles = null;
 
