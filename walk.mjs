@@ -1,14 +1,14 @@
 // 밤마을 v0.7 — 카메라, 입력, 군중, 상호작용, 다이얼로그.
-import * as T from './vendor/three.min.mjs?v=1791440229';
-import {createBgm} from './bgm.mjs?v=1791440229';
-import {createWorld, HOST_STEP} from './world.mjs?v=1791440229';
-import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791440229';
+import * as T from './vendor/three.min.mjs?v=1791441451';
+import {createBgm} from './bgm.mjs?v=1791441451';
+import {createWorld, HOST_STEP} from './world.mjs?v=1791441451';
+import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791441451';
 import {TABLES, SPOTS, WANDERERS, LOUNGERS, DRINKS, ENTRY, ROOM, MOODS, JACKETS, ACCESSORIES, DRINK_MINUTES, PROFILE_TAGS, ROUND_MINUTES, NEXT_TOPICS, VILLAGES, RESIDENT_COUNT, RING, OBSTACLES,
-  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC, DOOR_Z} from './map-data.mjs?v=1791440229';
-import {createSession} from './session.mjs?v=1791440229';
-import {createOnline} from './online.mjs?v=1791440229';
-import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791440229';
-import {createGames} from './games.mjs?v=1791440229';
+  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC, DOOR_Z} from './map-data.mjs?v=1791441451';
+import {createSession} from './session.mjs?v=1791441451';
+import {createOnline} from './online.mjs?v=1791441451';
+import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791441451';
+import {createGames} from './games.mjs?v=1791441451';
 
 const $ = id => document.getElementById(id);
 const view = $('viewport'), dialog = $('villageDialog'), calm = $('calm');
@@ -39,7 +39,7 @@ const host = npcs.find(n => n.host);
 const indoorObjs = scene.children.filter(o => o !== actor && o !== world.shadow && o !== world.marker);
 const indoorSky = {bg: scene.background, fog: scene.fog};
 
-const camera = new T.PerspectiveCamera(36, 1, .1, 80);
+const camera = new T.PerspectiveCamera(44, 1, .1, 80); // v2.4: 조금 더 넓게
 const cameraOffset = new T.Vector3(.8, 4.5, 8.5);
 let camNarrow = 0; // 폰 세로 화면이면 1
 let camOverview = false; // 🔭 전체 보기(멀리서 공간 전체) ↔ 가까이
@@ -267,7 +267,8 @@ function resize() {
   renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
   // 폰 세로 화면은 좌우가 좁아서 너무 붙어 보인다 → 카메라를 한 걸음 뒤·위로 빼서 주변이 보이게
   const narrow = camNarrow = w / h < .8 ? 1 : w / h < 1.15 ? .5 : 0;
-  cameraOffset.set(.8 + .4 * narrow, 4.5 + 4 * narrow, 8.5 + 7.5 * narrow);
+  // v2.4: 덜 내려다보고 조금 뒤에서 — 천장 조명·샹들리에까지 보이는 와이드 시점
+  cameraOffset.set(.6 + .3 * narrow, 3.5 + 2.2 * narrow, 9.2 + 4.5 * narrow);
 }
 new ResizeObserver(resize).observe(view); resize();
 
@@ -1885,7 +1886,7 @@ function animate(now) {
     else if (emoteAnim.id === 'agree') rig.rotation.z = Math.sin(k * 10) * .08;
   } else { arms[0].rotation.z = 0; arms[1].rotation.z = 0; rig.rotation.z = 0; }
   if (place === 'bar') for (const l of lampShades) {
-    const blocking = camOverview || (l.hideUpper && level === 2) || (!l.upperOnly || actor.position.y > 1.2 || level === 2) && l.z > actor.position.z + .6 && l.z < actor.position.z + 6 && Math.abs(l.x - actor.position.x) < (l.r ?? 2.6);
+    const blocking = camOverview || (l.hideUpper && level === 2) || (l.behind && level === 1 && actor.position.z < l.z - 1.2 && Math.abs(l.x - actor.position.x) < l.r) || !l.noFade && (!l.upperOnly || actor.position.y > 1.2 || level === 2) && l.z > actor.position.z + .6 && l.z < actor.position.z + 6 && Math.abs(l.x - actor.position.x) < (l.r ?? 2.6);
     const target = blocking ? .12 : 1;
     if (Math.abs(l.opacity - target) > .01) { l.opacity = T.MathUtils.damp(l.opacity, target, 6, dt); for (const m of l.mats) m.opacity = l.opacity; }
   }
@@ -1913,7 +1914,7 @@ function animate(now) {
   // 마을에서는 시선을 살짝 들어 남산타워·한강 하늘선이 화면 위쪽에 걸리게 한다
   const tilt = place === 'town' ? 1 - wk : 0;
   if (camOverview) lookAt.copy(followPoint);
-  else lookAt.copy(followPoint).add(temp.set(0, 3.5 * wk + .7 * tilt, -16 * wk - 1.6 * tilt));
+  else lookAt.copy(followPoint).add(temp.set(0, 3.5 * wk + .7 * tilt + (place === 'bar' ? 1.25 : 0), -16 * wk - 1.6 * tilt));
   camera.position.copy(followPoint).add(camOff); camera.lookAt(lookAt); camera.updateMatrixWorld();
   const blink = now < ouchUntil ? 0.001 : now % 4800 > 4630 ? .15 : 1.25; eyes.forEach(e => e.scale.y = blink);
   if (now < shakeUntil && !reduced) { const a = (shakeUntil - now) / 260 * .07; camera.position.x += (Math.random() - .5) * a; camera.position.y += (Math.random() - .5) * a; }

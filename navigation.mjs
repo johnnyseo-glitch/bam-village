@@ -1,13 +1,16 @@
 // 밤마을 — 가구를 피해 걷는 격자 경로 찾기(1층·2층 따로) + 계단으로 층 잇기.
-import {ROOM, OBSTACLES, OBSTACLES_UPPER, MEZZ, MEZZ_Y, STAIRS} from './map-data.mjs?v=1791440229';
+import {ROOM, OBSTACLES, OBSTACLES_UPPER, MEZZ, MEZZ_Y, STAIRS} from './map-data.mjs?v=1791441451';
 
 export const STEP = .25;
 
+// 캐릭터 몸 반지름만큼 가구를 부풀려서, 의자·테이블에 몸이 파묻히지 않게 한다
+export const BODY_R = .3;
 function createNav(bounds, {circles, rects}) {
+  const P = BODY_R;
   function valid(x, z) {
     if (x < bounds.minX || x > bounds.maxX || z < bounds.minZ || z > bounds.maxZ) return false;
-    for (const r of rects) if (x > r.minX && x < r.maxX && z > r.minZ && z < r.maxZ) return false;
-    for (const [cx, cz, r] of circles) if ((x - cx) ** 2 + (z - cz) ** 2 < r * r) return false;
+    for (const r of rects) if (x > r.minX - P && x < r.maxX + P && z > r.minZ - P && z < r.maxZ + P) return false;
+    for (const [cx, cz, r] of circles) if ((x - cx) ** 2 + (z - cz) ** 2 < (r + P) ** 2) return false;
     return true;
   }
   const cells = [], lookup = new Map();

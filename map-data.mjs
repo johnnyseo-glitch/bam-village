@@ -111,15 +111,15 @@ export const TABLES = [
     approach: {x: 5.3, z: COUNTER.z}, seats: counterSeats(), freeOrder: [2, 3, 1, 4, 0, 5], ...emptyTable},
   // 2층 AFTER DRINK 존(2인)
   {id: 'after1', number: 8, type: 'after', level: 2, title: '2차 대화', tag: 'AFTER DRINK · 2인', x: -4.0, z: -6.75,
-    approach: {x: -4.0, z: -5.55}, seats: afterSeats(-4.0, -6.75), memberSeats: [0, 1], freeOrder: [],
+    approach: {x: -4.0, z: -5.45}, seats: afterSeats(-4.0, -6.75), memberSeats: [0, 1], freeOrder: [],
     colors: ['#a7b98a', '#d38b5d'], members: ['IAN', 'SEO'], species: ['dog', 'cat'], furs: ['#d9a066', '#f6d2a2'], demoResponse: 'accept',
     opener: '아까 테이블에서 못 다 한 얘기, 이어서 해요.'},
   {id: 'after2', number: 9, type: 'after', level: 2, title: '2차 대화', tag: 'AFTER DRINK · 2인', x: .8, z: -6.75,
-    approach: {x: .8, z: -5.55}, seats: afterSeats(.8, -6.75), memberSeats: [0, 1], freeOrder: [],
+    approach: {x: .8, z: -5.45}, seats: afterSeats(.8, -6.75), memberSeats: [0, 1], freeOrder: [],
     colors: ['#9daccc', '#ca858d'], members: ['HARU', 'ELLA'], species: ['bear', 'rabbit'], furs: ['#c08a5c', '#fbf3ea'], demoResponse: 'accept',
     opener: '오늘 제일 웃겼던 순간 하나만.'},
   {id: 'after3', number: 10, type: 'after', level: 2, open: true, title: '빈 2인석', tag: '먼저 앉으면 방장 · AFTER 2인', x: 5.2, z: -6.75,
-    approach: {x: 5.2, z: -5.55}, seats: afterSeats(5.2, -6.75), memberSeats: [], freeOrder: [0, 1],
+    approach: {x: 5.2, z: -5.45}, seats: afterSeats(5.2, -6.75), memberSeats: [], freeOrder: [0, 1],
     colors: [], members: [], species: [], furs: [], demoResponse: 'accept', opener: ''}
 ];
 
@@ -138,7 +138,6 @@ export const OBSTACLES = {
   circles: [
     [RING.x, RING.z, 2.38],                                          // 원형 바 + 스툴
     ...BOOTHS.map(b => [b.x, b.z - .15, 1.7]),                       // 부스(뒤쪽 반원 + 테이블)
-    ...LOUNGES.map(l => [l.x, l.z + .35, .62]),                      // 커피 테이블
     ...LOUNGES.flatMap(l => [[l.x - 1.05, l.z + 1.1, .42], [l.x + 1.05, l.z + 1.1, .42], [l.x + l.side * 1.62, l.z + .05, .42]]), // 라운지 체어
     [-7.9, -6.4, .45], [7.9, -6.4, .45], [-8.0, 10.4, .4], [8.0, 10.4, .4], // 모서리 화분
     [7.8, -.2, .45], [-7.8, 5.6, .4], [3.3, 9.75, .35],               // 벽 쪽 나무 · 좌대
@@ -150,7 +149,9 @@ export const OBSTACLES = {
     [7.6, -4.6, .5], [-6.9, -5.6, .45], [7.7, -2.0, .45], [-7.75, 8.6, .35] // 야자 · 이젤 · 좌대
   ],
   rects: [
-    ...LOUNGES.map(l => ({minX: l.x - 1.3, maxX: l.x + 1.3, minZ: l.z - 1.55, maxZ: l.z - .6})), // 소파
+    ...LOUNGES.map(l => ({minX: l.x - 1.38, maxX: l.x + 1.38, minZ: l.z - 1.6, maxZ: l.z - .62})), // 소파
+    ...LOUNGES.map(l => ({minX: l.x - .9, maxX: l.x + .9, minZ: l.z - .12, maxZ: l.z + .82})),     // 커피 테이블
+    {minX: -7.65, maxX: -5.55, minZ: -7.5, maxZ: -6.95}, {minX: 5.55, maxX: 7.65, minZ: -7.5, maxZ: -6.95}, // 뒤 모서리 크롬 선반
     {minX: -6.3, maxX: -2.9, minZ: 6.25, maxZ: 8.35},   // 바 테이블 1 + 스툴
     {minX: COUNTER.x - 1.05, maxX: 8.5, minZ: COUNTER.z - COUNTER.len / 2 - .1, maxZ: COUNTER.z + COUNTER.len / 2 + .1}, // 앰버 카운터 + 스툴
     {minX: -8.5, maxX: -7.25, minZ: -5.2, maxZ: -1.3}   // 계단
@@ -158,8 +159,8 @@ export const OBSTACLES = {
 };
 // 2층 장애물
 export const OBSTACLES_UPPER = {
-  circles: [[-4.0, -6.75, .82], [.8, -6.75, .82], [5.2, -6.75, .82], [-1.7, -6.9, .45], [3.0, -6.9, .45]],
-  rects: []
+  circles: [[-4.0, -6.75, .95], [.8, -6.75, .95], [5.2, -6.75, .95], [-1.7, -6.9, .4], [3.0, -6.9, .4]],
+  rects: [{minX: 4.65, maxX: 8.2, minZ: -7.5, maxZ: -7.08}] // 2층 오른쪽 병 선반
 };
 
 // 테스트판: 예시 주민(NPC) 없이 실제 접속한 사람만. 모든 테이블이 빈 판이 되고, 먼저 앉는 사람이 방장이다.

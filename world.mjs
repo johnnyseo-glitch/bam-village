@@ -1,8 +1,8 @@
 // 밤마을 v0.7 — 앰버 조명의 미드센추리 바 디오라마와 2등신 동물 주민.
 // 모든 그림은 코드와 캔버스로 직접 만든다(외부 이미지·모델 없음).
 // 무드: 월넛 루버 · 러스트 벨벳 커튼 · 웜다크 콘크리트 · 돌기둥 링 바 · 버섯 램프 · 캐러멜 가죽 · 앰버 빛 웅덩이.
-import * as T from './vendor/three.min.mjs?v=1791440229';
-import {TABLES, WANDERERS, LOUNGERS, LOUNGES, COUNTER, ENTRY, DOOR_Z, ROOM, RING, SOFA, MEZZ, MEZZ_Y, STAIRS, WELCOME_ZONE, PEOPLE} from './map-data.mjs?v=1791440229';
+import * as T from './vendor/three.min.mjs?v=1791441451';
+import {TABLES, WANDERERS, LOUNGERS, LOUNGES, COUNTER, ENTRY, DOOR_Z, ROOM, RING, SOFA, MEZZ, MEZZ_Y, STAIRS, WELCOME_ZONE, PEOPLE} from './map-data.mjs?v=1791441451';
 
 export const HOST_STEP = .32; // 링 바 안쪽 발판 높이: 호스트 얼굴이 카운터 위로 보이게
 const SKY = '#211b17'; // v1.8 젠 하이엔드: 바깥은 깊은 웜 차콜
@@ -313,7 +313,7 @@ export function createWorld() {
     const rim2 = mesh(new T.TorusGeometry(DR + .55, .05, 8, 72), rimMat, RING.x, 5.05, RING.z, scene, false); rim2.rotation.x = Math.PI / 2; rim2.userData.ignorePick = true;
     for (let i = 0; i < 4; i++) { const b = box(DR * 2, .03, .06, rimMat, RING.x, 4.83, RING.z, scene, false); b.rotation.y = i * Math.PI / 4; }
     disk.userData.ignorePick = rim.userData.ignorePick = true;
-    lampShades.push({x: RING.x, z: RING.z, r: 3.6, mats: [diskMat, rimMat], opacity: 1}); // 뒤쪽(부스)에 가면 카메라를 가리지 않게 흐려진다
+    lampShades.push({x: RING.x, z: RING.z, r: 4.2, mats: [diskMat, rimMat], opacity: 1, noFade: true, behind: true}); // 원형 바 뒤쪽에 가면 흐려진다 // 뒤쪽(부스)에 가면 카메라를 가리지 않게 흐려진다
     // 돌기둥을 천장 디스크까지
     cyl(RING.column, RING.column, 1.1, toon('#ffffff', {map: roughStone}), RING.x, 4.4, RING.z, scene, true, 24);
     // 러스트 벨벳 바 스툴(외다리 + 발받침)
@@ -815,7 +815,7 @@ export function createWorld() {
     });
     mesh(geo('glbBig', () => new T.SphereGeometry(.16, 18, 12)), globeT, 0, -.45, 0, g, false);
     g.traverse(o => { if (o.isMesh) { o.userData.ignorePick = true; o.castShadow = false; } });
-    lampShades.push({x: cx, z: cz, mats: [brassT, globeT], opacity: 1, r: 2.8, hideUpper: true});
+    lampShades.push({x: cx, z: cz, mats: [brassT, globeT], opacity: 1, r: 2.8, hideUpper: true, noFade: true});
     const l = new T.PointLight('#ffd9a0', 10, 9, 1.4); l.position.set(cx, cy - .6, cz); scene.add(l);
   }
 
