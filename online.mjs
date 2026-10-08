@@ -4,8 +4,8 @@
 //
 // 입장: 호스트 화면(QR + 1분마다 바뀌는 4자리 코드) → 손님이 코드 입력 → 호스트 화면이 확인하고
 // passes/<손님 id> 입장권을 쓴다. 입장권이 있는 사람만 마을에 들어오고, 서로의 화면에도 보인다.
-import * as T from './vendor/three.min.mjs?v=1791443580';
-import {EMOTES, TABLES, SPOTS, PRAISE_TAGS, DRINKS} from './map-data.mjs?v=1791443580';
+import * as T from './vendor/three.min.mjs?v=1791444439';
+import {EMOTES, TABLES, SPOTS, PRAISE_TAGS, DRINKS} from './map-data.mjs?v=1791444439';
 
 const PASS_MS = 6 * 3600 * 1000, CODE_MS = 60000, SEND_MS = 110;
 const NONCE_KEY = 'bam-net-nonce';
@@ -201,14 +201,15 @@ export function createOnline(G) {
   }
 
   // ── 다른 사람 ──────────────────────────────────────────
-  const lookKey = p => [p.c, p.sp, p.fu, p.ex, p.ac].join('|');
+  const lookKey = p => [p.c, p.sp, p.fu, p.ex, p.ac, p.of, p.fc].join('|');
   function addRemote(peer) {
     const p = peer.presence;
     const root = new T.Group(); G.scene.add(root);
     root.position.set(+p.x || 0, +p.y || 0, +p.z || 0);
-    const c = G.critter({species: p.sp || 'fox', fur: p.fu || '#f08a3c', outfit: p.c || '#cddc83', accent: '#f4b942', extra: p.ex || 'none'});
+    const c = G.critter({species: p.sp || 'fox', fur: p.fu || '#f08a3c', outfit: p.c || '#cddc83', accent: '#f4b942', extra: p.ex || 'none', style: p.of || 'lime'});
     root.add(c.rig);
     if (p.ac && p.ac !== 'none') G.addAccessory?.(c.head, p.ac);
+    if (p.fc && p.fc !== 'none') G.addAccessory?.(c.head, p.fc);
     root.traverse(o => { if (o.isMesh) { o.userData.ignorePick = true; } });
     // 손가락으로 누르기 쉽게 몸 크기보다 조금 큰 투명 판정 기둥
     const hitbox = new T.Mesh(new T.CylinderGeometry(.42, .42, 1.6, 10), new T.MeshBasicMaterial({transparent: true, opacity: 0, depthWrite: false, colorWrite: false}));

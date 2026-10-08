@@ -1,14 +1,14 @@
 // 밤마을 v0.7 — 카메라, 입력, 군중, 상호작용, 다이얼로그.
-import * as T from './vendor/three.min.mjs?v=1791443580';
-import {createBgm} from './bgm.mjs?v=1791443580';
-import {createWorld, HOST_STEP} from './world.mjs?v=1791443580';
-import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791443580';
+import * as T from './vendor/three.min.mjs?v=1791444439';
+import {createBgm} from './bgm.mjs?v=1791444439';
+import {createWorld, HOST_STEP} from './world.mjs?v=1791444439';
+import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791444439';
 import {TABLES, SPOTS, WANDERERS, LOUNGERS, DRINKS, ENTRY, ROOM, MOODS, JACKETS, ACCESSORIES, DRINK_MINUTES, PROFILE_TAGS, ROUND_MINUTES, NEXT_TOPICS, VILLAGES, RESIDENT_COUNT, RING, OBSTACLES,
-  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC, DOOR_Z} from './map-data.mjs?v=1791443580';
-import {createSession} from './session.mjs?v=1791443580';
-import {createOnline} from './online.mjs?v=1791443580';
-import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791443580';
-import {createGames} from './games.mjs?v=1791443580';
+  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC, DOOR_Z} from './map-data.mjs?v=1791444439';
+import {createSession} from './session.mjs?v=1791444439';
+import {createOnline} from './online.mjs?v=1791444439';
+import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791444439';
+import {createGames} from './games.mjs?v=1791444439';
 
 const $ = id => document.getElementById(id);
 const view = $('viewport'), dialog = $('villageDialog'), calm = $('calm');
@@ -79,6 +79,12 @@ if (!wallet.bonus1000) { if (wallet.visits > 0) wallet.coins += 1000; wallet.bon
 for (const t of TITLES) if (!wallet.titles.includes(t.id)) wallet.titles.push(t.id);
 // v2.2: 지금 쓰고 있는 머리 장식은 가방에 넣어 준다(예전엔 무료였으니)
 if (wallet.look?.extra && wallet.look.extra !== 'none' && !wallet.owned.includes('extra-' + wallet.look.extra)) wallet.owned.push('extra-' + wallet.look.extra);
+// v2.6: 상점 정리 — 더 이상 팔지 않는 아이템은 가방에서 빼고, 쓰고 있었다면 벗긴다
+wallet.owned = wallet.owned.filter(id => SHOP.some(i => i.id === id));
+if (!JACKETS.some(j => j.id === wallet.equipped.jacket)) wallet.equipped.jacket = 'lime';
+if (wallet.equipped.accessory !== 'none' && !SHOP.some(i => i.kind === 'accessory' && i.value === wallet.equipped.accessory)) wallet.equipped.accessory = 'none';
+if (wallet.look?.extra && wallet.look.extra !== 'none' && !SHOP.some(i => i.kind === 'extra' && i.value === wallet.look.extra)) wallet.look.extra = 'none';
+wallet.equipped.face ??= 'none';
 // v1.9: 예전 펫(사람 캐릭터 축소판)은 정리한다. 새 펫은 상점에서 다시 데려온다.
 { const petIds = new Set(SHOP.filter(i => i.kind === 'pet').map(i => i.value));
   if (wallet.equipped.pet && !petIds.has(wallet.equipped.pet)) wallet.equipped.pet = null;
@@ -1108,10 +1114,11 @@ function buyOrEquip(id) {
   saveWallet(); refresh(); showMy('shop');
 }
 // ── 가방(인벤토리): 산 아이템만 들어오고, 여기서 끼고 뺀다 ──
-const SLOTS = [['extra', '머리'], ['accessory', '소품'], ['jacket', '옷'], ['pet', '펫']];
-const itemOn = i => (i.kind === 'jacket' && wallet.equipped.jacket === i.value) || (i.kind === 'accessory' && wallet.equipped.accessory === i.value) || (i.kind === 'pet' && wallet.equipped.pet === i.value) || (i.kind === 'extra' && (wallet.look?.extra ?? 'none') === i.value);
+const SLOTS = [['accessory', '모자'], ['face', '얼굴'], ['extra', '포인트'], ['jacket', '옷'], ['pet', '펫']];
+const itemOn = i => (i.kind === 'face' && wallet.equipped.face === i.value) || (i.kind === 'jacket' && wallet.equipped.jacket === i.value) || (i.kind === 'accessory' && wallet.equipped.accessory === i.value) || (i.kind === 'pet' && wallet.equipped.pet === i.value) || (i.kind === 'extra' && (wallet.look?.extra ?? 'none') === i.value);
 function equip(i) {
   if (i.kind === 'pet') wallet.equipped.pet = i.value;
+  else if (i.kind === 'face') wallet.equipped.face = i.value;
   else if (i.kind === 'extra') wallet.look = {...(wallet.look ?? CHAR_DEFAULT), extra: i.value};
   else wallet.equipped[i.kind] = i.value;
 }
@@ -1119,6 +1126,7 @@ function unequip(kind) {
   if (kind === 'pet') wallet.equipped.pet = null;
   else if (kind === 'extra') wallet.look = {...(wallet.look ?? CHAR_DEFAULT), extra: 'none'};
   else if (kind === 'jacket') wallet.equipped.jacket = 'lime';
+  else if (kind === 'face') wallet.equipped.face = 'none';
   else wallet.equipped.accessory = 'none';
   saveWallet(); applyLook(); refresh();
 }
@@ -1128,8 +1136,8 @@ function toggleEquip(id) {
   equip(i); saveWallet(); applyLook(); refresh(); status(`${i.icon} ${i.name} 착용!`);
 }
 function invIcon(i) { return i.kind === 'jacket' ? `<span class="inv-jacket" style="--c:${JACKETS.find(j => j.id === i.value)?.color ?? '#ccc'}">🧥</span>` : `<span>${i.icon ?? '✨'}</span>`; }
-const CATS = [['extra', '머리'], ['accessory', '소품'], ['jacket', '옷'], ['pet', '펫']];
-const shopUI = {cat: 'extra', page: 0}, invUI = {cat: 'all', page: 0};
+const CATS = [['jacket', '옷'], ['accessory', '모자'], ['face', '얼굴'], ['extra', '포인트'], ['pet', '펫']];
+const shopUI = {cat: 'jacket', page: 0}, invUI = {cat: 'all', page: 0};
 const thumbTag = i => `<canvas class="thumb" data-thumb="${i.id}" width="112" height="112"></canvas>`;
 function pager(n, per, ui, key) {
   const pages = Math.max(1, Math.ceil(n / per)); ui.page = Math.min(Math.max(0, ui.page), pages - 1);
@@ -1180,19 +1188,24 @@ function itemThumbURL(i) {
     thumbR = {r, sc, cam: new T.PerspectiveCamera(30, 1, .05, 20), holder: new T.Group()}; sc.add(thumbR.holder);
   }
   const {r, sc, cam, holder} = thumbR; holder.clear();
-  const L = wallet.look ?? CHAR_DEFAULT;
-  if (i.kind === 'pet') {
-    const pet = makePet(i.value, i.fur); pet.group.removeFromParent(); pet.group.position.set(0, 0, 0); pet.group.rotation.y = -.5; holder.add(pet.group);
-    cam.position.set(0, .45, 1.25); cam.lookAt(0, .26, 0);
+  // 아이템만 둥실 띄워 보여준다(게임 아이템 아이콘처럼)
+  let obj;
+  if (i.kind === 'pet') { const pet = makePet(i.value, i.fur); pet.group.removeFromParent(); pet.group.rotation.y = -.55; obj = pet.group; }
+  else if (i.kind === 'accessory' || i.kind === 'face') { obj = new T.Group(); const a = world.addAccessory(obj, i.value); obj.rotation.set(.12, -.45, 0); }
+  else if (i.kind === 'jacket') {
+    const c = world.critter({species: 'bear', fur: '#e6d3b8', outfit: JACKETS.find(j => j.id === i.value)?.color ?? '#cddc83', accent: '#d9c8a8', style: i.value});
+    c.head.visible = false; c.legs.forEach(l => l.visible = false); obj = c.rig; obj.rotation.y = i.value === 'hero' ? -.9 : -.35;
   } else {
-    const jc = i.kind === 'jacket' ? JACKETS.find(j => j.id === i.value)?.color : '#d9c8a8';
-    const c = world.critter({species: L.species, fur: L.fur, outfit: jc ?? '#cddc83', accent: '#f4b942', extra: i.kind === 'extra' ? i.value : 'none'});
-    if (i.kind === 'accessory') world.addAccessory(c.head, i.value);
-    c.rig.rotation.y = -.45; holder.add(c.rig);
-    if (i.kind === 'jacket') { cam.position.set(0, .75, 2.6); cam.lookAt(0, .6, 0); }
-    else if (i.value === 'wings' || i.value === 'batwings') { cam.position.set(.6, 1.0, -2.2); cam.lookAt(0, .75, 0); c.rig.rotation.y = .2; }
-    else { cam.position.set(0, 1.3, 2.1); cam.lookAt(0, 1.08, 0); }
+    const make = ex => world.critter({species: 'bear', fur: '#c9a27c', outfit: '#cddc83', accent: '#f4b942', extra: ex});
+    const c = make(i.value), base = make('none'), nRig = base.rig.children.length, nHead = base.head.children.length;
+    c.rig.children.forEach((o, k) => { if (k < nRig && o !== c.head) o.visible = false; });
+    const hc = c.head.children; hc.forEach((o, k) => { if (k < nHead - 1 || k === hc.length - 1) o.visible = false; }); // 마지막 자식은 '> <' 표정 그룹
+    obj = c.rig; obj.rotation.y = i.value === 'wings' ? Math.PI - .6 : -.5;
   }
+  holder.add(obj); holder.updateMatrixWorld(true);
+  const box = new T.Box3(); obj.traverse(o => { if (!o.isMesh) return; for (let q = o; q; q = q.parent) if (!q.visible) return; box.expandByObject(o); });
+  const ctr = box.getCenter(new T.Vector3()), size = box.getSize(new T.Vector3()).length() || .5;
+  const d = size * 1.7; cam.position.set(ctr.x + d * .2, ctr.y + d * .28, ctr.z + d); cam.lookAt(ctr); cam.near = d / 20; cam.far = d * 6; cam.updateProjectionMatrix();
   r.render(sc, cam);
   const url = r.domElement.toDataURL(); thumbCache.set(i.id, url); return url;
 }
@@ -1362,8 +1375,8 @@ function saveProfile() { try { localStorage.setItem('bam-profile', JSON.stringif
 function loadProfile() { try { const p = JSON.parse(localStorage.getItem('bam-profile') || 'null'); if (p && p.name) session.setProfile(p); } catch {} }
 function applyJacket() { const j = JACKETS.find(j => j.id === wallet.equipped.jacket) ?? JACKETS[0]; jacket.color.set(j.color); }
 function applyLook() {
-  world.setLook(wallet.look ?? CHAR_DEFAULT);
-  applyJacket(); setAccessory(wallet.equipped.accessory ?? 'none');
+  world.setLook({...(wallet.look ?? CHAR_DEFAULT), style: wallet.equipped.jacket ?? 'lime'});
+  applyJacket(); setAccessory(wallet.equipped.accessory ?? 'none', wallet.equipped.face ?? 'none');
   const want = wallet.equipped.pet;
   if (myPet && myPet.species !== want) { scene.remove(myPet.group); myPet = null; }
   if (want && !myPet) { const item = SHOP.find(i => i.kind === 'pet' && i.value === want); myPet = {...makePet(want, item?.fur ?? '#e8bd85'), species: want}; myPet.group.position.set(actor.position.x + .5, actor.position.y, actor.position.z + .3); }
@@ -2078,8 +2091,9 @@ function renderPreview() {
   const L = wallet.look ?? CHAR_DEFAULT;
   preview.holder.clear();
   const j = JACKETS.find(j => j.id === wallet.equipped.jacket) ?? JACKETS[0];
-  const c = world.critter({species: L.species, fur: L.fur, outfit: j.color, accent: '#f4b942', extra: L.extra});
+  const c = world.critter({species: L.species, fur: L.fur, outfit: j.color, accent: '#f4b942', extra: L.extra, style: j.id});
   if (wallet.equipped.accessory && wallet.equipped.accessory !== 'none') world.addAccessory(c.head, wallet.equipped.accessory);
+  if (wallet.equipped.face && wallet.equipped.face !== 'none') world.addAccessory(c.head, wallet.equipped.face);
   c.rig.rotation.y = -.35; preview.holder.add(c.rig);
   preview.r.render(preview.sc, preview.cam);
   const ctx = cv.getContext('2d'); ctx.clearRect(0, 0, cv.width, cv.height); ctx.drawImage(preview.r.domElement, 0, 0, cv.width, cv.height);
@@ -2117,7 +2131,7 @@ function netMe() {
   const j = JACKETS.find(j => j.id === wallet.equipped.jacket) ?? JACKETS[0];
   const petItem = wallet.equipped.pet ? SHOP.find(i => i.kind === 'pet' && i.value === wallet.equipped.pet) : null;
   return {in: 1, n: (p.name || '손님').slice(0, 12), g: p.gender || '', a: p.age ? String(p.age) : '', j: (p.job || '').slice(0, 16), m: p.mbti || '',
-    t: wallet.title ? titleName(wallet.title) ?? '' : '', md: p.mood || 'talk', c: j.color, pt: wallet.equipped.pet || null, pf: petItem?.fur || null,
+    t: wallet.title ? titleName(wallet.title) ?? '' : '', md: p.mood || 'talk', c: j.color, of: j.id, fc: wallet.equipped.face || 'none', pt: wallet.equipped.pet || null, pf: petItem?.fur || null,
     x: r2(actor.position.x), y: r2(actor.position.y), z: r2(actor.position.z), r: r2(netEuler.setFromQuaternion(actor.quaternion, 'YXZ').y), w: walking ? 1 : 0,
     tb: state.table || null, s: t ? (state.seatIdx ?? -1) : -1, own: owner ? 1 : 0, tt: owner ? t.title : '', op: owner ? t.opener : '',
     e: netEmote.id, ea: netEmote.at, ja: netJumpAt, pa: netPunchAt, ps: netPunchSide, ht: netHitAt,

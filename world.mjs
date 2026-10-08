@@ -1,8 +1,8 @@
 // 밤마을 v0.7 — 앰버 조명의 미드센추리 바 디오라마와 2등신 동물 주민.
 // 모든 그림은 코드와 캔버스로 직접 만든다(외부 이미지·모델 없음).
 // 무드: 월넛 루버 · 러스트 벨벳 커튼 · 웜다크 콘크리트 · 돌기둥 링 바 · 버섯 램프 · 캐러멜 가죽 · 앰버 빛 웅덩이.
-import * as T from './vendor/three.min.mjs?v=1791443580';
-import {TABLES, WANDERERS, LOUNGERS, LOUNGES, COUNTER, ENTRY, DOOR_Z, ROOM, RING, SOFA, MEZZ, MEZZ_Y, STAIRS, WELCOME_ZONE, PEOPLE} from './map-data.mjs?v=1791443580';
+import * as T from './vendor/three.min.mjs?v=1791444439';
+import {TABLES, WANDERERS, LOUNGERS, LOUNGES, COUNTER, ENTRY, DOOR_Z, ROOM, RING, SOFA, MEZZ, MEZZ_Y, STAIRS, WELCOME_ZONE, PEOPLE} from './map-data.mjs?v=1791444439';
 
 export const HOST_STEP = .32; // 링 바 안쪽 발판 높이: 호스트 얼굴이 카운터 위로 보이게
 const SKY = '#211b17'; // v1.8 젠 하이엔드: 바깥은 깊은 웜 차콜
@@ -988,7 +988,7 @@ export function createWorld() {
   const darker = c => '#' + new T.Color(c).lerp(new T.Color('#3b2a22'), .35).getHexString();
 
   // 종(species): 기본 동물 + 오리지널 인외(용·로봇·유령·외계인·개구리·펭귄). extra: 머리·등 장식.
-  function critter({species = 'bear', fur = '#c08a5c', outfit = '#8ac26b', accent = '#f4b942', host = false, extra = 'none'}) {
+  function critter({species = 'bear', fur = '#c08a5c', outfit = '#8ac26b', accent = '#f4b942', host = false, extra = 'none', style = 'lime'}) {
     const rig = new T.Group();
     const noEars = ['robot', 'ghost', 'alien', 'frog', 'penguin', 'dokkaebi'].includes(species);
     const furM = toon(fur), fur2 = toon(species === 'panda' ? '#ffffff' : lighter(fur)), clothes = species === 'ghost' ? toon(fur) : toon(outfit);
@@ -1016,7 +1016,9 @@ export function createWorld() {
       parts.arms.push(arm); (parts.fists ??= []).push(hand); if (s > 0) parts.fist = hand;
     }
     // 머리
+    if (style && style !== 'lime') dressUp(rig, style);
     const head = new T.Group(); head.position.y = 1.0; rig.add(head);
+    head.userData.eye = {y: species === 'frog' ? .3 : .03, z: species === 'frog' ? .29 : .335}; // 얼굴 소품(안경)을 눈에 맞춘다
     const skull = sphere(.37, furM, 0, 0, 0, head); skull.scale.set(1.06, .94, .96); outline(skull, .37, .026);
     if (species === 'penguin') { const face = sphere(.27, toon('#fbf6ee'), 0, -.05, .14, head); face.scale.set(1.05, .9, .8); const beak = cone(.07, .16, toon('#f39a3c'), 0, -.08, .42, head, 8); beak.rotation.x = Math.PI / 2; }
     else if (species === 'robot') { box(.36, .18, .08, toon('#2b2f36'), 0, -.12, .33, head); for (let i = 0; i < 3; i++) box(.24, .02, .02, glow('#7ff3ff'), 0, -.16 + i * .04, .375, head); for (const s of [-1, 1]) { const bolt = cyl(.07, .07, .08, toon('#9aa4ad'), s * .38, -.02, 0, head); bolt.rotation.z = Math.PI / 2; } }
@@ -1276,7 +1278,49 @@ export function createWorld() {
   }
 
   // 액세서리(상점) — 다른 사람 캐릭터에도 같은 모양을 붙일 수 있게 만드는 함수로 둔다.
+  // ── 옷 스타일: 몸통(반지름 .22, 중심 y .5) 앞쪽에 디테일을 얹는다 ──
+  function dressUp(rig, id) {
+    const g = new T.Group(); rig.add(g);
+    const W = toon('#f6f3ec'), K = toon('#1c1a1e'), F = (x, y, w, h, m, rz = 0, z = .2) => { const b = box(w, h, .03, m, x, y, z, g, false); b.rotation.z = rz; return b; };
+    if (id === 'tux' || id === 'suit') {
+      F(0, .55, .13, .28, W);                                   // 셔츠
+      for (const s of [-1, 1]) F(s * .075, .56, .05, .3, toon(id === 'tux' ? '#0e0d10' : '#253050'), s * .35, .205); // 라펠
+      if (id === 'tux') { for (const s of [-1, 1]) { const w = cone(.045, .07, K, s * .04, .67, .2, g, 4); w.rotation.z = s * Math.PI / 2; } sphere(.022, K, 0, .67, .21, g, false); }
+      else { const t = cone(.035, .24, toon('#8e2a35'), 0, .56, .215, g, 4); t.rotation.z = Math.PI; sphere(.025, toon('#8e2a35'), 0, .67, .215, g, false); }
+      for (const y of [.45, .39]) sphere(.014, K, 0, y, .215, g, false);
+      F(-.12, .6, .05, .02, W, 0, .19);                        // 포켓치프
+    } else if (id === 'chef') {
+      for (const x of [-.06, .06]) for (const y of [.58, .5, .42]) sphere(.017, toon('#2b2228'), x, y, .21, g, false);
+      const nk = mesh(new T.TorusGeometry(.13, .035, 8, 20), toon('#d6383a'), 0, .69, .01, g, false); nk.rotation.x = Math.PI / 2;
+      const knot = cone(.04, .08, toon('#d6383a'), 0, .62, .17, g, 4); knot.rotation.z = Math.PI;
+    } else if (id === 'police') {
+      const badge = cone(.04, .015, toon('#f2c14e'), -.09, .58, .2, g, 6); badge.rotation.x = Math.PI / 2; outline(badge, .04, .006);
+      for (const s of [-1, 1]) F(s * .09, .5, .08, .04, toon('#1f2b4f'));
+      for (const y of [.6, .52, .44]) sphere(.013, toon('#f2c14e'), 0, y, .215, g, false);
+      const belt = mesh(new T.TorusGeometry(.215, .03, 6, 28), K, 0, .36, 0, g, false); belt.rotation.x = Math.PI / 2; belt.scale.y = .92;
+      box(.06, .05, .03, toon('#f2c14e'), 0, .36, .21, g, false);
+      for (const s of [-1, 1]) box(.12, .025, .1, toon('#f2c14e'), s * .2, .7, 0, g, false); // 견장
+    } else if (id === 'hero') { // 오리지널 히어로: 보랏빛 슈트 · 노란 초승달 엠블럼 · 망토
+      const moon = mesh(new T.RingGeometry(.05, .085, 24, 1, -.9, 3.6), glow('#ffd34a'), .01, .56, .208, g, false); moon.rotation.z = .4;
+      const belt = mesh(new T.TorusGeometry(.215, .025, 6, 28), toon('#ffd34a'), 0, .38, 0, g, false); belt.rotation.x = Math.PI / 2;
+      const cape = box(.42, .62, .025, toon('#c9433b'), 0, .44, -.22, g); cape.rotation.x = .18; outline(cape, .3, .008);
+      for (const s of [-1, 1]) sphere(.03, toon('#ffd34a'), s * .15, .7, .06, g, false);
+    } else if (id === 'hanbok') {
+      const col = mesh(new T.TorusGeometry(.13, .025, 6, 20, Math.PI), W, 0, .66, .09, g, false); col.rotation.set(.9, 0, Math.PI);
+      for (const s of [-1, 1]) { const r = box(.04, .22, .02, toon('#c9343f'), s * .025 + .03, .5, .215, g, false); r.rotation.z = s * .25; }
+      F(.03, .62, .07, .04, toon('#c9343f'));
+      const hem = mesh(new T.TorusGeometry(.2, .025, 6, 28), toon('#7fa0d8'), 0, .38, 0, g, false); hem.rotation.x = Math.PI / 2;
+    } else if (id === 'varsity') {
+      F(0, .52, .02, .3, W);                                   // 지퍼 라인
+      const rib = mesh(new T.TorusGeometry(.2, .03, 6, 28), W, 0, .36, 0, g, false); rib.rotation.x = Math.PI / 2;
+      const nk = mesh(new T.TorusGeometry(.13, .03, 6, 20), W, 0, .7, 0, g, false); nk.rotation.x = Math.PI / 2;
+      const B = mesh(new T.CircleGeometry(.05, 4), toon('#f2c14e'), -.1, .58, .205, g, false); B.rotation.z = Math.PI / 4;
+    }
+    g.traverse(o => { if (o.isMesh) { o.userData.ignorePick = true; o.castShadow = false; } });
+    return g;
+  }
   const ACC = {
+    roundglasses: g => { for (const s of [-1, 1]) { const r = mesh(geo('rlens', () => new T.TorusGeometry(.075, .013, 6, 20)), toon('#2b2228'), s * .14, .04, .37, g, false); } box(.1, .015, .015, toon('#2b2228'), 0, .05, .37, g, false); for (const s of [-1, 1]) box(.015, .015, .2, toon('#2b2228'), s * .22, .05, .28, g, false); },
     beret: g => { const b = sphere(.3, toon('#b5532c'), .04, .3, -.02, g); b.scale.set(1.05, .32, 1); b.rotation.z = -.18; outline(b, .3, .016); cyl(.015, .02, .06, toon('#8f3d1e'), .06, .41, -.02, g); },
     shades: g => { for (const sx of [-.14, .14]) { const l = cyl(.08, .08, .02, toon('#1f1a18'), sx, .04, .35, g, false); l.rotation.x = Math.PI / 2; outline(l, .08, .01); } box(.12, .02, .02, toon('#1f1a18'), 0, .06, .36, g, false); },
     tophat: g => { const b = cyl(.3, .3, .03, toon('#26232a'), 0, .3, -.02, g, false, 24); outline(b, .3, .01); const c = cyl(.17, .18, .3, toon('#26232a'), 0, .46, -.02, g); outline(c, .18, .012); cyl(.182, .182, .06, toon('#c9433b'), 0, .35, -.02, g, false, 24); },
@@ -1293,23 +1337,25 @@ export function createWorld() {
     sakura: g => { for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2; sphere(.035, toon('#ffc4d6'), -.22 + Math.cos(a) * .04, .28 + Math.sin(a) * .04, .13, g, false); } sphere(.02, toon('#ff8fb1'), -.22, .28, .15, g, false); },
     ribbon: g => { for (const sx of [-1, 1]) { const w = cone(.08, .14, toon('#ff8fb1'), .2 + sx * .07, .3, .1, g, 12); w.rotation.z = sx * Math.PI / 2; outline(w, .07, .012); } sphere(.04, toon('#ff6f9c'), .2, .3, .1, g); }
   };
-  function addAccessory(head, id) { if (!ACC[id]) return null; const g = new T.Group(); head.add(g); ACC[id](g); g.traverse(o => { if (o.isMesh) o.userData.ignorePick = true; }); return g; }
+  const FACE = new Set(['shades', 'roundglasses', 'heartglasses', 'mask']);
+  const fitFace = (g, id, head) => { const e = head?.userData.eye; if (FACE.has(id) && e) g.position.set(0, e.y - .03, e.z - .335); else g.position.set(0, 0, 0); };
+  function addAccessory(head, id) { if (!ACC[id]) return null; const g = new T.Group(); head.add(g); ACC[id](g); fitFace(g, id, head); g.traverse(o => { if (o.isMesh) o.userData.ignorePick = true; }); return g; }
   const acc = {};
   for (const id of Object.keys(ACC)) { acc[id] = new T.Group(); ACC[id](acc[id]); }
-  let accId = 'none';
-  function setAccessory(id) { accId = id; for (const [k, g] of Object.entries(acc)) g.visible = k === id; }
+  let accId = 'none', faceId = 'none';
+  function setAccessory(id, face = faceId) { accId = id; faceId = face; for (const [k, g] of Object.entries(acc)) g.visible = k === id || k === face; }
   // 내 캐릭터 꾸미기: 종·털 색·장식
   let look = null;
-  function setLook({species = 'fox', fur = '#f08a3c', extra = 'none'} = {}) {
-    const key = species + fur + extra; if (look === key) return; look = key;
+  function setLook({species = 'fox', fur = '#f08a3c', extra = 'none', style = 'lime'} = {}) {
+    const key = species + fur + extra + style; if (look === key) return; look = key;
     if (fox.rig) rig.remove(fox.rig);
-    const c = critter({species, fur, outfit: '#cddc83', accent: '#f4b942', extra});
+    const c = critter({species, fur, outfit: '#cddc83', accent: '#f4b942', extra, style});
     c.rig.traverse(o => { if (!o.isMesh) return; if (species !== 'ghost' && o.material === c.clothes) o.material = ownJacket; o.userData.ignorePick = true; });
     rig.add(c.rig);
     fox.rig = c.rig; fox.head = c.head; fox.fist = c.fist; fox.fists = c.fists; fox.ouch = c.ouch;
     fox.legs.length = 0; fox.legs.push(...c.legs); fox.arms.length = 0; fox.arms.push(...c.arms); fox.eyes.length = 0; fox.eyes.push(...c.eyes);
     c.arms[1].add(glassGroup);
-    for (const g of Object.values(acc)) c.head.add(g);
+    for (const [k, g] of Object.entries(acc)) { c.head.add(g); fitFace(g, k, c.head); }
     setAccessory(accId);
   }
   setLook();
@@ -1328,6 +1374,6 @@ export function createWorld() {
   function drawSign(font) { currentFont = font; for (const t of drawables) t.userData.redraw(font); }
   drawSign('sans-serif');
 
-  return {speaker, get fist() { return fox.fist; }, get fists() { return fox.fists; }, get ouch() { return fox.ouch; }, critter, setLook, addAccessory, makePet, npcPets, scene, actor, rig, legs: fox.legs, arms: fox.arms, eyes: fox.eyes, shadow, marker, entities, npcs, glassGroup, setGlass, setFill, setAccessory, makeBubble,
+  return {dressUp, speaker, get fist() { return fox.fist; }, get fists() { return fox.fists; }, get ouch() { return fox.ouch; }, critter, setLook, addAccessory, makePet, npcPets, scene, actor, rig, legs: fox.legs, arms: fox.arms, eyes: fox.eyes, shadow, marker, entities, npcs, glassGroup, setGlass, setFill, setAccessory, makeBubble,
     seatAngles, jacket: ownJacket, drawSign, lampShades, emoteTextures, flags: flagTexes, clock: {hourHand, minHand}};
 }
