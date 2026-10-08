@@ -1,14 +1,14 @@
 // 밤마을 v0.7 — 카메라, 입력, 군중, 상호작용, 다이얼로그.
-import * as T from './vendor/three.min.mjs?v=1791424785';
-import {createBgm} from './bgm.mjs?v=1791424785';
-import {createWorld, HOST_STEP} from './world.mjs?v=1791424785';
-import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791424785';
+import * as T from './vendor/three.min.mjs?v=1791425751';
+import {createBgm} from './bgm.mjs?v=1791425751';
+import {createWorld, HOST_STEP} from './world.mjs?v=1791425751';
+import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791425751';
 import {TABLES, SPOTS, WANDERERS, LOUNGERS, DRINKS, ENTRY, ROOM, MOODS, JACKETS, ACCESSORIES, DRINK_MINUTES, PROFILE_TAGS, ROUND_MINUTES, NEXT_TOPICS, VILLAGES, RESIDENT_COUNT, RING, OBSTACLES,
-  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC, DOOR_Z} from './map-data.mjs?v=1791424785';
-import {createSession} from './session.mjs?v=1791424785';
-import {createOnline} from './online.mjs?v=1791424785';
-import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791424785';
-import {createGames} from './games.mjs?v=1791424785';
+  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC, DOOR_Z} from './map-data.mjs?v=1791425751';
+import {createSession} from './session.mjs?v=1791425751';
+import {createOnline} from './online.mjs?v=1791425751';
+import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791425751';
+import {createGames} from './games.mjs?v=1791425751';
 
 const $ = id => document.getElementById(id);
 const view = $('viewport'), dialog = $('villageDialog'), calm = $('calm');
@@ -1140,6 +1140,8 @@ function drawMap() {
     else if (t.type === 'booth') { c.arc(mx(t.x), mz(t.z), 26, Math.PI, Math.PI * 2); c.lineTo(mx(t.x), mz(t.z)); }
     else if (t.type === 'long') c.roundRect(mx(t.x - 1.3), mz(t.z - .5), 2.6 * K, K, 6);
     else if (t.type === 'bar') c.roundRect(mx(t.x - 1.6), mz(t.z - .45), 3.2 * K, .9 * K, 5);
+    else if (t.type === 'booth6') { c.arc(mx(t.x), mz(t.z), 1.5 * K, Math.PI, Math.PI * 2); c.lineTo(mx(t.x), mz(t.z)); }
+    else if (t.type === 'lounge') c.roundRect(mx(t.x - 1.7), mz(t.z - 1.5), 3.4 * K, 3.0 * K, 12);
     else if (t.type === 'sofa') c.roundRect(mx(4.6), mz(.6), 3.2 * K, 2.5 * K, 10);
     else c.arc(mx(t.x), mz(t.z), 19, 0, Math.PI * 2);
     c.fill();
@@ -2155,7 +2157,7 @@ window.addEventListener('pageshow', () => { if (!failed && !frameId) { resize();
 window.__bam = {state, wallet, showMy, wide: ms => { wideUntil = performance.now() + ms; }, goOutside, goInside, get place() { return place; }, get town() { return town; }, get games() { return games; }, applyLook, checkWeekend, get online() { return online; }, get inVillage() { return inVillage; }, rounds, doEmote, standAt, get emoteAnim() { return emoteAnim; }, get level() { return level; }, get tutorial() { return tutorial; }, get myPet() { return myPet; }, actor, host, npcs, select: id => selectEntity(id), endRound: id => newRound(tableOf(id)), get drink() { return drink; }, get escorting() { return escorting; }, get path() { return path; }, get jumpY() { return jumpY; }, get knock() { return knock; }, punch, punched, get hurt() { return {ouchUntil, stunUntil, now: performance.now()}; }};
 
 if (document.modelContext?.registerTool) {
-  const spots = ['host', 'exit', 'table1', 'table2', 'table3', 'table4', 'table5'];
+  const spots = ['host', 'exit', 'table5', 'boothL', 'boothR', 'loungeL', 'loungeR', 'bar1', 'bar2'];
   try {
     Promise.resolve(document.modelContext.registerTool({
       name: 'walk_to_village_spot',

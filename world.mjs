@@ -1,8 +1,8 @@
 // 밤마을 v0.7 — 앰버 조명의 미드센추리 바 디오라마와 2등신 동물 주민.
 // 모든 그림은 코드와 캔버스로 직접 만든다(외부 이미지·모델 없음).
 // 무드: 월넛 루버 · 러스트 벨벳 커튼 · 웜다크 콘크리트 · 돌기둥 링 바 · 버섯 램프 · 캐러멜 가죽 · 앰버 빛 웅덩이.
-import * as T from './vendor/three.min.mjs?v=1791424785';
-import {TABLES, WANDERERS, LOUNGERS, ENTRY, DOOR_Z, ROOM, RING, SOFA, MEZZ, MEZZ_Y, STAIRS, WELCOME_ZONE, PEOPLE} from './map-data.mjs?v=1791424785';
+import * as T from './vendor/three.min.mjs?v=1791425751';
+import {TABLES, WANDERERS, LOUNGERS, ENTRY, DOOR_Z, ROOM, RING, SOFA, MEZZ, MEZZ_Y, STAIRS, WELCOME_ZONE, PEOPLE} from './map-data.mjs?v=1791425751';
 
 export const HOST_STEP = .32; // 링 바 안쪽 발판 높이: 호스트 얼굴이 카운터 위로 보이게
 const SKY = '#211b17'; // v1.8 젠 하이엔드: 바깥은 깊은 웜 차콜
@@ -75,19 +75,20 @@ export function createWorld() {
 
   // 트래버틴 석재 타일 바닥(따뜻한 그레이지 · 결 무늬 · 얇은 줄눈)
   const floorTex = canvasTex(1024, 1024, (c, w, h) => {
-    c.fillStyle = '#a8927b'; c.fillRect(0, 0, w, h);
-    for (let ty = 0; ty < 4; ty++) for (let tx = 0; tx < 2; tx++) { c.fillStyle = ['#ab957e', '#a38d76', '#ae9983', '#a6907a'][(tx + ty * 3) % 4]; c.fillRect(tx * 512, ty * 256, 512, 256); }
-    for (let y = 0; y < h; y += 3) { c.fillStyle = rnd() > .5 ? '#b8a48d' : '#98826c'; c.globalAlpha = .18; c.fillRect(0, y, w, 1 + rnd() * 2); }
-    for (let i = 0; i < 900; i++) { c.fillStyle = rnd() > .5 ? '#c2ae96' : '#8f7a65'; c.globalAlpha = .22; c.beginPath(); c.ellipse(rnd() * w, rnd() * h, 2 + rnd() * 14, 1 + rnd() * 3, 0, 0, 7); c.fill(); }
-    c.globalAlpha = 1; c.fillStyle = '#7f6c5a';
+    // v2.0: 따뜻한 다크 마블(은은한 결)
+    c.fillStyle = '#5f4f44'; c.fillRect(0, 0, w, h);
+    for (let ty = 0; ty < 4; ty++) for (let tx = 0; tx < 2; tx++) { c.fillStyle = ['#625247', '#5a4a40', '#66564a', '#5d4d43'][(tx + ty * 3) % 4]; c.fillRect(tx * 512, ty * 256, 512, 256); }
+    c.lineCap = 'round';
+    for (let i = 0; i < 26; i++) { c.strokeStyle = rnd() > .4 ? '#7d6a5c' : '#4a3c33'; c.globalAlpha = .45; c.lineWidth = 1 + rnd() * 2.5; c.beginPath(); let x = rnd() * w, y = rnd() * h; c.moveTo(x, y); for (let k = 0; k < 5; k++) { x += 40 + rnd() * 90; y += (rnd() - .5) * 90; c.lineTo(x, y); } c.stroke(); }
+    c.globalAlpha = 1; c.fillStyle = '#3e322b';
     for (let i = 0; i <= 2; i++) c.fillRect(i * 512 - 1, 0, 2, h);
     for (let i = 0; i <= 4; i++) c.fillRect(0, i * 256 - 1, w, 2);
   }, [4.5, 3.75]);
 
   // 월넛 루버 벽
   const slatTex = canvasTex(512, 256, (c, w, h) => {
-    c.fillStyle = '#3a2c22'; c.fillRect(0, 0, w, h);
-    const tones = ['#b08b64', '#b9946c', '#a8845e', '#bf9b72'];
+    c.fillStyle = '#1d140f'; c.fillRect(0, 0, w, h);
+    const tones = ['#71503a', '#7a5840', '#6a4a35', '#805d44'];
     for (let x = 0, i = 0; x < w; x += 32, i++) {
       c.fillStyle = tones[i % tones.length]; c.fillRect(x + 6, 0, 22, h);
       c.fillStyle = '#ffffff1a'; c.fillRect(x + 6, 0, 4, h);
@@ -184,17 +185,14 @@ export function createWorld() {
   // 바 뒤 러스트 벨벳 커튼(가운데), 혼술 코너 쪽 커튼(왼쪽 벽)
   const curtainM = toon('#ffffff', {map: rustVelvet});
   mesh(new T.PlaneGeometry(7.6, 2.7), curtainM, 0, 1.35, -7.4, scene, false);
-  { const lc = mesh(new T.PlaneGeometry(4.6, 3.2), toon('#ffffff', {map: rep(rustVelvet, 1.4, 1)}), -9.08, 1.6, 4.3, scene, false); lc.rotation.y = Math.PI / 2; }
+
 
   // 그림 액자(양옆 루버 벽)
   [[-6.0, '#efe3d0', '#2b2622', 0], [6.0, '#e9dcc8', '#8f3d1e', 1]].forEach(([x, bg, ink, seed]) => {
     box(.95, 1.25, .05, M.walnutDark, x, 2.3, -7.42);
     mesh(new T.PlaneGeometry(.85, 1.15), toon('#ffffff', {map: artTex(bg, ink, seed)}), x, 2.3, -7.39, scene, false);
   });
-  {
-    const p = mesh(new T.PlaneGeometry(.8, 1.05), toon('#ffffff', {map: artTex('#e9dcc8', '#6a4430', 2)}), -9.08, 2.3, .7, scene, false); p.rotation.y = Math.PI / 2;
-    box(.04, 1.15, .9, M.walnutDark, -9.11, 2.3, .7);
-  }
+
 
   // 벽시계(왼쪽 벽)
   const clock = new T.Group(); clock.position.set(-9.06, 4.6, -2.6); clock.rotation.y = Math.PI / 2; scene.add(clock);
@@ -312,19 +310,21 @@ export function createWorld() {
     // 원형 천장 조명 디스크(레퍼런스): 카메라를 가리면 흐려진다.
     const diskMat = new T.MeshBasicMaterial({color: '#ff9d4f', toneMapped: false, transparent: true, side: T.DoubleSide});
     const rimMat = new T.MeshToonMaterial({color: '#2a1d17', gradientMap: grad, transparent: true});
-    const disk = mesh(new T.CircleGeometry(2.3, 48), diskMat, RING.x, 4.75, RING.z, scene, false); disk.rotation.x = Math.PI / 2;
-    const rim = mesh(new T.CylinderGeometry(2.42, 2.42, .16, 48, 1, true), rimMat, RING.x, 4.78, RING.z, scene, false);
-    for (let i = 0; i < 4; i++) { const b = box(4.6, .03, .05, rimMat, RING.x, 4.73, RING.z, scene, false); b.rotation.y = i * Math.PI / 4; }
+    const DR = 3.0; // 공간 전체를 덮는 웅장한 원형 천장 조명(4분할 + 두 겹 테두리)
+    const disk = mesh(new T.CircleGeometry(DR, 64), diskMat, RING.x, 4.85, RING.z, scene, false); disk.rotation.x = Math.PI / 2;
+    const rim = mesh(new T.CylinderGeometry(DR + .14, DR + .14, .2, 64, 1, true), rimMat, RING.x, 4.88, RING.z, scene, false);
+    const rim2 = mesh(new T.TorusGeometry(DR + .55, .05, 8, 72), rimMat, RING.x, 5.05, RING.z, scene, false); rim2.rotation.x = Math.PI / 2; rim2.userData.ignorePick = true;
+    for (let i = 0; i < 4; i++) { const b = box(DR * 2, .03, .06, rimMat, RING.x, 4.83, RING.z, scene, false); b.rotation.y = i * Math.PI / 4; }
     disk.userData.ignorePick = rim.userData.ignorePick = true;
-    lampShades.push({x: RING.x, z: RING.z, r: 3.2, mats: [diskMat, rimMat], opacity: 1, upperOnly: true});
+    lampShades.push({x: RING.x, z: RING.z, r: 3.6, mats: [diskMat, rimMat], opacity: 1, upperOnly: true});
     // 돌기둥을 천장 디스크까지
-    cyl(RING.column, RING.column, 1.0, toon('#ffffff', {map: roughStone}), RING.x, 4.4, RING.z, scene, true, 24);
+    cyl(RING.column, RING.column, 1.1, toon('#ffffff', {map: roughStone}), RING.x, 4.4, RING.z, scene, true, 24);
     // 러스트 벨벳 바 스툴(외다리 + 발받침)
     for (const s of TABLES[0].seats) {
-      const seat = cyl(.23, .21, .1, M.velvet, s.x, .8, s.z); outline(seat, .23); seat.scale.y = 1.2;
-      cyl(.045, .05, .76, M.velvetDark, s.x, .4, s.z);
-      const fr = mesh(geo('foot', () => new T.TorusGeometry(.15, .013, 6, 20)), M.velvetDark, s.x, .3, s.z, scene, false); fr.rotation.x = Math.PI / 2;
-      cyl(.18, .2, .03, M.velvetDark, s.x, .015, s.z);
+      const seat = cyl(.23, .21, .1, toon('#2a2320'), s.x, .8, s.z); outline(seat, .23); seat.scale.y = 1.2;
+      cyl(.04, .045, .76, M.brass, s.x, .4, s.z);
+      const fr = mesh(geo('foot', () => new T.TorusGeometry(.15, .013, 6, 20)), M.brass, s.x, .3, s.z, scene, false); fr.rotation.x = Math.PI / 2;
+      cyl(.18, .2, .03, toon('#2a2320'), s.x, .015, s.z);
     }
   }
 
@@ -460,8 +460,216 @@ export function createWorld() {
     tag(g, t.id);
   }
 
+  // ══ v2.0 갤러리 라운지: 부스 · 리빙룸 · 미술 · 식물 · 샹들리에 ═════════════════
+  const RUST = toon('#a9502c'), RUST_D = toon('#843c20'), GREEN_V = toon('#2f5240'), GREEN_D = toon('#23402f'),
+    BOUCLE = toon('#efe6d6'), COGNAC = toon('#b8783e'), MARBLE = toon('#2e2926'), BRASS = M.brass, IRON = toon('#1f1a17');
+  // 벨벳 부스(6인): 뒤를 감싸는 큰 반원 소파 + 대리석 원형 테이블 + 브라스 램프
+  function booth6Table(t) {
+    const g = new T.Group(); g.position.set(t.x, 0, t.z); scene.add(g);
+    const a0 = -172 * Math.PI / 180, a1 = -8 * Math.PI / 180, start = Math.PI / 2 - a1, len = a1 - a0;
+    arcWall(1.42, .34, start, len, RUST, 0, .17, 0, g); arcWall(.95, .34, start, len, RUST_D, 0, .17, 0, g);
+    arcTop(.95, 1.42, start, len, toon('#b8582f', {side: T.DoubleSide}), 0, .35, 0, g);
+    const back = arcWall(1.66, .82, start, len, toon('#a14a28', {side: T.DoubleSide}), 0, .66, 0, g); outline(back, 1.66, .02);
+    arcWall(1.46, .56, start, len, toon('#93431f', {side: T.DoubleSide}), 0, .64, 0, g);
+    arcTop(1.46, 1.66, start, len, toon('#b8582f', {side: T.DoubleSide}), 0, 1.07, 0, g);
+    for (const d of [-150, -90, -30]) { const a = d * Math.PI / 180; const p = box(.32, .26, .1, GREEN_V, Math.cos(a) * 1.36, .56, Math.sin(a) * 1.36, g); p.rotation.y = -a - Math.PI / 2; p.rotation.x = -.2; }
+    // 테이블: 블랙 마블 상판 + 브라스 테두리 + 원통 받침
+    outline(cyl(.78, .78, .05, MARBLE, 0, .74, 0, g, true, 40), .78, .02);
+    cyl(.79, .79, .02, BRASS, 0, .715, 0, g, false, 40);
+    cyl(.24, .3, .7, IRON, 0, .36, 0, g);
+    mushroomLamp(0, .765, -.32, 1.0, g);
+    for (const [x, z] of [[-.3, .2], [.28, .25]]) { const c = cyl(.045, .04, .1, glow('#ffb36a', {transparent: true, opacity: .85}), x, .82, z, g, false); c.castShadow = false; }
+    budVase(.32, .765, -.15, g);
+    tag(g, t.id);
+    const l = new T.PointLight('#ffb070', 6, 5, 1.6); l.position.set(t.x, 1.4, t.z + .1); scene.add(l);
+  }
+  // 리빙룸 라운지(6인): 러스트 벨벳 소파 · 그린 벨벳 체어 · 부클레 체어 · 오벌 대리석 테이블 · 러그
+  function loungeTable(t) {
+    const g = new T.Group(); g.position.set(t.x, 0, t.z); scene.add(g);
+    const rug = mesh(new T.PlaneGeometry(4.3, 3.5), toon('#d9cfbf', {map: rugTex, transparent: true, depthWrite: false}), 0, .012, .1, g, false); rug.rotation.x = -Math.PI / 2;
+    // 소파(뒤쪽, +z를 본다)
+    const sz = -1.12;
+    outline(box(2.5, .3, .9, RUST, 0, .19, sz, g), .45, .02);
+    for (const dx of [-.76, 0, .76]) outline(box(.72, .14, .72, toon('#b35a32'), dx, .4, sz + .05, g), .36, .015);
+    const sb = capsule(.2, 2.15, RUST, 0, .66, sz - .38, g); sb.rotation.z = Math.PI / 2; outline(sb, .2);
+    for (const sx of [-1.2, 1.2]) { const arm = capsule(.15, .5, RUST_D, sx, .45, sz, g); arm.rotation.x = Math.PI / 2; outline(arm, .15); }
+    for (const [dx, m] of [[-.7, GREEN_V], [.65, toon('#d9c8a8')]]) { const p = box(.34, .3, .1, m, dx, .62, sz - .2, g); p.rotation.x = -.25; p.rotation.y = dx * .1; }
+    // 오벌 블랙 마블 커피 테이블 + 원통 다리
+    const top = cyl(.62, .62, .05, MARBLE, 0, .4, .35, g, true, 40); top.scale.set(1.35, 1, .8); outline(top, .62, .02);
+    for (const dx of [-.42, .42]) cyl(.15, .15, .36, IRON, dx, .19, .35, g);
+    for (const [x, z] of [[-.35, .3], [.1, .48], [.4, .22]]) cyl(.04, .04, .07, glow('#ffb36a', {transparent: true, opacity: .9}), x, .46, z, g, false);
+    budVase(-.05, .425, .25, g, 1.1);
+    // 체어 3개(시트 위치에서 테이블을 본다)
+    const [, , , c1, c2, c3] = t.seats;
+    tag(tubChair(c1, GREEN_V, GREEN_D), t.id); tag(tubChair(c2, GREEN_V, GREEN_D), t.id); tag(boucleChair(c3), t.id);
+    // 소파 옆 노란 메탈 사이드 테이블 + 구름 램프, 반대쪽 더블 콘 플로어 램프
+    const ox = -t.side * 1.62;
+    sideTableYellow(t.x + ox, t.z + sz - .05);
+    tag(g, t.id);
+  }
+  const tubShellM = toon('#2f5240', {side: T.DoubleSide});
+  function tubChair(seat, m, md) {
+    const c = new T.Group(); c.position.set(seat.x, 0, seat.z); c.rotation.y = seat.heading; scene.add(c);
+    outline(cyl(.34, .3, .22, md, 0, .15, 0, c, true, 24), .34, .015);
+    outline(cyl(.3, .3, .1, m, 0, .3, .02, c, true, 24), .3, .015);
+    const shell = mesh(geo('tubC', () => new T.CylinderGeometry(.36, .34, .36, 24, 1, true, Math.PI * .55, Math.PI * .9)), tubShellM, 0, .5, 0, c);
+    shell.rotation.y = Math.PI; outline(shell, .36, .015);
+    return c;
+  }
+  function boucleChair(seat) {
+    const c = new T.Group(); c.position.set(seat.x, 0, seat.z); c.rotation.y = seat.heading; scene.add(c);
+    outline(box(.62, .2, .6, BOUCLE, 0, .32, 0, c), .3, .015);
+    const b = box(.62, .5, .2, BOUCLE, 0, .62, -.24, c); b.rotation.x = -.12; outline(b, .3, .015);
+    for (const sx of [-.34, .34]) { box(.04, .04, .66, IRON, sx, .5, 0, c); rod([sx, .5, .3], [sx, 0, .3], .02, IRON, c); rod([sx, .5, -.3], [sx, 0, -.3], .02, IRON, c); }
+    return c;
+  }
+  function sideTableYellow(x, z) {
+    const y = toon('#e8b423');
+    for (const yy of [.1, .52]) box(.42, .05, .42, y, x, yy, z);
+    for (const [dx, dz] of [[-.2, -.2], [.2, -.2], [-.2, .2], [.2, .2]]) rod([x + dx, 0, z + dz], [x + dx, .55, z + dz], .012, M.chrome);
+    const lamp = sphere(.13, glow('#fff1d6'), x, .78, z); lamp.scale.set(1, .55, 1); sphere(.1, glow('#fff6e4'), x, .9, z).scale.set(1, .55, 1);
+    rod([x, .55, z], [x, .72, z], .01, M.chrome);
+  }
+  function mushroomLamp(x, y, z, s = 1, parent = scene) {
+    cyl(.06 * s, .07 * s, .015, BRASS, x, y + .008, z, parent, false);
+    rod([x, y, z], [x, y + .28 * s, z], .012 * s, BRASS, parent);
+    dome(.12 * s, BRASS, x, y + .26 * s, z, parent);
+    const under = mesh(geo('mlu' + s, () => new T.CircleGeometry(.11 * s, 18)), LAMP_GLOW_HOT, x, y + .26 * s, z, parent, false); under.rotation.x = Math.PI / 2;
+  }
+  function budVase(x, y, z, parent = scene, s = 1) {
+    const v = cyl(.05 * s, .04 * s, .16 * s, toon('#1c1816'), x, y + .08 * s, z, parent); outline(v, .05 * s, .01);
+    for (let i = 0; i < 4; i++) { const tip = [x + (rnd() - .5) * .25 * s, y + (.35 + rnd() * .25) * s, z + (rnd() - .5) * .15 * s]; rod([x, y + .15 * s, z], tip, .005, M.branch, parent); const f = sphere(.03 * s, toon('#c8613a'), tip[0], tip[1], tip[2], parent, false); f.scale.set(1, .7, 1); }
+  }
+  // 리빙룸 러그: 크림 바탕 + 올리브 유기적 형태 + 가는 선(집 거실 러그 느낌)
+  const rugTex = canvasTex(512, 420, (c, w, h) => {
+    c.fillStyle = '#e9e1d2'; c.beginPath(); c.roundRect(4, 4, w - 8, h - 8, 120); c.fill();
+    c.fillStyle = '#c9c0ae'; c.beginPath(); c.ellipse(w * .62, h * .55, 150, 110, .3, 0, 7); c.fill();
+    c.fillStyle = '#7d8a63'; c.beginPath(); c.moveTo(150, 260); c.bezierCurveTo(90, 160, 210, 90, 260, 170); c.bezierCurveTo(310, 250, 230, 340, 150, 260); c.fill();
+    c.strokeStyle = '#3b3430'; c.lineWidth = 4; c.beginPath(); c.moveTo(60, 120); c.bezierCurveTo(200, 30, 330, 260, 250, 330); c.bezierCurveTo(200, 380, 420, 380, 460, 250); c.stroke();
+  });
+
+  // ── 미술: 사장님이 모은 현대미술(모두 이 공간을 위해 새로 그린 오리지널 추상) ──
+  function canvasArt(w, h, draw, x, y, z, ry = 0, frame = '#1a1614', lightOn = true) {
+    const tex = canvasTex(Math.round(w * 160), Math.round(h * 160), draw);
+    const g = new T.Group(); g.position.set(x, y, z); g.rotation.y = ry; scene.add(g);
+    box(w + .1, h + .1, .05, toon(frame), 0, 0, -.01, g, false);
+    mesh(new T.PlaneGeometry(w, h), basic('#ffffff', {map: tex}), 0, 0, .02, g, false);
+    if (lightOn) { box(Math.min(w * .5, 1.2), .05, .08, BRASS, 0, h / 2 + .16, .12, g, false); const wash = mesh(new T.PlaneGeometry(w * .9, .35), glow('#ffd9a0', {transparent: true, opacity: .18, depthWrite: false}), 0, h / 2 - .1, .03, g, false); wash.userData.ignorePick = true; }
+    g.traverse(o => { if (o.isMesh) o.userData.ignorePick = true; });
+    return g;
+  }
+  // 색면 회화: 같은 크기의 단색 패널을 나란히(색 자체가 주인공)
+  const colorField = (c, w, h) => { const cols = ['#e2572b', '#f2c230', '#2f6fb5', '#2d8a5a', '#1f1c1b', '#f1ece2', '#d9426b', '#7a4fa0']; const n = 4, m = 2;
+    for (let i = 0; i < n; i++) for (let j = 0; j < m; j++) { c.fillStyle = cols[(i + j * 3) % cols.length]; c.fillRect(i * w / n + 3, j * h / m + 3, w / n - 6, h / m - 6); } };
+  // 종이 오리기: 흰 바탕에 코발트·코랄 해초/별 모양이 떠다닌다
+  const cutOut = (c, w, h) => { c.fillStyle = '#f4efe4'; c.fillRect(0, 0, w, h);
+    const blob = (cx, cy, s, col, k) => { c.fillStyle = col; c.beginPath(); for (let i = 0; i <= 28; i++) { const a = i / 28 * Math.PI * 2, r = s * (1 + .35 * Math.sin(a * k) + .12 * Math.cos(a * 3)); i ? c.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r * 1.3) : c.moveTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r * 1.3); } c.fill(); };
+    blob(w * .2, h * .5, h * .2, '#2a4fa8', 5); blob(w * .5, h * .38, h * .16, '#e06a4f', 7); blob(w * .78, h * .58, h * .22, '#2a4fa8', 6); blob(w * .44, h * .78, h * .09, '#f2b630', 4);
+    c.fillStyle = '#1f1c1b'; for (let i = 0; i < 7; i++) c.fillRect(w * (.62 + i * .035), h * .12, w * .012, h * .18); };
+  // 기하 포스터: 반원·원 격자(검정 + 원색 점 하나)
+  const geoPoster = kind => (c, w, h) => { c.fillStyle = '#f4f1ea'; c.fillRect(0, 0, w, h); c.fillStyle = '#1b1918';
+    const n = 4, s = w * .78 / n, ox = w * .11, oy = h * .1;
+    for (let i = 0; i < n; i++) for (let j = 0; j < 5; j++) { const x = ox + i * s + s / 2, y = oy + j * s + s / 2; c.beginPath();
+      if (kind === 0) c.arc(x, y, s * .45, ((i + j) % 4) * Math.PI / 2, ((i + j) % 4) * Math.PI / 2 + Math.PI);
+      else if (kind === 1) c.arc(x, y, s * (.2 + ((i * 3 + j) % 3) * .1), 0, 7);
+      else { c.arc(x, y, s * .42, 0, 7); }
+      if (kind === 2 && i === 2 && j === 3) c.fillStyle = '#d6402b'; else if (kind === 2 && i === 1 && j === 1) c.fillStyle = '#2f5fb0'; else c.fillStyle = '#1b1918';
+      c.fill(); }
+    c.fillStyle = '#1b1918'; c.font = `${Math.round(h * .045)}px sans-serif`; c.textAlign = 'center'; c.fillText(['ARC  —  bam village', 'POINT  —  bam village', 'CIRCLE  —  bam village'][kind], w / 2, h * .93); };
+  // 밤바다 파노라마: 어두운 푸른 화면 위 흰 형태 하나
+  const nightPano = (c, w, h) => { const gr = c.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#0b1020'); gr.addColorStop(.6, '#12305a'); gr.addColorStop(1, '#0a0e18'); c.fillStyle = gr; c.fillRect(0, 0, w, h);
+    c.fillStyle = '#e8eef6'; c.beginPath(); c.ellipse(w * .45, h * .55, w * .17, h * .13, -.05, 0, 7); c.fill(); c.beginPath(); c.ellipse(w * .62, h * .5, w * .07, h * .16, .2, 0, 7); c.fill();
+    c.fillStyle = '#3c7cc8'; for (let i = 0; i < 60; i++) c.fillRect(rnd() * w, h * .72 + rnd() * h * .2, 6 + rnd() * 20, 2); };
+  // 붉은 색면 + 검정 띠(세로 대작)
+  const redField = (c, w, h) => { c.fillStyle = '#c43d26'; c.fillRect(0, 0, w, h); c.fillStyle = '#7d1e14'; c.fillRect(0, h * .62, w, h * .38); c.fillStyle = '#1b1310'; c.fillRect(w * .12, h * .1, w * .76, h * .06); c.fillStyle = '#f0b24a'; c.beginPath(); c.arc(w * .7, h * .36, w * .12, 0, 7); c.fill(); };
+
+  // 뒷벽(2층 위쪽) 대작 두 점
+  canvasArt(3.2, 1.55, colorField, -4.3, 4.45, -7.42);
+  canvasArt(3.0, 1.55, cutOut, 4.4, 4.45, -7.42);
+  // 왼쪽 벽: 밤바다 파노라마 · 종이 오리기 · 기하 포스터 세 점
+  canvasArt(4.2, 1.15, nightPano, -9.12, 2.55, 3.0, Math.PI / 2);
+  canvasArt(1.5, 2.0, redField, -9.12, 2.3, -.9, Math.PI / 2);
+  [0, 1, 2].forEach(k => canvasArt(.9, 1.25, geoPoster(k), -9.12, 2.2, 6.75 + k * 1.15, Math.PI / 2, '#111'));
+  // 오른쪽: 이젤 위 캔버스 + 좌대 조각
+  function easel(x, z, ry, draw) {
+    const g = new T.Group(); g.position.set(x, 0, z); g.rotation.y = ry; scene.add(g);
+    for (const sx of [-.32, .32]) rod([sx, 0, .15], [sx * .3, 2.0, 0], .022, M.walnut, g); rod([0, 0, -.35], [0, 1.9, 0], .02, M.walnut, g);
+    box(.9, .04, .08, M.walnut, 0, .86, .06, g);
+    const a = canvasArt(1.0, 1.25, draw, 0, 1.52, .1, 0, '#efe8dc', false); g.add(a); a.position.set(0, 1.52, .1); a.rotation.set(-.08, 0, 0);
+    g.traverse(o => { if (o.isMesh) o.userData.ignorePick = true; });
+  }
+  easel(7.7, -1.1, -Math.PI / 2 + .35, cutOut);
+  function plinth(x, z, kind) {
+    outline(box(.5, .9, .5, toon('#f1ece2'), x, .45, z), .25, .012);
+    if (kind === 0) { // 쌓인 돌 조각
+      for (const [y, r, c] of [[1.0, .17, '#2a2522'], [1.27, .13, '#b8a48d'], [1.48, .1, '#1f1c1b']]) { const s = sphere(r, toon(c), x, y, z); s.scale.y = .62; outline(s, r, .01); }
+    } else { // 브라스 링 조각
+      const r = mesh(new T.TorusGeometry(.26, .045, 12, 40), BRASS, x, 1.2, z); r.rotation.y = .6; outline(r, .3, .01);
+      sphere(.08, toon('#d6402b'), x + .05, .98, z);
+    }
+  }
+  plinth(7.75, 5.0, 0); plinth(-7.75, -0.0 + 8.6, 1);
+  // 모빌(라운지 위에 매달린 색 원반): 카메라를 가리면 흐려진다
+  function mobile(x, z, y = 3.6) {
+    const mats = ['#1b1918', '#d6402b', '#2f5fb0', '#f2b630', '#1b1918'].map(c => toon(c, {transparent: true}));
+    const wireM = toon('#1b1918', {transparent: true});
+    const g = new T.Group(); g.position.set(x, y, z); scene.add(g);
+    rod([0, 0, 0], [0, 3.0, 0], .006, wireM, g);
+    const arms = [[-.9, .6, -.2], [.7, .3, .25], [-.3, -.1, .55], [1.2, -.3, -.1], [-1.3, -.2, .2]];
+    arms.forEach(([dx, dy, dz], i) => { rod([0, 0, 0], [dx, dy, dz], .006, wireM, g); const d = mesh(new T.CylinderGeometry(.16 - i * .015, .16 - i * .015, .015, 24), mats[i], dx, dy - .02, dz, g, false); d.rotation.x = Math.PI / 2; d.rotation.y = i; });
+    g.traverse(o => { if (o.isMesh) o.userData.ignorePick = true; });
+    lampShades.push({x, z, mats: [...mats, wireM], opacity: 1, r: 1.6});
+    return g;
+  }
+  const mobiles = [mobile(5.0, 3.1), mobile(-5.0, 3.1)];
+  mobiles[1].rotation.y = 1.4;
+
+  // ── 식물: 큰 나무 화분 · 야자 ─────────────────────────
+  function bigTree(x, z, s = 1) {
+    outline(cyl(.32 * s, .26 * s, .62 * s, toon('#1c1816'), x, .31 * s, z), .32 * s, .012);
+    rod([x, .5 * s, z], [x + .08 * s, 2.3 * s, z], .045 * s, M.branch);
+    for (let i = 0; i < 4; i++) rod([x + .04 * s, (1.2 + i * .3) * s, z], [x + (rnd() - .5) * .9 * s, (1.7 + i * .3) * s, z + (rnd() - .5) * .7 * s], .02 * s, M.branch);
+    for (let i = 0; i < 16; i++) { const l = sphere(.3 * s, toon(i % 3 ? '#5f7350' : '#6f8460'), x + (rnd() - .5) * 1.1 * s, (1.7 + rnd() * .9) * s, z + (rnd() - .5) * .9 * s); l.scale.set(1, .72, 1); }
+    const up = mesh(geo('uplight', () => new T.CircleGeometry(.5, 24)), glow('#ffcf8a', {transparent: true, opacity: .25, depthWrite: false}), x, .02, z, scene, false); up.rotation.x = -Math.PI / 2; up.userData.ignorePick = true;
+  }
+  function palm(x, z, s = 1) {
+    outline(cyl(.26 * s, .22 * s, .5 * s, toon('#e9e1d2'), x, .25 * s, z), .26 * s, .012);
+    for (let i = 0; i < 9; i++) { const a = i / 9 * Math.PI * 2, tip = [x + Math.cos(a) * .85 * s, (1.1 + rnd() * .5) * s, z + Math.sin(a) * .85 * s];
+      rod([x, .45 * s, z], [x + Math.cos(a) * .3 * s, (1.4 + rnd() * .4) * s, z + Math.sin(a) * .3 * s], .012 * s, toon('#4f6a3a'));
+      const leaf = sphere(.3 * s, toon('#3f6b3a'), tip[0], tip[1], tip[2]); leaf.scale.set(1.4, .12, .4); leaf.rotation.y = -a; leaf.rotation.z = .4; }
+  }
+  bigTree(-7.75, 1.0); bigTree(7.75, 1.0); bigTree(-7.75, 5.0, .8); palm(7.6, -4.6); palm(-6.9, -5.6, .85);
+
+  // ── 조명: 왼쪽 벽 세로 스틱 조명 · 더블 콘 플로어 램프 · 샹들리에 ──
+  for (const z of [-.6 + 1.6, 5.2, 9.2]) { const s = box(.05, 1.0, .05, glow('#ffe2b0'), -9.1, 2.0, z, scene, false); s.userData.ignorePick = true; cyl(.06, .06, .03, BRASS, -9.12, 2.0, z, scene, false).rotation.z = Math.PI / 2; }
+  function coneLamp(x, z) {
+    cyl(.16, .2, .03, IRON, x, .015, z); rod([x, 0, z], [x, 1.55, z], .014, IRON);
+    for (const y of [1.15, 1.6]) { const a = cone(.32, .16, glow('#ffe7c2'), x, y, z, scene, 24); const b = cone(.32, .16, glow('#ffd9a6'), x, y - .16, z, scene, 24); b.rotation.x = Math.PI; a.userData.ignorePick = b.userData.ignorePick = true; }
+    const l = new T.PointLight('#ffcf8f', 6, 5.5, 1.6); l.position.set(x, 1.3, z); scene.add(l);
+  }
+  coneLamp(-2.6, 4.9); coneLamp(2.6, 4.9);
+  // 샹들리에: 세 겹 브라스 링에 유리 구슬 조명(가운데 통로 위). 카메라를 가리면 흐려진다.
+  {
+    const cx = 0, cz = 3.4, cy = 5.0;
+    const brassT = new T.MeshToonMaterial({color: '#d6a856', gradientMap: grad, transparent: true});
+    const globeT = new T.MeshBasicMaterial({color: '#fff1d6', toneMapped: false, transparent: true});
+    const g = new T.Group(); g.position.set(cx, cy, cz); scene.add(g);
+    mesh(new T.CylinderGeometry(.012, .012, WALL_H - cy, 6), brassT, 0, (WALL_H - cy) / 2, 0, g, false);
+    [[.55, .55, 8], [1.0, .2, 12], [1.45, -.15, 16]].forEach(([r, y, n]) => {
+      const ring = mesh(new T.TorusGeometry(r, .022, 8, 48), brassT, 0, y, 0, g, false); ring.rotation.x = Math.PI / 2;
+      for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2; mesh(new T.CylinderGeometry(.006, .006, .22, 4), brassT, Math.cos(a) * r, y - .11, Math.sin(a) * r, g, false); mesh(geo('glb', () => new T.SphereGeometry(.07, 14, 10)), globeT, Math.cos(a) * r, y - .26, Math.sin(a) * r, g, false); }
+      for (let i = 0; i < 4; i++) { const a = i / 4 * Math.PI * 2 + .4; mesh(new T.CylinderGeometry(.006, .006, Math.hypot(r, .9), 4), brassT, Math.cos(a) * r / 2, y + .45, Math.sin(a) * r / 2, g, false).rotation.set(Math.sin(a) * .9, 0, -Math.cos(a) * .9); }
+    });
+    mesh(geo('glbBig', () => new T.SphereGeometry(.16, 18, 12)), globeT, 0, -.45, 0, g, false);
+    g.traverse(o => { if (o.isMesh) { o.userData.ignorePick = true; o.castShadow = false; } });
+    lampShades.push({x: cx, z: cz, mats: [brassT, globeT], opacity: 1, r: 1.9});
+    const l = new T.PointLight('#ffd9a0', 10, 9, 1.4); l.position.set(cx, cy - .6, cz); scene.add(l);
+  }
+
   for (const t of TABLES) {
-    if (t.type === 'round') roundTable(t);
+    if (t.type === 'booth6') booth6Table(t);
+    else if (t.type === 'lounge') loungeTable(t);
+    else if (t.type === 'round') roundTable(t);
     else if (t.type === 'booth') boothTable(t);
     else if (t.type === 'long') longTable(t);
     else if (t.type === 'sofa') sofaLounge(t);
@@ -474,7 +682,7 @@ export function createWorld() {
       c.strokeStyle = '#2e1f17'; c.lineWidth = 6; c.stroke();
       c.fillStyle = '#2e1f17'; c.font = `74px ${font}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(t.number), 64, 70);
     }); drawables.push(fTex);
-    const fy = ly + (t.type === 'ring' ? 1.42 : t.type === 'sofa' ? .8 : t.type === 'long' ? 1.08 : t.type === 'booth' ? 1.0 : t.type === 'after' ? .9 : t.type === 'bar' ? 1.36 : 1.12);
+    const fy = ly + (t.type === 'ring' ? 1.42 : t.type === 'sofa' ? .8 : t.type === 'long' ? 1.08 : t.type === 'booth' ? 1.0 : t.type === 'after' ? .9 : t.type === 'bar' ? 1.36 : t.type === 'booth6' ? 1.05 : t.type === 'lounge' ? .72 : 1.12);
     const fx = t.type === 'ring' ? t.x - .95 : t.x - .3, fz = t.type === 'ring' ? t.z + .85 : t.z + .25;
     rod([fx, fy - .3, fz], [fx, fy - .1, fz], .01, M.black);
     const flag = mesh(new T.CircleGeometry(.12, 24), basic('#ffffff', {map: fTex, side: T.DoubleSide}), fx, fy, fz, scene, false);
@@ -594,7 +802,7 @@ export function createWorld() {
   }
 
   // ── 조명: 낮은 전체광 + 따뜻한 빛 웅덩이 ─────────────
-  scene.add(new T.HemisphereLight('#fff0dc', '#5a4636', 1.3));
+  scene.add(new T.HemisphereLight('#ffe6c8', '#4a382c', 1.18));
   const sun = new T.DirectionalLight('#ffe4c2', 1.05);
   sun.position.set(5, 13, 8); sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024);
   Object.assign(sun.shadow.camera, {left: -13, right: 13, top: 14, bottom: -14, near: .5, far: 45});

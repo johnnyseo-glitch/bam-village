@@ -29,8 +29,9 @@ function roundSeats(cx, cz) {
 }
 // 링 바: 앞쪽 240°에 의자 6개, 뒤쪽은 호스트가 드나드는 통로로 비운다.
 // 가운데 돌기둥(병 선반) 앞에 호스트가 선다. 뒤쪽 통로로 드나든다.
-export const RING = {x: 0, z: -3.6, outer: 1.45, inner: .85, stool: 1.95, gap: Math.PI / 3, column: .3,
-  host: {x: .42, z: -3.05}, hostPath: [{x: .62, z: -3.75}, {x: .32, z: -4.45}, {x: 0, z: -6.1}]};
+// v2.0: 공간 한가운데 웅장한 원형 바. JAY가 가운데서 모든 걸 관장한다.
+export const RING = {x: 0, z: -2.0, outer: 1.6, inner: .95, stool: 2.12, gap: Math.PI / 3, column: .34,
+  host: {x: .45, z: -1.42}, hostPath: [{x: .65, z: -2.15}, {x: .35, z: -2.95}, {x: 0, z: -6.1}]};
 function ringSeats() {
   return [-2.1, -1.26, -.42, .42, 1.26, 2.1].map(d => {
     const a = Math.PI / 2 + d, x = RING.x + Math.cos(a) * RING.stool, z = RING.z + Math.sin(a) * RING.stool;
@@ -75,53 +76,44 @@ function sofaSeats() {
 
 // demoResponse: 체험에서 이 테이블이 참여 요청에 어떻게 반응하는지 고정한 시나리오(정책 아님).
 // memberSeats: 예시 주민이 앉은 좌석 번호. 나머지 좌석이 빈자리이고, freeOrder 순서로 내가 앉는다.
+// v2.0 배치: 가운데 원형 바(6) · 안쪽 좌우 부스(6+6) · 가운데 좌우 리빙룸 라운지(6+6) · 입구 좌우 바 테이블(6+6) = 1층 42석
+export const BOOTHS = [{x: -5.0, z: -3.55}, {x: 5.0, z: -3.55}];
+export const LOUNGES = [{x: -5.0, z: 2.9, side: -1}, {x: 5.0, z: 2.9, side: 1}];
+function booth6Seats(cx, cz) {
+  return [-160, -132, -104, -76, -48, -20].map(d => {
+    const a = d * Math.PI / 180, x = cx + Math.cos(a) * 1.18, z = cz + Math.sin(a) * 1.18;
+    return {x, z, heading: face(x, z, cx, cz), y: SEAT_HEIGHT.booth, kind: 'booth'};
+  });
+}
+// 리빙룸: 뒤쪽 3인 소파 + 앞쪽 라운지 체어 2 + 바깥쪽 체어 1, 가운데 커피 테이블
+function lounge6Seats(cx, cz, side) {
+  const s = [-.72, 0, .72].map(dx => ({x: cx + dx, z: cz - 1.08, heading: 0, y: SEAT_HEIGHT.sofa, kind: 'sofa'}));
+  for (const [x, z] of [[cx - 1.05, cz + 1.1], [cx + 1.05, cz + 1.1], [cx + side * 1.62, cz + .05]]) s.push({x, z, heading: face(x, z, cx, cz), y: SEAT_HEIGHT.lounge, kind: 'leather'});
+  return s;
+}
+const emptyTable = {memberSeats: [], colors: [], members: [], species: [], furs: [], demoResponse: 'accept', opener: '', open: true};
 export const TABLES = [
-  {id: 'table5', number: 1, type: 'ring', title: '오늘의 한잔 토크', tag: '바텐더 JAY 진행 · 6인 링 바', x: RING.x, z: RING.z,
-    approach: {x: -1.05, z: -1.05}, seats: ringSeats(), memberSeats: [0, 1, 4, 5], freeOrder: [2, 3],
-    colors: ['#d38b5d', '#8fb7c9', '#c9a46a', '#a7b98a'], members: ['MOMO', 'TAE', 'HANA', 'RAY'],
-    species: ['hamster', 'dog', 'rabbit', 'bear'], furs: ['#f6d2a2', '#2f2b30', '#fbf3ea', '#e1b98c'], demoResponse: 'accept',
-    opener: 'JAY: 오늘 기분을 술 한 잔으로 표현하면, 뭐예요?'},
-  {id: 'table1', number: 2, type: 'round', title: '안정 vs 도전', tag: '가벼운 딥토크 · 원형 4인', x: -5.6, z: -4.2,
-    approach: {x: -5.6, z: -2.35}, seats: roundSeats(-5.6, -4.2), memberSeats: [0, 1, 2], freeOrder: [3], rug: '#cfc6b8',
-    colors: ['#98bd7a', '#ca858d', '#9da6d4'], members: ['MOON', 'MIMI', 'JUNE'],
-    species: ['cat', 'rabbit', 'hamster'], furs: ['#f2b675', '#fbf3ea', '#f3c48e'], demoResponse: 'accept',
-    opener: '최근에 “그냥 한번 해볼까?” 싶었던 일, 하나 있어요?'},
-  {id: 'table4', number: 3, type: 'booth', title: '오늘의 플레이리스트', tag: '음악 · 벨벳 부스 4인', x: 5.6, z: -4.4,
-    approach: {x: 5.6, z: -2.2}, seats: boothSeats(5.6, -4.4), memberSeats: [0, 1, 2, 3], freeOrder: [], rug: '#cfc6b8',
-    colors: ['#d18c6a', '#9daccc', '#bfb67b', '#78ab86'], members: ['LILY', 'BO', 'WOO', 'LEO'],
-    species: ['rabbit', 'bear', 'hamster', 'cat'], furs: ['#f6dfe2', '#d9a46e', '#fbe9d0', '#8a8290'], demoResponse: 'accept',
-    opener: '지금 이어폰에 들어 있는 노래, 첫 소절만 흥얼거려 볼래요?'},
-  {id: 'table3', number: 4, type: 'long', title: '퇴사 그 다음', tag: '일 · 새로운 시작 · 긴 테이블 6인', x: -3.6, z: 1.6,
-    approach: {x: -3.6, z: 3.05}, seats: longSeats(-3.6, 1.6), memberSeats: [0, 1, 2], freeOrder: [4, 3, 5],
-    colors: ['#b18fc4', '#c9ab64', '#8baaa9'], members: ['SOL', 'ROO', 'KIM'],
-    species: ['panda', 'dog', 'cat'], furs: ['#fbfbf6', '#c08a5c', '#b9b3ae'], demoResponse: 'decline',
-    opener: '일 말고, 요즘 시간 가는 줄 모르고 하는 게 뭐예요?'},
-  {id: 'table2', number: 5, type: 'sofa', title: '최근 본 영화', tag: '영화 · 소파 거실존', x: SOFA.coffee.x, z: SOFA.coffee.z,
-    approach: {x: 3.0, z: 1.85}, seats: sofaSeats(), memberSeats: [0, 3], freeOrder: [1, 2, 4],
-    colors: ['#dbb174', '#86b5af'], members: ['SORA', 'DAN'],
-    species: ['dog', 'bear'], furs: ['#e8bd85', '#a8744e'], demoResponse: 'accept',
-    opener: '올해 본 영화 중에 남한테 추천하기 살짝 부끄러운 최애가 있다면?'},
-  // 빈 테이블: 먼저 앉는 사람이 방장이 되어 판(주제)을 연다.
-  {id: 'table6', number: 6, type: 'round', open: true, title: '빈 테이블', tag: '먼저 앉으면 방장 · 원형 4인', x: -3.7, z: 4.75,
-    approach: {x: -1.8, z: 4.6}, seats: roundSeats(-3.7, 4.75), memberSeats: [], freeOrder: [0, 3, 1, 2], rug: '#cfc6b8',
-    colors: [], members: [], species: [], furs: [], demoResponse: 'accept', opener: ''},
-  // 앞쪽 마주 보는 바 테이블 두 개(6인)
-  {id: 'bar1', number: 7, type: 'bar', title: '빈 바 테이블', tag: '마주 보는 바 테이블 · 6인', x: -4.6, z: 7.3,
-    approach: {x: -2.35, z: 7.3}, seats: barSeats(-4.6, 7.3), memberSeats: [], freeOrder: [0, 3, 1, 4, 2, 5],
-    colors: [], members: [], species: [], furs: [], demoResponse: 'accept', opener: ''},
-  {id: 'bar2', number: 8, type: 'bar', title: '빈 바 테이블', tag: '마주 보는 바 테이블 · 6인', x: 4.6, z: 7.3,
-    approach: {x: 2.35, z: 7.3}, seats: barSeats(4.6, 7.3), memberSeats: [], freeOrder: [0, 3, 1, 4, 2, 5],
-    colors: [], members: [], species: [], furs: [], demoResponse: 'accept', opener: ''},
+  {id: 'table5', number: 1, type: 'ring', title: 'JAY의 바 · 자유석', tag: '방장 없이 누구나 바로 · 6인 원형 바', x: RING.x, z: RING.z,
+    approach: {x: -1.25, z: RING.z + 2.8}, seats: ringSeats(), memberSeats: [], freeOrder: [2, 3, 1, 4, 0, 5],
+    colors: [], members: [], species: [], furs: [], demoResponse: 'accept', opener: 'JAY: 오늘 기분을 술 한 잔으로 표현하면, 뭐예요?'},
+  ...BOOTHS.map((b, i) => ({id: i ? 'boothR' : 'boothL', number: 2 + i, type: 'booth6', title: '빈 부스', tag: '벨벳 부스 · 6인', x: b.x, z: b.z,
+    approach: {x: b.x + (i ? -2.05 : 2.05), z: b.z + 1.35}, seats: booth6Seats(b.x, b.z), freeOrder: [2, 3, 1, 4, 0, 5], rug: '#cfc6b8', ...emptyTable})),
+  ...LOUNGES.map((l, i) => ({id: i ? 'loungeR' : 'loungeL', number: 4 + i, type: 'lounge', side: l.side, title: '빈 라운지', tag: '리빙룸 소파 · 6인', x: l.x, z: l.z,
+    approach: {x: l.x - l.side * 2.2, z: l.z + .2}, seats: lounge6Seats(l.x, l.z, l.side), freeOrder: [1, 0, 2, 3, 4, 5], ...emptyTable})),
+  {id: 'bar1', number: 6, type: 'bar', title: '빈 바 테이블', tag: '마주 보는 바 테이블 · 6인', x: -4.6, z: 7.3,
+    approach: {x: -2.35, z: 7.3}, seats: barSeats(-4.6, 7.3), freeOrder: [0, 3, 1, 4, 2, 5], ...emptyTable},
+  {id: 'bar2', number: 7, type: 'bar', title: '빈 바 테이블', tag: '마주 보는 바 테이블 · 6인', x: 4.6, z: 7.3,
+    approach: {x: 2.35, z: 7.3}, seats: barSeats(4.6, 7.3), freeOrder: [0, 3, 1, 4, 2, 5], ...emptyTable},
   // 2층 AFTER DRINK 존(2인)
-  {id: 'after1', number: 9, type: 'after', level: 2, title: '2차 대화', tag: 'AFTER DRINK · 2인', x: -4.0, z: -6.75,
+  {id: 'after1', number: 8, type: 'after', level: 2, title: '2차 대화', tag: 'AFTER DRINK · 2인', x: -4.0, z: -6.75,
     approach: {x: -4.0, z: -5.55}, seats: afterSeats(-4.0, -6.75), memberSeats: [0, 1], freeOrder: [],
     colors: ['#a7b98a', '#d38b5d'], members: ['IAN', 'SEO'], species: ['dog', 'cat'], furs: ['#d9a066', '#f6d2a2'], demoResponse: 'accept',
     opener: '아까 테이블에서 못 다 한 얘기, 이어서 해요.'},
-  {id: 'after2', number: 10, type: 'after', level: 2, title: '2차 대화', tag: 'AFTER DRINK · 2인', x: .8, z: -6.75,
+  {id: 'after2', number: 9, type: 'after', level: 2, title: '2차 대화', tag: 'AFTER DRINK · 2인', x: .8, z: -6.75,
     approach: {x: .8, z: -5.55}, seats: afterSeats(.8, -6.75), memberSeats: [0, 1], freeOrder: [],
     colors: ['#9daccc', '#ca858d'], members: ['HARU', 'ELLA'], species: ['bear', 'rabbit'], furs: ['#c08a5c', '#fbf3ea'], demoResponse: 'accept',
     opener: '오늘 제일 웃겼던 순간 하나만.'},
-  {id: 'after3', number: 11, type: 'after', level: 2, open: true, title: '빈 2인석', tag: '먼저 앉으면 방장 · AFTER 2인', x: 5.2, z: -6.75,
+  {id: 'after3', number: 10, type: 'after', level: 2, open: true, title: '빈 2인석', tag: '먼저 앉으면 방장 · AFTER 2인', x: 5.2, z: -6.75,
     approach: {x: 5.2, z: -5.55}, seats: afterSeats(5.2, -6.75), memberSeats: [], freeOrder: [0, 1],
     colors: [], members: [], species: [], furs: [], demoResponse: 'accept', opener: ''}
 ];
@@ -136,22 +128,21 @@ export const OPEN_TOPICS = [
 ];
 
 // 이동 장애물(내비게이션). 원: [x, z, r] · 사각형: {minX, maxX, minZ, maxZ}
-// v1.9: 실제 가구 크기에 맞게 줄였다(보이지 않는 벽 없애기). 의자·스툴까지만 막는다.
+// v2.0: 실제 가구 크기에 맞춘 이동 장애물
 export const OBSTACLES = {
   circles: [
-    [RING.x, RING.z, 2.2],                  // 링 바 + 스툴
-    [-5.6, -4.2, 1.38],                     // 원형 테이블 T2 + 의자
-    [5.6, -4.4, 1.62], [7.3, -5.3, .35],    // 부스 + 옆 화분
-    [-7.9, -6.4, .45], [7.9, -6.4, .45],    // 뒤쪽 모서리 화분
-    [-3.7, 4.75, 1.38],                     // 원형 테이블 T6 + 의자
-    [SOFA.coffee.x, SOFA.coffee.z, .58],    // 커피 테이블
-    [SOFA.coffee.x - 1.25, 1.15, .4], [SOFA.coffee.x - 1.25, 2.55, .4], // 라운지 체어
-    [SOFA.coffee.x + .55, SOFA.coffee.z - .7, .38], // 사이드 테이블
-    [-8.0, 10.4, .4], [8.0, 10.4, .4]       // 앞쪽 모서리 화분
+    [RING.x, RING.z, 2.38],                                          // 원형 바 + 스툴
+    ...BOOTHS.map(b => [b.x, b.z - .15, 1.7]),                       // 부스(뒤쪽 반원 + 테이블)
+    ...LOUNGES.map(l => [l.x, l.z + .35, .62]),                      // 커피 테이블
+    ...LOUNGES.flatMap(l => [[l.x - 1.05, l.z + 1.1, .42], [l.x + 1.05, l.z + 1.1, .42], [l.x + l.side * 1.62, l.z + .05, .42]]), // 라운지 체어
+    [-7.9, -6.4, .45], [7.9, -6.4, .45], [-8.0, 10.4, .4], [8.0, 10.4, .4], // 모서리 화분
+    [-7.75, 1.0, .45], [7.75, 1.0, .45], [-7.75, 5.0, .4], [7.75, 5.0, .4], // 벽 쪽 나무
+    [-2.6, 4.9, .3], [2.6, 4.9, .3],                                 // 플로어 램프
+    ...LOUNGES.map(l => [l.x - l.side * 1.62, l.z - 1.17, .32]),     // 노란 사이드 테이블
+    [7.6, -4.6, .5], [-6.9, -5.6, .45], [7.7, -1.1, .45], [-7.75, 8.6, .35] // 야자 · 이젤 · 좌대
   ],
   rects: [
-    {minX: -4.95, maxX: -2.25, minZ: .55, maxZ: 2.65},  // 긴 테이블 + 의자
-    {minX: 6.2, maxX: 7.35, minZ: .3, maxZ: 3.35},      // 소파(+ 플로어 램프)
+    ...LOUNGES.map(l => ({minX: l.x - 1.3, maxX: l.x + 1.3, minZ: l.z - 1.55, maxZ: l.z - .6})), // 소파
     {minX: -6.3, maxX: -2.9, minZ: 6.25, maxZ: 8.35},   // 바 테이블 1 + 스툴
     {minX: 2.9, maxX: 6.3, minZ: 6.25, maxZ: 8.35},     // 바 테이블 2 + 스툴
     {minX: -8.5, maxX: -7.25, minZ: -5.2, maxZ: -1.3}   // 계단
@@ -168,7 +159,7 @@ export const NO_NPC = true;
 if (NO_NPC) for (const t of TABLES) {
   t.members = []; t.memberSeats = []; t.colors = []; t.species = []; t.furs = [];
   t.freeOrder = t.seats.map((_, i) => i); t.open = true; t.demoResponse = 'accept';
-  t.title = t.type === 'after' ? '빈 2인석' : t.type === 'bar' ? '빈 바 테이블' : '빈 테이블'; t.opener = '';
+  t.title = t.type === 'after' ? '빈 2인석' : t.type === 'bar' ? '빈 바 테이블' : t.type === 'booth6' ? '빈 부스' : t.type === 'lounge' ? '빈 라운지' : '빈 테이블'; t.opener = '';
   // 가운데 링 바는 방장 없는 자유석: 누구나 바로 앉고, JAY가 첫 질문을 던진다
   if (t.type === 'ring') { t.free = true; t.open = false; t.title = 'JAY의 바 · 자유석'; t.tag = '방장 없이 누구나 바로 · 6인 링 바'; t.opener = 'JAY: 오늘 기분을 술 한 잔으로 표현하면, 뭐예요?'; }
 }
