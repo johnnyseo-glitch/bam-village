@@ -1,14 +1,14 @@
 // 밤마을 v0.7 — 카메라, 입력, 군중, 상호작용, 다이얼로그.
-import * as T from './vendor/three.min.mjs?v=1791438557';
-import {createBgm} from './bgm.mjs?v=1791438557';
-import {createWorld, HOST_STEP} from './world.mjs?v=1791438557';
-import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791438557';
+import * as T from './vendor/three.min.mjs?v=1791439028';
+import {createBgm} from './bgm.mjs?v=1791439028';
+import {createWorld, HOST_STEP} from './world.mjs?v=1791439028';
+import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791439028';
 import {TABLES, SPOTS, WANDERERS, LOUNGERS, DRINKS, ENTRY, ROOM, MOODS, JACKETS, ACCESSORIES, DRINK_MINUTES, PROFILE_TAGS, ROUND_MINUTES, NEXT_TOPICS, VILLAGES, RESIDENT_COUNT, RING, OBSTACLES,
-  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC, DOOR_Z} from './map-data.mjs?v=1791438557';
-import {createSession} from './session.mjs?v=1791438557';
-import {createOnline} from './online.mjs?v=1791438557';
-import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791438557';
-import {createGames} from './games.mjs?v=1791438557';
+  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC, DOOR_Z} from './map-data.mjs?v=1791439028';
+import {createSession} from './session.mjs?v=1791439028';
+import {createOnline} from './online.mjs?v=1791439028';
+import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791439028';
+import {createGames} from './games.mjs?v=1791439028';
 
 const $ = id => document.getElementById(id);
 const view = $('viewport'), dialog = $('villageDialog'), calm = $('calm');

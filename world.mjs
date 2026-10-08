@@ -1,8 +1,8 @@
 // 밤마을 v0.7 — 앰버 조명의 미드센추리 바 디오라마와 2등신 동물 주민.
 // 모든 그림은 코드와 캔버스로 직접 만든다(외부 이미지·모델 없음).
 // 무드: 월넛 루버 · 러스트 벨벳 커튼 · 웜다크 콘크리트 · 돌기둥 링 바 · 버섯 램프 · 캐러멜 가죽 · 앰버 빛 웅덩이.
-import * as T from './vendor/three.min.mjs?v=1791438557';
-import {TABLES, WANDERERS, LOUNGERS, LOUNGES, ENTRY, DOOR_Z, ROOM, RING, SOFA, MEZZ, MEZZ_Y, STAIRS, WELCOME_ZONE, PEOPLE} from './map-data.mjs?v=1791438557';
+import * as T from './vendor/three.min.mjs?v=1791439028';
+import {TABLES, WANDERERS, LOUNGERS, LOUNGES, ENTRY, DOOR_Z, ROOM, RING, SOFA, MEZZ, MEZZ_Y, STAIRS, WELCOME_ZONE, PEOPLE} from './map-data.mjs?v=1791439028';
 
 export const HOST_STEP = .32; // 링 바 안쪽 발판 높이: 호스트 얼굴이 카운터 위로 보이게
 const SKY = '#211b17'; // v1.8 젠 하이엔드: 바깥은 깊은 웜 차콜
@@ -409,7 +409,7 @@ export function createWorld() {
     for (const lx of [-1.52, 1.52]) outline(box(.1, 1.0, .8, toon('#211b18'), lx, .5, 0, g), .4, .012);
     box(2.9, .05, .12, toon('#211b18'), 0, .28, 0, g);
     rod([-1.45, .3, .34], [1.45, .3, .34], .018, M.brass, g); rod([-1.45, .3, -.34], [1.45, .3, -.34], .018, M.brass, g);
-    mushroomLamp(-.55, 1.085, 0, 1.0, g); bloomVase(.55, 1.085, 0, g, 1.1);
+    mushroomLamp(-.55, 1.085, 0, 1.0, g); bloomVase(.55, 1.085, 0, g, 1.5);
     tag(g, t.id);
     for (const s of t.seats) { // 러스트 벨벳 스툴 + 브라스 다리
       const sg = new T.Group(); scene.add(sg);
@@ -477,7 +477,7 @@ export function createWorld() {
     cyl(.79, .79, .02, BRASS, 0, .715, 0, g, false, 40);
     cyl(.24, .3, .7, IRON, 0, .36, 0, g);
     mushroomLamp(0, .765, -.32, 1.0, g);
-    bloomVase(.32, .765, -.12, g, 1.0, '#1f1c1b');
+    bloomVase(.32, .765, -.12, g, 1.4, '#1f1c1b');
     tag(g, t.id);
     const l = new T.PointLight('#ffb070', 6, 5, 1.6); l.position.set(t.x, 1.4, t.z + .1); scene.add(l);
   }
@@ -495,7 +495,7 @@ export function createWorld() {
     // 오벌 블랙 마블 커피 테이블 + 원통 다리
     const top = cyl(.62, .62, .05, MARBLE, 0, .4, .35, g, true, 40); top.scale.set(1.35, 1, .8); outline(top, .62, .02);
     for (const dx of [-.42, .42]) cyl(.15, .15, .36, IRON, dx, .19, .35, g);
-    bloomVase(-.05, .425, .32, g, 1.2, '#2f5fb0');
+    bloomVase(-.05, .425, .32, g, 1.6, '#2f5fb0');
     // 체어 3개(시트 위치에서 테이블을 본다)
     const [, , , c1, c2, c3] = t.seats;
     tag(tubChair(c1, GREEN_V, GREEN_D), t.id); tag(tubChair(c2, GREEN_V, GREEN_D), t.id); tag(boucleChair(c3), t.id);
@@ -526,19 +526,24 @@ export function createWorld() {
     for (const [dx, dz] of [[-.2, -.2], [.2, -.2], [-.2, .2], [.2, .2]]) rod([x + dx, 0, z + dz], [x + dx, .55, z + dz], .012, M.chrome);
     // 위 칸: 아트북 두 권 + 꽃이 꽂힌 도자기 화병, 아래 칸: 작은 브라스 오브제
     box(.3, .04, .22, toon('#f1ece2'), x - .02, .57, z + .03); box(.27, .035, .2, toon('#2f5fb0'), x - .01, .607, z + .02);
-    bloomVase(x + .02, .625, z - .02, scene, .8);
+    bloomVase(x + .02, .625, z - .02, scene, 1.1);
     const ob = mesh(new T.TorusKnotGeometry(.06, .02, 48, 8), M.brass, x, .2, z); ob.castShadow = false;
   }
   // 꽃이 소복한 화병(둥근 도자기 + 꽃송이 + 잎)
   const BLOOMS = ['#fbf6ee', '#f2a48a', '#f2c230', '#e86a55', '#fbf6ee'].map(c => toon(c));
   function bloomVase(x, y, z, parent = scene, s = 1, vaseColor = '#e9e1d2') {
+    // v2.3: 화병 위로 꽃다발이 풍성하게 보이도록 — 꽃잎 다섯 장짜리 꽃 7송이 + 잎
     const v = sphere(.075 * s, toon(vaseColor), x, y + .07 * s, z, parent); v.scale.set(1, 1.1, 1); outline(v, .075 * s, .01);
-    cyl(.03 * s, .04 * s, .05 * s, toon(vaseColor), x, y + .15 * s, z, parent, false);
-    for (let i = 0; i < 9; i++) {
-      const a = i * 2.4 + rnd(), r = (.04 + rnd() * .1) * s, tip = [x + Math.cos(a) * r, y + (.26 + rnd() * .14) * s, z + Math.sin(a) * r];
-      rod([x, y + .15 * s, z], tip, .005 * s, toon('#5f7350'), parent);
-      const f = sphere(.036 * s, BLOOMS[i % BLOOMS.length], tip[0], tip[1], tip[2], parent, false); f.scale.set(1, .75, 1);
-      if (i % 3 === 0) { const l = sphere(.03 * s, toon('#6f8460'), tip[0] + .03 * s, tip[1] - .08 * s, tip[2], parent, false); l.scale.set(1.5, .3, .7); l.rotation.z = .5; }
+    cyl(.032 * s, .042 * s, .06 * s, toon(vaseColor), x, y + .155 * s, z, parent, false);
+    const stemM = toon('#5f7350'), leafM = toon('#6f8460'), heart = toon('#f2c230');
+    for (let i = 0; i < 7; i++) {
+      const a = i * 2.39 + .3, r = (i ? .07 + (i % 3) * .035 : 0) * s, h = (.3 + (i % 2) * .08 + (i ? 0 : .07)) * s;
+      const tip = [x + Math.cos(a) * r, y + h, z + Math.sin(a) * r];
+      rod([x, y + .16 * s, z], tip, .006 * s, stemM, parent);
+      const pm = BLOOMS[i % BLOOMS.length], fs = (.026 + (i % 2) * .006) * s;
+      for (let k = 0; k < 5; k++) { const b = k / 5 * Math.PI * 2; const pt = sphere(fs, pm, tip[0] + Math.cos(b) * fs * 1.1, tip[1], tip[2] + Math.sin(b) * fs * 1.1, parent, false); pt.scale.set(1, .55, 1); }
+      sphere(fs * .7, heart, tip[0], tip[1] + fs * .3, tip[2], parent, false);
+      const lf = sphere(.05 * s, leafM, x + Math.cos(a) * r * .7, y + h * .62, z + Math.sin(a) * r * .7, parent, false); lf.scale.set(1.2, .25, .5); lf.rotation.y = -a; lf.rotation.z = .5;
     }
   }
   // 아이코닉 조명 ① 아크 플로어 램프: 대리석 받침에서 휘어진 스틸 아크가 테이블 위로
