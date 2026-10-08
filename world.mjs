@@ -1,8 +1,8 @@
 // 밤마을 v0.7 — 앰버 조명의 미드센추리 바 디오라마와 2등신 동물 주민.
 // 모든 그림은 코드와 캔버스로 직접 만든다(외부 이미지·모델 없음).
 // 무드: 월넛 루버 · 러스트 벨벳 커튼 · 웜다크 콘크리트 · 돌기둥 링 바 · 버섯 램프 · 캐러멜 가죽 · 앰버 빛 웅덩이.
-import * as T from './vendor/three.min.mjs?v=1791439581';
-import {TABLES, WANDERERS, LOUNGERS, LOUNGES, COUNTER, ENTRY, DOOR_Z, ROOM, RING, SOFA, MEZZ, MEZZ_Y, STAIRS, WELCOME_ZONE, PEOPLE} from './map-data.mjs?v=1791439581';
+import * as T from './vendor/three.min.mjs?v=1791440229';
+import {TABLES, WANDERERS, LOUNGERS, LOUNGES, COUNTER, ENTRY, DOOR_Z, ROOM, RING, SOFA, MEZZ, MEZZ_Y, STAIRS, WELCOME_ZONE, PEOPLE} from './map-data.mjs?v=1791440229';
 
 export const HOST_STEP = .32; // 링 바 안쪽 발판 높이: 호스트 얼굴이 카운터 위로 보이게
 const SKY = '#211b17'; // v1.8 젠 하이엔드: 바깥은 깊은 웜 차콜
@@ -66,7 +66,7 @@ export function createWorld() {
   function canvasTex(w, h, draw, repeat) {
     const c = document.createElement('canvas'); c.width = w; c.height = h;
     draw(c.getContext('2d'), w, h);
-    const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; t.anisotropy = 4;
+    const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; t.anisotropy = 8;
     if (repeat) { t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(...repeat); }
     t.userData.redraw = font => { const x = c.getContext('2d'); x.clearRect(0, 0, w, h); draw(x, w, h, font); t.needsUpdate = true; };
     return t;
@@ -169,8 +169,8 @@ export function createWorld() {
   const floor = mesh(new T.PlaneGeometry(18, DEPTH), toon('#ffffff', {map: rep(floorTex, 4.5, 4.75)}), 0, .001, CZ, scene, false);
   floor.rotation.x = -Math.PI / 2;
   const WALL_H = 6.6;
-  mesh(new T.PlaneGeometry(18.4, WALL_H), toon('#ffffff', {map: rep(slatTex, 14, 1.8)}), 0, WALL_H / 2, -7.5, scene, false);
-  const left = mesh(new T.PlaneGeometry(DEPTH, WALL_H), toon('#ffffff', {map: rep(slatTex, 14, 1.8)}), -9.2, WALL_H / 2, CZ, scene, false); left.rotation.y = Math.PI / 2;
+  mesh(new T.PlaneGeometry(18.4, WALL_H), toon('#ffffff', {map: rep(slatTex, 14, 1.8)}), 0, WALL_H / 2, -7.5, scene, false).receiveShadow = false; // 벽은 그림자 받지 않음(줄무늬 깨짐 방지)
+  const left = mesh(new T.PlaneGeometry(DEPTH, WALL_H), toon('#ffffff', {map: rep(slatTex, 14, 1.8)}), -9.2, WALL_H / 2, CZ, scene, false); left.rotation.y = Math.PI / 2; left.receiveShadow = false;
   box(18.4, .12, .12, M.walnutDark, 0, .06, -7.44); box(.12, .12, DEPTH, M.walnutDark, -9.14, .06, CZ);
   // 오른쪽 낮은 루버 칸막이
 
@@ -567,14 +567,16 @@ export function createWorld() {
   function counterTable(t) {
     const L = COUNTER.len, g = new T.Group(); g.position.set(t.x, 0, t.z); scene.add(g);
     outline(box(.6, 1.0, L, toon('#2a1f1a'), 0, .5, 0, g), .5, .012);
-    const front = mesh(new T.PlaneGeometry(L - .1, .8), glow('#ff8a3d', {transparent: true, opacity: .85}), -.305, .52, 0, g, false); front.rotation.y = -Math.PI / 2;
+    const front = mesh(new T.PlaneGeometry(L - .1, .8), glow('#ff8a3d', {transparent: true, opacity: .85}), -.33, .52, 0, g, false); front.rotation.y = -Math.PI / 2;
     for (let i = 1; i < 6; i++) box(.02, .82, .03, toon('#2a1f1a'), -.31, .52, -L / 2 + i * L / 6, g, false);
     outline(box(.8, .06, L + .1, toon('#1b1715'), -.08, 1.04, 0, g), .5, .012);
     box(.05, .03, L + .1, M.brass, -.48, 1.0, 0, g, false);
     rod([-.6, .3, -L / 2], [-.6, .3, L / 2], .018, M.brass, g);
     // 뒤쪽 선반 + 병 + 라이트박스
     for (const y of [1.45, 1.95]) { box(.3, .04, L, toon('#2a1f1a'), .78, y, 0, g, false); box(.02, .02, L, glow('#ffd19a'), .7, y - .03, 0, g, false); for (let i = 0; i < 14; i++) addBottle(t.x + .78, y + .02, t.z - L / 2 + .2 + i * (L - .4) / 13, .16 + rnd() * .12); }
-    const box1 = mesh(new T.PlaneGeometry(L, .7), glow('#ff9a4d'), .92, 2.75, 0, g, false); box1.rotation.y = -Math.PI / 2;
+    const box1 = mesh(new T.PlaneGeometry(L, .7), glow('#ff9a4d'), .86, 2.75, 0, g, false); box1.rotation.y = -Math.PI / 2;
+    // 카운터 뒤 어두운 스톤 벽(바깥 검은 허공이 보이지 않게)
+    box(.12, 3.4, L + .6, toon('#2e2622'), 1.18, 1.7, 0, g, false);
     box(.08, .8, L + .1, toon('#2a1f1a'), .96, 2.75, 0, g, false);
     mushroomLamp(-.1, 1.07, -1.2, .9, g); glassLamp(-.1, 1.07, 1.2, .9, g); bloomVase(-.1, 1.07, 0, g, 1.2, '#1f1c1b');
     tag(g, t.id);
@@ -864,7 +866,7 @@ export function createWorld() {
       for (let i = 0; i < 180; i++) { c.fillStyle = rnd() > .5 ? '#ffd98f88' : '#ffb06655'; c.fillRect(rnd() * w, h * .72 + rnd() * h * .28, 2 + rnd() * 26, 2); }
       c.fillStyle = '#0b0d14'; for (let i = 0; i < 4; i++) c.fillRect(i * w / 4, 0, 6, h);
     });
-    mesh(new T.PlaneGeometry(7.2, 3.0), glow('#ffffff', {map: nightTex}), -4.8, MEZZ_Y + 1.85, -7.43, scene, false);
+    mesh(new T.PlaneGeometry(7.2, 3.0), glow('#ffffff', {map: nightTex}), -4.8, MEZZ_Y + 1.78, -7.465, scene, false);
     for (const x of [-8.4, -6.0, -3.6, -1.2]) box(.08, 3.1, .08, M.black, x, MEZZ_Y + 1.85, -7.38, scene, false);
     box(7.3, .08, .08, M.black, -4.8, MEZZ_Y + .33, -7.38, scene, false); box(7.3, .08, .08, M.black, -4.8, MEZZ_Y + 3.38, -7.38, scene, false);
     const copperTex = canvasTex(256, 512, (c, w, h) => {
