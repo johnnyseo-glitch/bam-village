@@ -4,8 +4,8 @@
 //
 // 입장: 호스트 화면(QR + 1분마다 바뀌는 4자리 코드) → 손님이 코드 입력 → 호스트 화면이 확인하고
 // passes/<손님 id> 입장권을 쓴다. 입장권이 있는 사람만 마을에 들어오고, 서로의 화면에도 보인다.
-import * as T from './vendor/three.min.mjs?v=1791439028';
-import {EMOTES, TABLES, SPOTS, PRAISE_TAGS, DRINKS} from './map-data.mjs?v=1791439028';
+import * as T from './vendor/three.min.mjs?v=1791439165';
+import {EMOTES, TABLES, SPOTS, PRAISE_TAGS, DRINKS} from './map-data.mjs?v=1791439165';
 
 const PASS_MS = 6 * 3600 * 1000, CODE_MS = 60000, SEND_MS = 110;
 const NONCE_KEY = 'bam-net-nonce';

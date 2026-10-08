@@ -1,8 +1,8 @@
 // 밤마을 v0.7 — 앰버 조명의 미드센추리 바 디오라마와 2등신 동물 주민.
 // 모든 그림은 코드와 캔버스로 직접 만든다(외부 이미지·모델 없음).
 // 무드: 월넛 루버 · 러스트 벨벳 커튼 · 웜다크 콘크리트 · 돌기둥 링 바 · 버섯 램프 · 캐러멜 가죽 · 앰버 빛 웅덩이.
-import * as T from './vendor/three.min.mjs?v=1791439028';
-import {TABLES, WANDERERS, LOUNGERS, LOUNGES, ENTRY, DOOR_Z, ROOM, RING, SOFA, MEZZ, MEZZ_Y, STAIRS, WELCOME_ZONE, PEOPLE} from './map-data.mjs?v=1791439028';
+import * as T from './vendor/three.min.mjs?v=1791439165';
+import {TABLES, WANDERERS, LOUNGERS, LOUNGES, ENTRY, DOOR_Z, ROOM, RING, SOFA, MEZZ, MEZZ_Y, STAIRS, WELCOME_ZONE, PEOPLE} from './map-data.mjs?v=1791439165';
 
 export const HOST_STEP = .32; // 링 바 안쪽 발판 높이: 호스트 얼굴이 카운터 위로 보이게
 const SKY = '#211b17'; // v1.8 젠 하이엔드: 바깥은 깊은 웜 차콜
@@ -173,8 +173,6 @@ export function createWorld() {
   const left = mesh(new T.PlaneGeometry(DEPTH, WALL_H), toon('#ffffff', {map: rep(slatTex, 14, 1.8)}), -9.2, WALL_H / 2, CZ, scene, false); left.rotation.y = Math.PI / 2;
   box(18.4, .12, .12, M.walnutDark, 0, .06, -7.44); box(.12, .12, DEPTH, M.walnutDark, -9.14, .06, CZ);
   // 오른쪽 낮은 루버 칸막이
-  box(.26, 1.0, DEPTH, toon('#ffffff', {map: rep(slatTex, 14, .3)}), 9.12, .5, CZ);
-  box(.44, .07, DEPTH + .2, M.walnut, 9.12, 1.03, CZ);
 
   // 벽 위쪽 앰버 백라이트 띠 + 네온
   mesh(new T.PlaneGeometry(18.4, .5), glow('#ffffff', {map: bandTex}), 0, WALL_H - .3, -7.43, scene, false);
@@ -815,7 +813,6 @@ export function createWorld() {
     for (let i = 0; i < 9; i++) { const l = sphere(.22, M.olive, x + (rnd() - .5) * .6, 1.4 + rnd() * .5, z + (rnd() - .5) * .5); l.scale.set(1, .7, 1); }
   }
   olive(-8.0, 10.4); olive(8.0, 10.4);
-  for (const z of [-5, -1.5, 4.8, 8.6]) { const v = cyl(.1, .08, .26, M.ceramic, 9.12, 1.2, z); outline(v, .1, .01); }
 
   bodies.count = necks.count = bi;
   for (const im of [bodies, necks]) { im.castShadow = false; im.userData.ignorePick = true; scene.add(im); }
