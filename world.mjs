@@ -1,8 +1,8 @@
 // 밤마을 v0.7 — 앰버 조명의 미드센추리 바 디오라마와 2등신 동물 주민.
 // 모든 그림은 코드와 캔버스로 직접 만든다(외부 이미지·모델 없음).
 // 무드: 월넛 루버 · 러스트 벨벳 커튼 · 웜다크 콘크리트 · 돌기둥 링 바 · 버섯 램프 · 캐러멜 가죽 · 앰버 빛 웅덩이.
-import * as T from './vendor/three.min.mjs?v=1791425751';
-import {TABLES, WANDERERS, LOUNGERS, ENTRY, DOOR_Z, ROOM, RING, SOFA, MEZZ, MEZZ_Y, STAIRS, WELCOME_ZONE, PEOPLE} from './map-data.mjs?v=1791425751';
+import * as T from './vendor/three.min.mjs?v=1791426614';
+import {TABLES, WANDERERS, LOUNGERS, LOUNGES, ENTRY, DOOR_Z, ROOM, RING, SOFA, MEZZ, MEZZ_Y, STAIRS, WELCOME_ZONE, PEOPLE} from './map-data.mjs?v=1791426614';
 
 export const HOST_STEP = .32; // 링 바 안쪽 발판 높이: 호스트 얼굴이 카운터 위로 보이게
 const SKY = '#211b17'; // v1.8 젠 하이엔드: 바깥은 깊은 웜 차콜
@@ -297,7 +297,6 @@ export function createWorld() {
     const colGlow = arcWall(.56, .06, 0, Math.PI * 2, glow('#ffbe78'), 0, 1.15, 0, g);
     // 카운터 위 버섯 램프와 잔
     for (const d of [-1.65, -.55, .55, 1.65]) { const a = Math.PI / 2 + d, r = RING.inner + .32; mushroom(RING.x + Math.cos(a) * r, 1.07, RING.z + Math.sin(a) * r, 1, '#ef7a3c'); }
-    for (const d of [-2.1, -1.26, -.42, .42, 1.26, 2.1]) { const a = Math.PI / 2 + d, r = RING.outer - .12; cyl(.045, .038, .12, M.glass, Math.cos(a) * r, 1.13, Math.sin(a) * r, g, false); }
     for (const [i, c] of ['#c98a3e', '#8e3a34', '#4f6b4b'].entries()) {
       const a = -Math.PI / 2 + gapA / 2 + .3 + i * .2, r = RING.inner + .2;
       cyl(.03, .03, .28, M.brass, Math.cos(a) * r, 1.2, Math.sin(a) * r, g);
@@ -316,7 +315,7 @@ export function createWorld() {
     const rim2 = mesh(new T.TorusGeometry(DR + .55, .05, 8, 72), rimMat, RING.x, 5.05, RING.z, scene, false); rim2.rotation.x = Math.PI / 2; rim2.userData.ignorePick = true;
     for (let i = 0; i < 4; i++) { const b = box(DR * 2, .03, .06, rimMat, RING.x, 4.83, RING.z, scene, false); b.rotation.y = i * Math.PI / 4; }
     disk.userData.ignorePick = rim.userData.ignorePick = true;
-    lampShades.push({x: RING.x, z: RING.z, r: 3.6, mats: [diskMat, rimMat], opacity: 1, upperOnly: true});
+    lampShades.push({x: RING.x, z: RING.z, r: 3.6, mats: [diskMat, rimMat], opacity: 1}); // 뒤쪽(부스)에 가면 카메라를 가리지 않게 흐려진다
     // 돌기둥을 천장 디스크까지
     cyl(RING.column, RING.column, 1.1, toon('#ffffff', {map: roughStone}), RING.x, 4.4, RING.z, scene, true, 24);
     // 러스트 벨벳 바 스툴(외다리 + 발받침)
@@ -404,20 +403,20 @@ export function createWorld() {
   // ── 마주 보는 하이 바 테이블(6인): 긴 상판 양쪽 스툴 ──
   function barTable(t) {
     const g = new T.Group(); g.position.set(t.x, 0, t.z); scene.add(g);
-    const rug = mesh(new T.PlaneGeometry(3.9, 2.5), M.rug2, 0, .012, 0, g, false); rug.rotation.x = -Math.PI / 2;
-    outline(box(3.2, .08, .86, M.walnut, 0, 1.04, 0, g), .5, .015);
-    box(3.22, .03, .88, M.brass, 0, 1.0, 0, g, false);
-    for (const lx of [-1.15, 1.15]) { box(.14, 1.0, .5, M.walnutDark, lx, .5, 0, g); box(.5, .04, .6, M.black, lx, .02, 0, g); }
-    rod([-1.3, .32, .3], [1.3, .32, .3], .02, M.brass, g); rod([-1.3, .32, -.3], [1.3, .32, -.3], .02, M.brass, g);
-    for (const dx of [-.9, .2, 1.0]) cyl(.05, .04, .12, M.glass, dx, 1.14, (rnd() - .5) * .3, g, false);
-    mushroom(-.25, 1.08, 0, .9, '#f0a34a', g);
+    // 블랙 마블 상판 + 브라스 테두리, 양끝은 통판 다리(워터폴), 가운데 브라스 램프 하나
+    outline(box(3.2, .07, .84, toon('#2e2926'), 0, 1.05, 0, g), .5, .015);
+    box(3.23, .035, .87, M.brass, 0, 1.0, 0, g, false);
+    for (const lx of [-1.52, 1.52]) outline(box(.1, 1.0, .8, toon('#211b18'), lx, .5, 0, g), .4, .012);
+    box(2.9, .05, .12, toon('#211b18'), 0, .28, 0, g);
+    rod([-1.45, .3, .34], [1.45, .3, .34], .018, M.brass, g); rod([-1.45, .3, -.34], [1.45, .3, -.34], .018, M.brass, g);
+    mushroomLamp(-.55, 1.085, 0, 1.0, g); budVase(.55, 1.085, 0, g);
     tag(g, t.id);
-    for (const s of t.seats) {
+    for (const s of t.seats) { // 러스트 벨벳 스툴 + 브라스 다리
       const sg = new T.Group(); scene.add(sg);
-      const seat = cyl(.22, .2, .1, M.velvet, s.x, .8, s.z, sg); outline(seat, .22); seat.scale.y = 1.2;
-      cyl(.045, .05, .76, M.velvetDark, s.x, .4, s.z, sg);
-      const fr = mesh(geo('foot', () => new T.TorusGeometry(.15, .013, 6, 20)), M.velvetDark, s.x, .3, s.z, sg, false); fr.rotation.x = Math.PI / 2;
-      cyl(.18, .2, .03, M.velvetDark, s.x, .015, s.z, sg);
+      const seat = cyl(.21, .2, .11, toon('#a9502c'), s.x, .8, s.z, sg); outline(seat, .21); seat.scale.y = 1.15;
+      cyl(.035, .04, .76, M.brass, s.x, .4, s.z, sg);
+      const fr = mesh(geo('foot', () => new T.TorusGeometry(.15, .013, 6, 20)), M.brass, s.x, .3, s.z, sg, false); fr.rotation.x = Math.PI / 2;
+      cyl(.17, .19, .03, toon('#211b18'), s.x, .015, s.z, sg);
       tag(sg, t.id);
     }
     pendant(t.x - .8, t.z, 2.9, .9, true); pendant(t.x + .8, t.z, 2.9, .9, false);
@@ -478,7 +477,6 @@ export function createWorld() {
     cyl(.79, .79, .02, BRASS, 0, .715, 0, g, false, 40);
     cyl(.24, .3, .7, IRON, 0, .36, 0, g);
     mushroomLamp(0, .765, -.32, 1.0, g);
-    for (const [x, z] of [[-.3, .2], [.28, .25]]) { const c = cyl(.045, .04, .1, glow('#ffb36a', {transparent: true, opacity: .85}), x, .82, z, g, false); c.castShadow = false; }
     budVase(.32, .765, -.15, g);
     tag(g, t.id);
     const l = new T.PointLight('#ffb070', 6, 5, 1.6); l.position.set(t.x, 1.4, t.z + .1); scene.add(l);
@@ -497,7 +495,6 @@ export function createWorld() {
     // 오벌 블랙 마블 커피 테이블 + 원통 다리
     const top = cyl(.62, .62, .05, MARBLE, 0, .4, .35, g, true, 40); top.scale.set(1.35, 1, .8); outline(top, .62, .02);
     for (const dx of [-.42, .42]) cyl(.15, .15, .36, IRON, dx, .19, .35, g);
-    for (const [x, z] of [[-.35, .3], [.1, .48], [.4, .22]]) cyl(.04, .04, .07, glow('#ffb36a', {transparent: true, opacity: .9}), x, .46, z, g, false);
     budVase(-.05, .425, .25, g, 1.1);
     // 체어 3개(시트 위치에서 테이블을 본다)
     const [, , , c1, c2, c3] = t.seats;
@@ -598,7 +595,7 @@ export function createWorld() {
     const a = canvasArt(1.0, 1.25, draw, 0, 1.52, .1, 0, '#efe8dc', false); g.add(a); a.position.set(0, 1.52, .1); a.rotation.set(-.08, 0, 0);
     g.traverse(o => { if (o.isMesh) o.userData.ignorePick = true; });
   }
-  easel(7.7, -1.1, -Math.PI / 2 + .35, cutOut);
+  easel(7.7, -2.0, -Math.PI / 2 + .35, cutOut);
   function plinth(x, z, kind) {
     outline(box(.5, .9, .5, toon('#f1ece2'), x, .45, z), .25, .012);
     if (kind === 0) { // 쌓인 돌 조각
@@ -621,7 +618,7 @@ export function createWorld() {
     lampShades.push({x, z, mats: [...mats, wireM], opacity: 1, r: 1.6});
     return g;
   }
-  const mobiles = [mobile(5.0, 3.1), mobile(-5.0, 3.1)];
+  const mobiles = LOUNGES.map(l => mobile(l.x, l.z + .2));
   mobiles[1].rotation.y = 1.4;
 
   // ── 식물: 큰 나무 화분 · 야자 ─────────────────────────
@@ -638,7 +635,7 @@ export function createWorld() {
       rod([x, .45 * s, z], [x + Math.cos(a) * .3 * s, (1.4 + rnd() * .4) * s, z + Math.sin(a) * .3 * s], .012 * s, toon('#4f6a3a'));
       const leaf = sphere(.3 * s, toon('#3f6b3a'), tip[0], tip[1], tip[2]); leaf.scale.set(1.4, .12, .4); leaf.rotation.y = -a; leaf.rotation.z = .4; }
   }
-  bigTree(-7.75, 1.0); bigTree(7.75, 1.0); bigTree(-7.75, 5.0, .8); palm(7.6, -4.6); palm(-6.9, -5.6, .85);
+  bigTree(7.8, -.2); bigTree(-7.8, 5.6, .8); palm(7.6, -4.6); palm(-6.9, -5.6, .85);
 
   // ── 조명: 왼쪽 벽 세로 스틱 조명 · 더블 콘 플로어 램프 · 샹들리에 ──
   for (const z of [-.6 + 1.6, 5.2, 9.2]) { const s = box(.05, 1.0, .05, glow('#ffe2b0'), -9.1, 2.0, z, scene, false); s.userData.ignorePick = true; cyl(.06, .06, .03, BRASS, -9.12, 2.0, z, scene, false).rotation.z = Math.PI / 2; }
@@ -647,10 +644,10 @@ export function createWorld() {
     for (const y of [1.15, 1.6]) { const a = cone(.32, .16, glow('#ffe7c2'), x, y, z, scene, 24); const b = cone(.32, .16, glow('#ffd9a6'), x, y - .16, z, scene, 24); b.rotation.x = Math.PI; a.userData.ignorePick = b.userData.ignorePick = true; }
     const l = new T.PointLight('#ffcf8f', 6, 5.5, 1.6); l.position.set(x, 1.3, z); scene.add(l);
   }
-  coneLamp(-2.6, 4.9); coneLamp(2.6, 4.9);
+  coneLamp(-3.6, 5.0); coneLamp(3.6, 5.0);
   // 샹들리에: 세 겹 브라스 링에 유리 구슬 조명(가운데 통로 위). 카메라를 가리면 흐려진다.
   {
-    const cx = 0, cz = 3.4, cy = 5.0;
+    const cx = 0, cz = -3.1, cy = 5.0; // 원형 바 뒤, 두 부스 사이 위
     const brassT = new T.MeshToonMaterial({color: '#d6a856', gradientMap: grad, transparent: true});
     const globeT = new T.MeshBasicMaterial({color: '#fff1d6', toneMapped: false, transparent: true});
     const g = new T.Group(); g.position.set(cx, cy, cz); scene.add(g);

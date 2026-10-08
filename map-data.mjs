@@ -30,8 +30,9 @@ function roundSeats(cx, cz) {
 // 링 바: 앞쪽 240°에 의자 6개, 뒤쪽은 호스트가 드나드는 통로로 비운다.
 // 가운데 돌기둥(병 선반) 앞에 호스트가 선다. 뒤쪽 통로로 드나든다.
 // v2.0: 공간 한가운데 웅장한 원형 바. JAY가 가운데서 모든 걸 관장한다.
-export const RING = {x: 0, z: -2.0, outer: 1.6, inner: .95, stool: 2.12, gap: Math.PI / 3, column: .34,
-  host: {x: .45, z: -1.42}, hostPath: [{x: .65, z: -2.15}, {x: .35, z: -2.95}, {x: 0, z: -6.1}]};
+// v2.1: 바닥 정가운데(ROOM.cz)로. 뒤쪽 통로로 JAY가 드나든다.
+export const RING = {x: 0, z: 2.0, outer: 1.6, inner: .95, stool: 2.12, gap: Math.PI / 3, column: .34,
+  host: {x: .45, z: 2.58}, hostPath: [{x: .65, z: 1.85}, {x: .35, z: 1.05}, {x: 0, z: -.6}, {x: 0, z: -6.1}]};
 function ringSeats() {
   return [-2.1, -1.26, -.42, .42, 1.26, 2.1].map(d => {
     const a = Math.PI / 2 + d, x = RING.x + Math.cos(a) * RING.stool, z = RING.z + Math.sin(a) * RING.stool;
@@ -78,7 +79,7 @@ function sofaSeats() {
 // memberSeats: 예시 주민이 앉은 좌석 번호. 나머지 좌석이 빈자리이고, freeOrder 순서로 내가 앉는다.
 // v2.0 배치: 가운데 원형 바(6) · 안쪽 좌우 부스(6+6) · 가운데 좌우 리빙룸 라운지(6+6) · 입구 좌우 바 테이블(6+6) = 1층 42석
 export const BOOTHS = [{x: -5.0, z: -3.55}, {x: 5.0, z: -3.55}];
-export const LOUNGES = [{x: -5.0, z: 2.9, side: -1}, {x: 5.0, z: 2.9, side: 1}];
+export const LOUNGES = [{x: -6.0, z: 2.3, side: -1}, {x: 6.0, z: 2.3, side: 1}]; // 원형 바 양옆으로 넓게 벌려 통로 확보
 function booth6Seats(cx, cz) {
   return [-160, -132, -104, -76, -48, -20].map(d => {
     const a = d * Math.PI / 180, x = cx + Math.cos(a) * 1.18, z = cz + Math.sin(a) * 1.18;
@@ -136,10 +137,10 @@ export const OBSTACLES = {
     ...LOUNGES.map(l => [l.x, l.z + .35, .62]),                      // 커피 테이블
     ...LOUNGES.flatMap(l => [[l.x - 1.05, l.z + 1.1, .42], [l.x + 1.05, l.z + 1.1, .42], [l.x + l.side * 1.62, l.z + .05, .42]]), // 라운지 체어
     [-7.9, -6.4, .45], [7.9, -6.4, .45], [-8.0, 10.4, .4], [8.0, 10.4, .4], // 모서리 화분
-    [-7.75, 1.0, .45], [7.75, 1.0, .45], [-7.75, 5.0, .4], [7.75, 5.0, .4], // 벽 쪽 나무
-    [-2.6, 4.9, .3], [2.6, 4.9, .3],                                 // 플로어 램프
+    [7.8, -.2, .45], [-7.8, 5.6, .4], [7.75, 5.0, .4],               // 벽 쪽 나무 · 좌대
+    [-3.6, 5.0, .3], [3.6, 5.0, .3],                                 // 플로어 램프
     ...LOUNGES.map(l => [l.x - l.side * 1.62, l.z - 1.17, .32]),     // 노란 사이드 테이블
-    [7.6, -4.6, .5], [-6.9, -5.6, .45], [7.7, -1.1, .45], [-7.75, 8.6, .35] // 야자 · 이젤 · 좌대
+    [7.6, -4.6, .5], [-6.9, -5.6, .45], [7.7, -2.0, .45], [-7.75, 8.6, .35] // 야자 · 이젤 · 좌대
   ],
   rects: [
     ...LOUNGES.map(l => ({minX: l.x - 1.3, maxX: l.x + 1.3, minZ: l.z - 1.55, maxZ: l.z - .6})), // 소파
@@ -161,7 +162,7 @@ if (NO_NPC) for (const t of TABLES) {
   t.freeOrder = t.seats.map((_, i) => i); t.open = true; t.demoResponse = 'accept';
   t.title = t.type === 'after' ? '빈 2인석' : t.type === 'bar' ? '빈 바 테이블' : t.type === 'booth6' ? '빈 부스' : t.type === 'lounge' ? '빈 라운지' : '빈 테이블'; t.opener = '';
   // 가운데 링 바는 방장 없는 자유석: 누구나 바로 앉고, JAY가 첫 질문을 던진다
-  if (t.type === 'ring') { t.free = true; t.open = false; t.title = 'JAY의 바 · 자유석'; t.tag = '방장 없이 누구나 바로 · 6인 링 바'; t.opener = 'JAY: 오늘 기분을 술 한 잔으로 표현하면, 뭐예요?'; }
+  if (t.type === 'ring') { t.freeOrder = [2, 3, 1, 4, 0, 5]; t.free = true; t.open = false; t.title = 'JAY의 바 · 자유석'; t.tag = '방장 없이 누구나 바로 · 6인 링 바'; t.opener = 'JAY: 오늘 기분을 술 한 잔으로 표현하면, 뭐예요?'; }
 }
 
 export const SPOTS = [
