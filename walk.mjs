@@ -1,14 +1,14 @@
 // 밤마을 v0.7 — 카메라, 입력, 군중, 상호작용, 다이얼로그.
-import * as T from './vendor/three.min.mjs?v=1791426614';
-import {createBgm} from './bgm.mjs?v=1791426614';
-import {createWorld, HOST_STEP} from './world.mjs?v=1791426614';
-import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791426614';
+import * as T from './vendor/three.min.mjs?v=1791438557';
+import {createBgm} from './bgm.mjs?v=1791438557';
+import {createWorld, HOST_STEP} from './world.mjs?v=1791438557';
+import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791438557';
 import {TABLES, SPOTS, WANDERERS, LOUNGERS, DRINKS, ENTRY, ROOM, MOODS, JACKETS, ACCESSORIES, DRINK_MINUTES, PROFILE_TAGS, ROUND_MINUTES, NEXT_TOPICS, VILLAGES, RESIDENT_COUNT, RING, OBSTACLES,
-  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC, DOOR_Z} from './map-data.mjs?v=1791426614';
-import {createSession} from './session.mjs?v=1791426614';
-import {createOnline} from './online.mjs?v=1791426614';
-import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791426614';
-import {createGames} from './games.mjs?v=1791426614';
+  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC, DOOR_Z} from './map-data.mjs?v=1791438557';
+import {createSession} from './session.mjs?v=1791438557';
+import {createOnline} from './online.mjs?v=1791438557';
+import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791438557';
+import {createGames} from './games.mjs?v=1791438557';
 
 const $ = id => document.getElementById(id);
 const view = $('viewport'), dialog = $('villageDialog'), calm = $('calm');
@@ -42,6 +42,8 @@ const indoorSky = {bg: scene.background, fog: scene.fog};
 const camera = new T.PerspectiveCamera(36, 1, .1, 80);
 const cameraOffset = new T.Vector3(.8, 4.5, 8.5);
 let camNarrow = 0; // 폰 세로 화면이면 1
+let camOverview = false; // 🔭 전체 보기(멀리서 공간 전체) ↔ 가까이
+const OVERVIEW = new T.Vector3();
 // 마을 전경 보기: 잠깐 뒤로 물러나 남산·한강·관람차를 보여준 뒤 원래 시점으로 돌아온다.
 const camOff = cameraOffset.clone(), WIDE = new T.Vector3(1.5, 12, 27), lookAt = new T.Vector3();
 let wideUntil = 0;
@@ -73,6 +75,8 @@ const wallet = Object.assign({coins: DEMO_WALLET.coins, visits: DEMO_WALLET.visi
 for (const f of wallet.friends) f.key ??= 'npc:' + f.name; // v0.9 친구 기록 → 사람 키
 // 테스트판: 이전 지갑에도 시작 코인 1,000을 한 번 채워 준다
 if (!wallet.bonus1000) { if (wallet.visits > 0) wallet.coins += 1000; wallet.bonus1000 = true; }
+// v2.2: 지금 쓰고 있는 머리 장식은 가방에 넣어 준다(예전엔 무료였으니)
+if (wallet.look?.extra && wallet.look.extra !== 'none' && !wallet.owned.includes('extra-' + wallet.look.extra)) wallet.owned.push('extra-' + wallet.look.extra);
 // v1.9: 예전 펫(사람 캐릭터 축소판)은 정리한다. 새 펫은 상점에서 다시 데려온다.
 { const petIds = new Set(SHOP.filter(i => i.kind === 'pet').map(i => i.value));
   if (wallet.equipped.pet && !petIds.has(wallet.equipped.pet)) wallet.equipped.pet = null;
@@ -1001,7 +1005,7 @@ function orderRows() {
 function showJournal() { showMy('records'); }
 function showMy(tab = 'profile') {
   const p = state.profile, s = session.summary();
-  const tabs = `<div class="tabs" role="tablist">${[['profile', '내 정보'], ['char', '캐릭터'], ['postcards', '엽서', 'postcards'], ['titles', '칭호', 'titles'], ['shop', '상점', 'shop'], ['records', '기록']].filter(x => !x[2] || has(x[2])).map(([k, l]) => `<button role="tab" data-tab="${k}" class="${k === tab ? 'on' : ''}">${l}</button>`).join('')}</div>`;
+  const tabs = `<div class="tabs" role="tablist">${[['profile', '내 정보'], ['char', '🎒 가방'], ['postcards', '엽서', 'postcards'], ['titles', '칭호', 'titles'], ['shop', '상점', 'shop'], ['records', '기록']].filter(x => !x[2] || has(x[2])).map(([k, l]) => `<button role="tab" data-tab="${k}" class="${k === tab ? 'on' : ''}">${l}</button>`).join('')}</div>`;
   let body = '';
   if (tab === 'profile') {
     const praises = Object.entries(wallet.praiseIn);
@@ -1034,7 +1038,7 @@ function showMy(tab = 'profile') {
       <label class="toggle-row"><input type="checkbox" id="allFeat" ${wallet.allFeatures ? 'checked' : ''}> 전체 기능 보기 <small>주문·판 열기·게임·상점·마을을 지금 바로 열어요. 펫·칭호는 그대로 조건이 필요해요.</small></label>
       <button class="secondary" id="openShare">QR로 친구 부르기</button>`;
   } else if (tab === 'char') {
-    body = charBody();
+    body = inventoryBody();
   } else if (tab === 'postcards') {
     body = wallet.memories.length ? `<p class="meta">퇴장할 때 자동으로 저장돼요(최근 20장). 매장 밖에서 다시 열어 칭찬·친구 신청을 할 수 있어요.</p>
       <ul class="cards">${wallet.memories.map(m => `<li><button data-card="${esc(m.id ?? '')}" ${m.id ? '' : 'disabled'}>
@@ -1050,14 +1054,14 @@ function showMy(tab = 'profile') {
     }).join('')}</div>${wallet.title ? '<button class="secondary" data-title="">칭호 떼기</button>' : ''}`;
   } else if (tab === 'shop') {
     const eq = wallet.equipped;
-    const isOn = i => (i.kind === 'jacket' && eq.jacket === i.value) || (i.kind === 'accessory' && eq.accessory === i.value) || (i.kind === 'pet' && eq.pet === i.value);
-    const groups = [['jacket', '옷'], ['accessory', '액세서리'], ['pet', '펫 · 단골의 상징']];
+    const isOn = itemOn;
+    const groups = [['extra', '머리 장식'], ['accessory', '소품 · 모자'], ['jacket', '옷'], ['pet', '펫 · 단골의 상징']];
     body = `<p class="coin-line">🪙 <b>${coinText()}</b> 코인 <small>${TEST_MODE.infiniteCoins ? '테스트판이라 코인이 줄지 않아요' : `음료 1잔 주문할 때마다 +${COIN_RULES.drink} 충전`}</small></p>
       ${groups.map(([k, l]) => `<h3>${l}</h3><div class="shop">${k === 'jacket' ? `<div class="item${eq.jacket === 'lime' ? ' on' : ''}"><b>기본 라임 재킷</b><small>기본</small><button data-base="jacket">${eq.jacket === 'lime' ? '착용 중' : '입기'}</button></div>` : ''}${k === 'accessory' ? `<div class="item${eq.accessory === 'none' ? ' on' : ''}"><b>없음</b><small>기본</small><button data-base="accessory">${eq.accessory === 'none' ? '착용 중' : '빼기'}</button></div>` : ''}${SHOP.filter(i => i.kind === k).map(i => {
         const own = wallet.owned.includes(i.id);
         const petLock = i.kind === 'pet' && !own && (!TEST_MODE.petsOpen && wallet.visitDays.length < PET_UNLOCK_DAYS);
         if (petLock) return `<div class="item"><b>${i.name}</b><small>🔒 방문일 ${wallet.visitDays.length}/${PET_UNLOCK_DAYS}</small><button disabled>잠김</button></div>`;
-        return `<div class="item${isOn(i) ? ' on' : ''}"><b>${i.name}</b><small>${own ? '보유' : '🪙 ' + i.price}</small><button data-item="${i.id}" ${!own && !TEST_MODE.infiniteCoins && wallet.coins < i.price ? 'disabled' : ''}>${own ? (isOn(i) ? (k === 'pet' ? '데려가는 중' : '착용 중') : (k === 'pet' ? '데려가기' : '입기')) : '사기'}</button></div>`;
+        return `<div class="item${isOn(i) ? ' on' : ''}"><b><i class="shop-ic">${invIcon(i)}</i>${i.name}</b><small>${own ? '보유' : '🪙 ' + i.price}</small><button data-item="${i.id}" ${!own && !TEST_MODE.infiniteCoins && wallet.coins < i.price ? 'disabled' : ''}>${own ? (isOn(i) ? (k === 'pet' ? '데려가는 중' : '착용 중') : (k === 'pet' ? '데려가기' : '입기')) : '사기'}</button></div>`;
       }).join('')}</div>`).join('')}
       <p class="note">${TEST_MODE.petsOpen ? '테스트판이라 펫을 바로 데려올 수 있어요(실서비스는 서로 다른 날 ' + PET_UNLOCK_DAYS + '번 방문 후).' : `펫은 단골의 상징이라 서로 다른 날 ${PET_UNLOCK_DAYS}번 방문하면 입양할 수 있어요(임시 기준).`} 코인은 꾸미기에 쓰고, 음료를 주문하면 1잔에 +${COIN_RULES.drink}씩 충전돼요(논알코올 포함, 현금 충전 없음).</p>`;
   } else {
@@ -1077,9 +1081,9 @@ function showMy(tab = 'profile') {
   if ($('jCards')) $('jCards').onclick = () => showMy('postcards');
   if (tab === 'char') {
     requestAnimationFrame(renderPreview);
-    $('modalContent').querySelectorAll('[data-sp]').forEach(b => b.onclick = () => setLookPart('species', b.dataset.sp));
-    $('modalContent').querySelectorAll('[data-fur]').forEach(b => b.onclick = () => setLookPart('fur', b.dataset.fur));
-    $('modalContent').querySelectorAll('[data-ex]').forEach(b => b.onclick = () => setLookPart('extra', b.dataset.ex));
+    $('modalContent').querySelectorAll('[data-inv]').forEach(b => b.onclick = () => { const id = b.dataset.inv; if (!id) return; toggleEquip(id); showMy('char'); });
+    $('modalContent').querySelectorAll('[data-uneq]').forEach(b => b.onclick = () => { unequip(b.dataset.uneq); showMy('char'); });
+    if ($('invShop')) $('invShop').onclick = () => showMy('shop');
   }
   $('modalContent').querySelectorAll('[data-card]').forEach(b => b.onclick = () => showPostcard(b.dataset.card));
   $('modalContent').querySelectorAll('[data-facc]').forEach(b => b.onclick = () => { b.disabled = true; online.acceptFriend(b.dataset.facc).then(() => { status('💌 팀 친구가 됐어요'); showMy('profile'); }); });
@@ -1101,9 +1105,43 @@ function buyOrEquip(id) {
     if (!TEST_MODE.infiniteCoins) wallet.coins -= i.price; wallet.owned.push(id); renderCoins(); session.record(`상점 · ${i.name} (-${i.price})`);
     status(`${i.name}${i.kind === 'pet' ? '를 데려왔어요 🐾' : '를 샀어요'}`);
   }
-  if (i.kind === 'pet') wallet.equipped.pet = wallet.equipped.pet === i.value ? null : i.value;
-  else wallet.equipped[i.kind] = i.value;
+  equip(i);
   saveWallet(); applyLook(); refresh(); showMy('shop');
+}
+// ── 가방(인벤토리): 산 아이템만 들어오고, 여기서 끼고 뺀다 ──
+const SLOTS = [['extra', '머리'], ['accessory', '소품'], ['jacket', '옷'], ['pet', '펫']];
+const itemOn = i => (i.kind === 'jacket' && wallet.equipped.jacket === i.value) || (i.kind === 'accessory' && wallet.equipped.accessory === i.value) || (i.kind === 'pet' && wallet.equipped.pet === i.value) || (i.kind === 'extra' && (wallet.look?.extra ?? 'none') === i.value);
+function equip(i) {
+  if (i.kind === 'pet') wallet.equipped.pet = i.value;
+  else if (i.kind === 'extra') wallet.look = {...(wallet.look ?? CHAR_DEFAULT), extra: i.value};
+  else wallet.equipped[i.kind] = i.value;
+}
+function unequip(kind) {
+  if (kind === 'pet') wallet.equipped.pet = null;
+  else if (kind === 'extra') wallet.look = {...(wallet.look ?? CHAR_DEFAULT), extra: 'none'};
+  else if (kind === 'jacket') wallet.equipped.jacket = 'lime';
+  else wallet.equipped.accessory = 'none';
+  saveWallet(); applyLook(); refresh();
+}
+function toggleEquip(id) {
+  const i = SHOP.find(i => i.id === id); if (!i || !wallet.owned.includes(id)) return;
+  if (itemOn(i)) { unequip(i.kind); status(`${i.name}을(를) 가방에 넣었어요`); return; }
+  equip(i); saveWallet(); applyLook(); refresh(); status(`${i.icon} ${i.name} 착용!`);
+}
+function invIcon(i) { return i.kind === 'jacket' ? `<span class="inv-jacket" style="--c:${JACKETS.find(j => j.id === i.value)?.color ?? '#ccc'}">🧥</span>` : `<span>${i.icon ?? '✨'}</span>`; }
+function inventoryBody() {
+  const owned = SHOP.filter(i => wallet.owned.includes(i.id));
+  const worn = kind => SHOP.find(i => i.kind === kind && itemOn(i));
+  const cells = owned.map(i => `<button class="inv-slot${itemOn(i) ? ' on' : ''}" data-inv="${i.id}" title="${esc(i.name)}">${invIcon(i)}<small>${esc(i.name)}</small></button>`);
+  while (cells.length < 20 || cells.length % 5) cells.push('<button class="inv-slot empty" data-inv="" aria-hidden="true" tabindex="-1"></button>');
+  return `<div class="inv">
+    <div class="inv-equip"><canvas id="charPreview" width="220" height="220" class="char-preview"></canvas>
+      <div class="eq-slots">${SLOTS.map(([k, l]) => { const i = worn(k); return `<button class="eq-slot${i ? ' on' : ''}" ${i ? `data-uneq="${k}"` : ''} title="${i ? esc(i.name) + ' · 눌러서 빼기' : l + ' 칸 비어 있음'}">${i ? invIcon(i) : '<span class="ghost">＋</span>'}<small>${l}</small></button>`; }).join('')}</div></div>
+    <div class="inv-bag"><div class="inv-head"><b>가방</b><small>${owned.length}개 · 눌러서 착용 / 다시 누르면 빼기</small></div>
+      <div class="inv-grid">${cells.join('')}</div></div>
+  </div>
+  <button class="action" id="invShop">🛍 상점에서 아이템 사기</button>
+  <p class="note">몸(종·털 색)은 체크인할 때 정해요. 꾸미기는 상점에서 산 아이템만 가방에 들어와요.</p>`;
 }
 
 function showMap() {
@@ -1342,7 +1380,7 @@ function stepProfile() {
     if (!$('adult').checked) { status('만 19세 이상만 입장할 수 있어요'); return; }
     const pick = n => document.querySelector(`input[name=${n}]:checked`)?.value;
     session.setProfile({name: ($('nick').value || '').trim().slice(0, 10), gender: pick('gender') ?? '', adult: true, mood: pick('moodStart') ?? p.mood, fav: p.fav ?? 'highball'});
-    wallet.look = {species: pick('sp') ?? 'fox', fur: pick('fur') ?? '#f08a3c', extra: 'none'}; saveWallet();
+    wallet.look = {species: pick('sp') ?? 'fox', fur: pick('fur') ?? '#f08a3c', extra: wallet.look?.extra ?? 'none'}; // 가방에서 낀 머리 장식은 그대로 saveWallet();
     closeDialog(); enterVillage();
   };
 }
@@ -1647,6 +1685,7 @@ function animatePets(now, dt) {
   const list = (place === 'bar' ? npcPets : []).map(p => ({p, owner: p.owner.root, floor: npcLevel(p.owner) === 2 ? MEZZ_Y : 0, seated: p.owner.seated}));
   if (myPet) list.push({p: myPet, owner: actor, floor: state.table ? levelY(level) : actor.position.y, seated: !!state.table});
   for (const {p, owner, floor, seated} of list) {
+    if (p.freeze) continue; // 테스트용 정지
     petOff.set(seated ? .55 : .45, 0, seated ? .35 : -.45).applyQuaternion(owner.quaternion);
     petTarget.set(owner.position.x + petOff.x, floor, owner.position.z + petOff.z);
     const g = p.group, d = g.position.distanceTo(petTarget);
@@ -1844,7 +1883,7 @@ function animate(now) {
     else if (emoteAnim.id === 'agree') rig.rotation.z = Math.sin(k * 10) * .08;
   } else { arms[0].rotation.z = 0; arms[1].rotation.z = 0; rig.rotation.z = 0; }
   if (place === 'bar') for (const l of lampShades) {
-    const blocking = (!l.upperOnly || actor.position.y > 1.2 || level === 2) && l.z > actor.position.z + .6 && l.z < actor.position.z + 6 && Math.abs(l.x - actor.position.x) < (l.r ?? 2.6);
+    const blocking = camOverview || (l.hideUpper && level === 2) || (!l.upperOnly || actor.position.y > 1.2 || level === 2) && l.z > actor.position.z + .6 && l.z < actor.position.z + 6 && Math.abs(l.x - actor.position.x) < (l.r ?? 2.6);
     const target = blocking ? .12 : 1;
     if (Math.abs(l.opacity - target) > .01) { l.opacity = T.MathUtils.damp(l.opacity, target, 6, dt); for (const m of l.mats) m.opacity = l.opacity; }
   }
@@ -1863,13 +1902,16 @@ function animate(now) {
     else setFill(f);
   }
   for (const f of flags) f.quaternion.copy(camera.quaternion);
-  desiredFocus.set(actor.position.x, .6 + (state.table ? levelY(level) : actor.position.y), actor.position.z - .75 - 1.4 * camNarrow); // 폰: 시선을 앞으로 → 내 캐릭터는 화면 아래쪽, 앞쪽 공간이 더 보임
+  if (camOverview && place === 'bar') desiredFocus.set(0, 1.0, ROOM.cz - .4); // 전체 보기: 바 한가운데를 높이서 내려다본다
+  else desiredFocus.set(actor.position.x, .6 + (state.table ? levelY(level) : actor.position.y), actor.position.z - .75 - 1.4 * camNarrow); // 폰: 시선을 앞으로 → 내 캐릭터는 화면 아래쪽, 앞쪽 공간이 더 보임
   followPoint.lerp(desiredFocus, reduced ? 1 : 1 - Math.exp(-dt * 5));
-  camOff.lerp(place === 'town' && now < wideUntil ? WIDE : cameraOffset, reduced ? 1 : 1 - Math.exp(-dt * 2.2));
+  if (camOverview) OVERVIEW.set(place === 'town' ? 1.5 : 0, place === 'town' ? 14 : 15 + 5 * camNarrow, place === 'town' ? 21 : 14.5 + 8 * camNarrow);
+  camOff.lerp(camOverview ? OVERVIEW : place === 'town' && now < wideUntil ? WIDE : cameraOffset, reduced ? 1 : 1 - Math.exp(-dt * 2.2));
   const wk = Math.min(1, Math.max(0, (camOff.y - cameraOffset.y) / (WIDE.y - cameraOffset.y)));
   // 마을에서는 시선을 살짝 들어 남산타워·한강 하늘선이 화면 위쪽에 걸리게 한다
   const tilt = place === 'town' ? 1 - wk : 0;
-  lookAt.copy(followPoint).add(temp.set(0, 3.5 * wk + .7 * tilt, -16 * wk - 1.6 * tilt));
+  if (camOverview) lookAt.copy(followPoint);
+  else lookAt.copy(followPoint).add(temp.set(0, 3.5 * wk + .7 * tilt, -16 * wk - 1.6 * tilt));
   camera.position.copy(followPoint).add(camOff); camera.lookAt(lookAt); camera.updateMatrixWorld();
   const blink = now < ouchUntil ? 0.001 : now % 4800 > 4630 ? .15 : 1.25; eyes.forEach(e => e.scale.y = blink);
   if (now < shakeUntil && !reduced) { const a = (shakeUntil - now) / 260 * .07; camera.position.x += (Math.random() - .5) * a; camera.position.y += (Math.random() - .5) * a; }
@@ -2076,6 +2118,14 @@ function kicked() {
   $('kOk').onclick = closeDialog;
 }
 $('netChip').onclick = showPlayers;
+// 🔭 시점: 한 번 누르면 멀리서 공간 전체, 한 번 더 누르면 다시 가까이
+function setOverview(on) {
+  camOverview = on; wideUntil = 0;
+  $('camBtn').innerHTML = on ? '🔍<small>가까이</small>' : '🔭<small>전체</small>';
+  $('camBtn').classList.toggle('on', on);
+  scene.fog && (scene.fog.far = on ? 70 : place === 'town' ? scene.fog.far : 44);
+}
+$('camBtn').onclick = e => { e.stopPropagation(); setOverview(!camOverview); };
 // 배경음악: 오리지널 BGM(바 안 재즈 라운지 · 골목 왈츠). 첫 터치에 시작, 🎵로 끄고 켠다.
 const bgm = createBgm();
 bgm.onChange(on => { $('bgmBtn').classList.toggle('off', !on); $('bgmBtn').setAttribute('aria-pressed', on ? 'true' : 'false'); });

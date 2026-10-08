@@ -140,6 +140,8 @@ export const OBSTACLES = {
     [7.8, -.2, .45], [-7.8, 5.6, .4], [7.75, 5.0, .4],               // 벽 쪽 나무 · 좌대
     [-3.6, 5.0, .3], [3.6, 5.0, .3],                                 // 플로어 램프
     ...LOUNGES.map(l => [l.x - l.side * 1.62, l.z - 1.17, .32]),     // 노란 사이드 테이블
+    ...LOUNGES.map(l => [l.x + l.side * 1.75, l.z - 1.45, .3]),      // 아크 램프 받침
+    [-2.9, -5.4, .42], [2.9, -5.4, .42],                             // 트라이포드 램프
     [7.6, -4.6, .5], [-6.9, -5.6, .45], [7.7, -2.0, .45], [-7.75, 8.6, .35] // 야자 · 이젤 · 좌대
   ],
   rects: [
@@ -288,36 +290,51 @@ export const COIN_RULES = {drink: 100};
 // 데모 스탬프: 주문 1건당 1개(한 번에 여러 잔을 시켜도 1개), 5개면 무료 한 잔 쿠폰.
 export const STAMP_GOAL = 5;
 export const SHOP = [
-  {id: 'jacket-plum', kind: 'jacket', value: 'plum', name: '자두 재킷', price: 150},
-  {id: 'jacket-sky', kind: 'jacket', value: 'sky', name: '하늘 재킷', price: 150},
-  {id: 'jacket-coral', kind: 'jacket', value: 'coral', name: '코랄 재킷', price: 150},
-  {id: 'jacket-navy', kind: 'jacket', value: 'navy', name: '네이비 재킷', price: 200},
-  {id: 'jacket-mustard', kind: 'jacket', value: 'mustard', name: '머스터드 재킷', price: 200},
-  {id: 'jacket-mint', kind: 'jacket', value: 'mint', name: '민트 재킷', price: 200},
-  {id: 'jacket-black', kind: 'jacket', value: 'black', name: '블랙 재킷', price: 250},
-  {id: 'jacket-denim', kind: 'jacket', value: 'denim', name: '데님 재킷', price: 250},
-  {id: 'jacket-hanbok', kind: 'jacket', value: 'hanbok', name: '한복 저고리 색', price: 400},
-  {id: 'acc-ribbon', kind: 'accessory', value: 'ribbon', name: '리본', price: 200},
-  {id: 'acc-shades', kind: 'accessory', value: 'shades', name: '선글라스', price: 250},
-  {id: 'acc-beret', kind: 'accessory', value: 'beret', name: '베레모', price: 300},
-  {id: 'acc-tophat', kind: 'accessory', value: 'tophat', name: '실크햇', price: 400},
-  {id: 'acc-bucket', kind: 'accessory', value: 'bucket', name: '버킷햇', price: 250},
-  {id: 'acc-party', kind: 'accessory', value: 'party', name: '파티 고깔', price: 200},
-  {id: 'acc-chef', kind: 'accessory', value: 'chef', name: '셰프 모자', price: 300},
-  {id: 'acc-flowercrown', kind: 'accessory', value: 'flowercrown', name: '꽃 화관', price: 350},
-  {id: 'acc-bandana', kind: 'accessory', value: 'bandana', name: '반다나', price: 200},
-  {id: 'acc-bowtie', kind: 'accessory', value: 'bowtie', name: '나비넥타이', price: 200},
-  {id: 'acc-heartglasses', kind: 'accessory', value: 'heartglasses', name: '하트 안경', price: 300},
-  {id: 'acc-mask', kind: 'accessory', value: 'mask', name: '가면무도회 가면', price: 350},
-  {id: 'acc-starpin', kind: 'accessory', value: 'starpin', name: '별 머리핀', price: 150},
-  {id: 'acc-earmuff', kind: 'accessory', value: 'earmuff', name: '귀마개', price: 250},
-  {id: 'acc-sakura', kind: 'accessory', value: 'sakura', name: '벚꽃 핀', price: 150},
+  {id: 'jacket-plum', icon: '🧥', kind: 'jacket', value: 'plum', name: '자두 재킷', price: 150},
+  {id: 'jacket-sky', icon: '🧥', kind: 'jacket', value: 'sky', name: '하늘 재킷', price: 150},
+  {id: 'jacket-coral', icon: '🧥', kind: 'jacket', value: 'coral', name: '코랄 재킷', price: 150},
+  {id: 'jacket-navy', icon: '🧥', kind: 'jacket', value: 'navy', name: '네이비 재킷', price: 200},
+  {id: 'jacket-mustard', icon: '🧥', kind: 'jacket', value: 'mustard', name: '머스터드 재킷', price: 200},
+  {id: 'jacket-mint', icon: '🧥', kind: 'jacket', value: 'mint', name: '민트 재킷', price: 200},
+  {id: 'jacket-black', icon: '🧥', kind: 'jacket', value: 'black', name: '블랙 재킷', price: 250},
+  {id: 'jacket-denim', icon: '🧥', kind: 'jacket', value: 'denim', name: '데님 재킷', price: 250},
+  {id: 'jacket-hanbok', icon: '🧥', kind: 'jacket', value: 'hanbok', name: '한복 저고리 색', price: 400},
+  {id: 'acc-ribbon', icon: '🎀', kind: 'accessory', value: 'ribbon', name: '리본', price: 200},
+  {id: 'acc-shades', icon: '🕶️', kind: 'accessory', value: 'shades', name: '선글라스', price: 250},
+  {id: 'acc-beret', icon: '🎨', kind: 'accessory', value: 'beret', name: '베레모', price: 300},
+  {id: 'acc-tophat', icon: '🎩', kind: 'accessory', value: 'tophat', name: '실크햇', price: 400},
+  {id: 'acc-bucket', icon: '👒', kind: 'accessory', value: 'bucket', name: '버킷햇', price: 250},
+  {id: 'acc-party', icon: '🥳', kind: 'accessory', value: 'party', name: '파티 고깔', price: 200},
+  {id: 'acc-chef', icon: '🍳', kind: 'accessory', value: 'chef', name: '셰프 모자', price: 300},
+  {id: 'acc-flowercrown', icon: '🌸', kind: 'accessory', value: 'flowercrown', name: '꽃 화관', price: 350},
+  {id: 'acc-bandana', icon: '🧣', kind: 'accessory', value: 'bandana', name: '반다나', price: 200},
+  {id: 'acc-bowtie', icon: '🎗️', kind: 'accessory', value: 'bowtie', name: '나비넥타이', price: 200},
+  {id: 'acc-heartglasses', icon: '💖', kind: 'accessory', value: 'heartglasses', name: '하트 안경', price: 300},
+  {id: 'acc-mask', icon: '🎭', kind: 'accessory', value: 'mask', name: '가면무도회 가면', price: 350},
+  {id: 'acc-starpin', icon: '⭐', kind: 'accessory', value: 'starpin', name: '별 머리핀', price: 150},
+  {id: 'acc-earmuff', icon: '🎧', kind: 'accessory', value: 'earmuff', name: '귀마개', price: 250},
+  {id: 'acc-sakura', icon: '💮', kind: 'accessory', value: 'sakura', name: '벚꽃 핀', price: 150},
+  // v2.2 머리 장식(예전엔 무료) — 이제 상점에서 사서 가방에서 착용
+  {id: 'extra-gat', icon: '🏮', kind: 'extra', value: 'gat', name: '갓', price: 400},
+  {id: 'extra-cap', icon: '🧢', kind: 'extra', value: 'cap', name: '야구모자', price: 150},
+  {id: 'extra-beanie', icon: '🧶', kind: 'extra', value: 'beanie', name: '비니', price: 150},
+  {id: 'extra-headband', icon: '🎀', kind: 'extra', value: 'headband', name: '머리띠', price: 120},
+  {id: 'extra-glasses', icon: '👓', kind: 'extra', value: 'glasses', name: '동그란 안경', price: 180},
+  {id: 'extra-headset', icon: '🎧', kind: 'extra', value: 'headset', name: '헤드셋', price: 250},
+  {id: 'extra-scarf', icon: '🧣', kind: 'extra', value: 'scarf', name: '목도리', price: 180},
+  {id: 'extra-halo', icon: '😇', kind: 'extra', value: 'halo', name: '천사 링', price: 450},
+  {id: 'extra-devil', icon: '😈', kind: 'extra', value: 'devil', name: '작은 뿔', price: 350},
+  {id: 'extra-crown', icon: '👑', kind: 'extra', value: 'crown', name: '왕관', price: 600},
+  {id: 'extra-flower', icon: '🌼', kind: 'extra', value: 'flower', name: '꽃', price: 120},
+  {id: 'extra-unicorn', icon: '🦄', kind: 'extra', value: 'unicorn', name: '유니콘 뿔', price: 500},
+  {id: 'extra-wings', icon: '🪽', kind: 'extra', value: 'wings', name: '날개', price: 700},
+  {id: 'extra-batwings', icon: '🦇', kind: 'extra', value: 'batwings', name: '박쥐 날개', price: 600},
   // v1.9 펫: 네 발로 기어다니는 꼬마 동물 다섯
-  {id: 'pet-puppy', kind: 'pet', value: 'puppy', fur: '#e8bd85', name: '아기 강아지', price: 800},
-  {id: 'pet-kitty', kind: 'pet', value: 'kitty', fur: '#f2b675', name: '아기 고양이', price: 800},
-  {id: 'pet-bunny', kind: 'pet', value: 'bunny', fur: '#fbf3ea', name: '아기 토끼', price: 900},
-  {id: 'pet-piglet', kind: 'pet', value: 'piglet', fur: '#f6b6b0', name: '아기 돼지', price: 900},
-  {id: 'pet-hedgehog', kind: 'pet', value: 'hedgehog', fur: '#c9a27c', name: '아기 고슴도치', price: 1000}
+  {id: 'pet-puppy', icon: '🐶', kind: 'pet', value: 'puppy', fur: '#e8bd85', name: '아기 강아지', price: 800},
+  {id: 'pet-kitty', icon: '🐱', kind: 'pet', value: 'kitty', fur: '#f2b675', name: '아기 고양이', price: 800},
+  {id: 'pet-bunny', icon: '🐰', kind: 'pet', value: 'bunny', fur: '#fbf3ea', name: '아기 토끼', price: 900},
+  {id: 'pet-piglet', icon: '🐷', kind: 'pet', value: 'piglet', fur: '#f6b6b0', name: '아기 돼지', price: 900},
+  {id: 'pet-hedgehog', icon: '🦔', kind: 'pet', value: 'hedgehog', fur: '#c9a27c', name: '아기 고슴도치', price: 1000}
 ];
 // 테스트판: 코인 무한(사도 줄지 않음) · 펫 방문일 잠금 해제
 export const TEST_MODE = {infiniteCoins: true, petsOpen: true};

@@ -5,7 +5,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=IBM+Plex+Mono:wght@500&family=Jua&display=swap">
-<link rel="stylesheet" href="walk.css?v=1791426614">
+<link rel="stylesheet" href="walk.css?v=1791438557">
 
 <div class="app">
   <section class="stage" id="stage" aria-label="미니미가 걷는 3D 바">
@@ -33,12 +33,13 @@
     <button id="interact" class="interact" hidden></button>
 
     <div id="joystick" class="joystick" aria-label="조이스틱: 누른 채로 끌어서 걷기"><i class="joy-knob"></i></div>
+    <button id="camBtn" class="cam-btn" aria-label="전체 보기 / 가까이 보기">🔭<small>전체</small></button>
     <button id="emoteBtn" class="emote-btn" hidden aria-label="표현하기">😊<small>표현</small></button>
     <div id="emotePanel" class="emote-panel" hidden></div>
     <div id="roundCard" class="tutorial round-card" hidden></div>
     <button id="jumpBtn" class="jump-btn" aria-label="점프 (스페이스바)">점프<small>SPACE</small></button>
     <button id="punchBtn" class="punch-btn" aria-label="때리기 (Ctrl)">👊<small>CTRL</small></button>
-    <span class="demo-chip">팀 테스트 v2.1</span>
+    <span class="demo-chip">팀 테스트 v2.2</span>
 
     <div id="fade" class="fade" aria-hidden="true"></div>
     <div id="loading" class="loading"><span>☾</span><p>작은 마을을 여는 중…</p></div>
@@ -75,8 +76,8 @@
 
 <script type="module">
 // 실시간 연결 어댑터를 먼저 깐다: 공개 실시간 서버(모두 같은 방) → 안 되면 Claude 자체 실시간.
-import('./netshim.mjs?v=1791426614').then(m => { m.install(); }).catch(e => console.warn('online off', e))
-.then(() => import('./walk.mjs?v=1791426614')).catch(error => {
+import('./netshim.mjs?v=1791438557').then(m => { m.install(); }).catch(e => console.warn('online off', e))
+.then(() => import('./walk.mjs?v=1791438557')).catch(error => {
   console.error(error);
   document.getElementById('loading').hidden = true;
   document.getElementById('failure').hidden = false;

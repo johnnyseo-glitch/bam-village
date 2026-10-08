@@ -1,6 +1,6 @@
 // 밤마을 v1.1 — 테이블 술게임: 주사위 · 룰렛 · 사다리타기.
 // 결과는 시작한 사람이 정하고(payload), 같은 테이블의 팀원 화면에서는 같은 결과로 같은 애니메이션이 재생된다.
-import {PENALTIES, PENALTY_ICONS} from './map-data.mjs?v=1791426614';
+import {PENALTIES, PENALTY_ICONS} from './map-data.mjs?v=1791438557';
 
 const COLORS = ['#ff8f7a', '#ffd36b', '#8fd0c9', '#c9a2e8', '#9ad37a', '#7fc8e8', '#f5a3c0', '#f2b675'];
 const $ = id => document.getElementById(id);

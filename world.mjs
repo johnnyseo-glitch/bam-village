@@ -1,8 +1,8 @@
 // 밤마을 v0.7 — 앰버 조명의 미드센추리 바 디오라마와 2등신 동물 주민.
 // 모든 그림은 코드와 캔버스로 직접 만든다(외부 이미지·모델 없음).
 // 무드: 월넛 루버 · 러스트 벨벳 커튼 · 웜다크 콘크리트 · 돌기둥 링 바 · 버섯 램프 · 캐러멜 가죽 · 앰버 빛 웅덩이.
-import * as T from './vendor/three.min.mjs?v=1791426614';
-import {TABLES, WANDERERS, LOUNGERS, LOUNGES, ENTRY, DOOR_Z, ROOM, RING, SOFA, MEZZ, MEZZ_Y, STAIRS, WELCOME_ZONE, PEOPLE} from './map-data.mjs?v=1791426614';
+import * as T from './vendor/three.min.mjs?v=1791438557';
+import {TABLES, WANDERERS, LOUNGERS, LOUNGES, ENTRY, DOOR_Z, ROOM, RING, SOFA, MEZZ, MEZZ_Y, STAIRS, WELCOME_ZONE, PEOPLE} from './map-data.mjs?v=1791438557';
 
 export const HOST_STEP = .32; // 링 바 안쪽 발판 높이: 호스트 얼굴이 카운터 위로 보이게
 const SKY = '#211b17'; // v1.8 젠 하이엔드: 바깥은 깊은 웜 차콜
@@ -409,7 +409,7 @@ export function createWorld() {
     for (const lx of [-1.52, 1.52]) outline(box(.1, 1.0, .8, toon('#211b18'), lx, .5, 0, g), .4, .012);
     box(2.9, .05, .12, toon('#211b18'), 0, .28, 0, g);
     rod([-1.45, .3, .34], [1.45, .3, .34], .018, M.brass, g); rod([-1.45, .3, -.34], [1.45, .3, -.34], .018, M.brass, g);
-    mushroomLamp(-.55, 1.085, 0, 1.0, g); budVase(.55, 1.085, 0, g);
+    mushroomLamp(-.55, 1.085, 0, 1.0, g); bloomVase(.55, 1.085, 0, g, 1.1);
     tag(g, t.id);
     for (const s of t.seats) { // 러스트 벨벳 스툴 + 브라스 다리
       const sg = new T.Group(); scene.add(sg);
@@ -477,7 +477,7 @@ export function createWorld() {
     cyl(.79, .79, .02, BRASS, 0, .715, 0, g, false, 40);
     cyl(.24, .3, .7, IRON, 0, .36, 0, g);
     mushroomLamp(0, .765, -.32, 1.0, g);
-    budVase(.32, .765, -.15, g);
+    bloomVase(.32, .765, -.12, g, 1.0, '#1f1c1b');
     tag(g, t.id);
     const l = new T.PointLight('#ffb070', 6, 5, 1.6); l.position.set(t.x, 1.4, t.z + .1); scene.add(l);
   }
@@ -495,7 +495,7 @@ export function createWorld() {
     // 오벌 블랙 마블 커피 테이블 + 원통 다리
     const top = cyl(.62, .62, .05, MARBLE, 0, .4, .35, g, true, 40); top.scale.set(1.35, 1, .8); outline(top, .62, .02);
     for (const dx of [-.42, .42]) cyl(.15, .15, .36, IRON, dx, .19, .35, g);
-    budVase(-.05, .425, .25, g, 1.1);
+    bloomVase(-.05, .425, .32, g, 1.2, '#2f5fb0');
     // 체어 3개(시트 위치에서 테이블을 본다)
     const [, , , c1, c2, c3] = t.seats;
     tag(tubChair(c1, GREEN_V, GREEN_D), t.id); tag(tubChair(c2, GREEN_V, GREEN_D), t.id); tag(boucleChair(c3), t.id);
@@ -510,7 +510,7 @@ export function createWorld() {
     outline(cyl(.34, .3, .22, md, 0, .15, 0, c, true, 24), .34, .015);
     outline(cyl(.3, .3, .1, m, 0, .3, .02, c, true, 24), .3, .015);
     const shell = mesh(geo('tubC', () => new T.CylinderGeometry(.36, .34, .36, 24, 1, true, Math.PI * .55, Math.PI * .9)), tubShellM, 0, .5, 0, c);
-    shell.rotation.y = Math.PI; outline(shell, .36, .015);
+    outline(shell, .36, .015); // 등받이는 뒤(-z), 앉는 쪽은 테이블(+z)을 본다
     return c;
   }
   function boucleChair(seat) {
@@ -524,8 +524,40 @@ export function createWorld() {
     const y = toon('#e8b423');
     for (const yy of [.1, .52]) box(.42, .05, .42, y, x, yy, z);
     for (const [dx, dz] of [[-.2, -.2], [.2, -.2], [-.2, .2], [.2, .2]]) rod([x + dx, 0, z + dz], [x + dx, .55, z + dz], .012, M.chrome);
-    const lamp = sphere(.13, glow('#fff1d6'), x, .78, z); lamp.scale.set(1, .55, 1); sphere(.1, glow('#fff6e4'), x, .9, z).scale.set(1, .55, 1);
-    rod([x, .55, z], [x, .72, z], .01, M.chrome);
+    // 위 칸: 아트북 두 권 + 꽃이 꽂힌 도자기 화병, 아래 칸: 작은 브라스 오브제
+    box(.3, .04, .22, toon('#f1ece2'), x - .02, .57, z + .03); box(.27, .035, .2, toon('#2f5fb0'), x - .01, .607, z + .02);
+    bloomVase(x + .02, .625, z - .02, scene, .8);
+    const ob = mesh(new T.TorusKnotGeometry(.06, .02, 48, 8), M.brass, x, .2, z); ob.castShadow = false;
+  }
+  // 꽃이 소복한 화병(둥근 도자기 + 꽃송이 + 잎)
+  const BLOOMS = ['#fbf6ee', '#f2a48a', '#f2c230', '#e86a55', '#fbf6ee'].map(c => toon(c));
+  function bloomVase(x, y, z, parent = scene, s = 1, vaseColor = '#e9e1d2') {
+    const v = sphere(.075 * s, toon(vaseColor), x, y + .07 * s, z, parent); v.scale.set(1, 1.1, 1); outline(v, .075 * s, .01);
+    cyl(.03 * s, .04 * s, .05 * s, toon(vaseColor), x, y + .15 * s, z, parent, false);
+    for (let i = 0; i < 9; i++) {
+      const a = i * 2.4 + rnd(), r = (.04 + rnd() * .1) * s, tip = [x + Math.cos(a) * r, y + (.26 + rnd() * .14) * s, z + Math.sin(a) * r];
+      rod([x, y + .15 * s, z], tip, .005 * s, toon('#5f7350'), parent);
+      const f = sphere(.036 * s, BLOOMS[i % BLOOMS.length], tip[0], tip[1], tip[2], parent, false); f.scale.set(1, .75, 1);
+      if (i % 3 === 0) { const l = sphere(.03 * s, toon('#6f8460'), tip[0] + .03 * s, tip[1] - .08 * s, tip[2], parent, false); l.scale.set(1.5, .3, .7); l.rotation.z = .5; }
+    }
+  }
+  // 아이코닉 조명 ① 아크 플로어 램프: 대리석 받침에서 휘어진 스틸 아크가 테이블 위로
+  function arcLamp(bx, bz, tx, tz, h = 2.15) {
+    outline(box(.34, .34, .26, toon('#e9e3d8'), bx, .17, bz), .17, .012);
+    const curve = new T.QuadraticBezierCurve3(new T.Vector3(bx, .34, bz), new T.Vector3((bx + tx) / 2 + (bx - tx) * .25, h + 1.0, (bz + tz) / 2 + (bz - tz) * .25), new T.Vector3(tx, h, tz));
+    mesh(new T.TubeGeometry(curve, 40, .022, 8, false), M.chrome, 0, 0, 0, scene, false).userData.ignorePick = true;
+    const sh = dome(.3, M.chrome, tx, h - .26, tz); sh.userData.ignorePick = true;
+    const under = mesh(geo('arcU', () => new T.CircleGeometry(.27, 24)), LAMP_GLOW_HOT, tx, h - .26, tz, scene, false); under.rotation.x = Math.PI / 2;
+    const l = new T.PointLight('#ffd49a', 5, 4.5, 1.6); l.position.set(tx, h - .5, tz); scene.add(l);
+  }
+  // 아이코닉 조명 ② 트라이포드 스팟 램프: 나무 삼각대 + 기울어진 원통 헤드
+  function tripodLamp(x, z, ry = 0) {
+    const g = new T.Group(); g.position.set(x, 0, z); g.rotation.y = ry; scene.add(g);
+    for (let i = 0; i < 3; i++) { const a = i / 3 * Math.PI * 2; rod([Math.cos(a) * .38, 0, Math.sin(a) * .38], [0, 1.3, 0], .02, M.walnut, g); }
+    const head = new T.Group(); head.position.set(0, 1.42, 0); head.rotation.x = -.5; g.add(head);
+    outline(cyl(.17, .2, .3, toon('#1f1a17'), 0, 0, 0, head, false, 20), .2, .012);
+    const lens = mesh(geo('triL', () => new T.CircleGeometry(.16, 20)), LAMP_GLOW_HOT, 0, -.155, 0, head, false); lens.rotation.x = Math.PI / 2;
+    g.traverse(o => { if (o.isMesh) o.userData.ignorePick = true; });
   }
   function mushroomLamp(x, y, z, s = 1, parent = scene) {
     cyl(.06 * s, .07 * s, .015, BRASS, x, y + .008, z, parent, false);
@@ -581,8 +613,6 @@ export function createWorld() {
   const redField = (c, w, h) => { c.fillStyle = '#c43d26'; c.fillRect(0, 0, w, h); c.fillStyle = '#7d1e14'; c.fillRect(0, h * .62, w, h * .38); c.fillStyle = '#1b1310'; c.fillRect(w * .12, h * .1, w * .76, h * .06); c.fillStyle = '#f0b24a'; c.beginPath(); c.arc(w * .7, h * .36, w * .12, 0, 7); c.fill(); };
 
   // 뒷벽(2층 위쪽) 대작 두 점
-  canvasArt(3.2, 1.55, colorField, -4.3, 4.45, -7.42);
-  canvasArt(3.0, 1.55, cutOut, 4.4, 4.45, -7.42);
   // 왼쪽 벽: 밤바다 파노라마 · 종이 오리기 · 기하 포스터 세 점
   canvasArt(4.2, 1.15, nightPano, -9.12, 2.55, 3.0, Math.PI / 2);
   canvasArt(1.5, 2.0, redField, -9.12, 2.3, -.9, Math.PI / 2);
@@ -645,6 +675,8 @@ export function createWorld() {
     const l = new T.PointLight('#ffcf8f', 6, 5.5, 1.6); l.position.set(x, 1.3, z); scene.add(l);
   }
   coneLamp(-3.6, 5.0); coneLamp(3.6, 5.0);
+  for (const l of LOUNGES) arcLamp(l.x + l.side * 1.75, l.z - 1.45, l.x, l.z + .35);
+  tripodLamp(-2.9, -5.4, .4); tripodLamp(2.9, -5.4, -.4);
   // 샹들리에: 세 겹 브라스 링에 유리 구슬 조명(가운데 통로 위). 카메라를 가리면 흐려진다.
   {
     const cx = 0, cz = -3.1, cy = 5.0; // 원형 바 뒤, 두 부스 사이 위
@@ -659,7 +691,7 @@ export function createWorld() {
     });
     mesh(geo('glbBig', () => new T.SphereGeometry(.16, 18, 12)), globeT, 0, -.45, 0, g, false);
     g.traverse(o => { if (o.isMesh) { o.userData.ignorePick = true; o.castShadow = false; } });
-    lampShades.push({x: cx, z: cz, mats: [brassT, globeT], opacity: 1, r: 1.9});
+    lampShades.push({x: cx, z: cz, mats: [brassT, globeT], opacity: 1, r: 2.8, hideUpper: true});
     const l = new T.PointLight('#ffd9a0', 10, 9, 1.4); l.position.set(cx, cy - .6, cz); scene.add(l);
   }
 
@@ -717,8 +749,9 @@ export function createWorld() {
       for (let i = 0; i < 6; i++) { c.fillStyle = cols[i]; c.fillRect((i % 2) * w / 2, Math.floor(i / 2) * h / 3, w / 2, h / 3); }
       for (let i = 0; i < 900; i++) { c.fillStyle = rnd() > .5 ? '#d08a5a33' : '#00000033'; c.fillRect(rnd() * w, rnd() * h, 3 + rnd() * 12, 2 + rnd() * 6); }
     });
-    mesh(new T.PlaneGeometry(1.8, 3.2), toon('#ffffff', {map: copperTex}), 2.6, MEZZ_Y + 1.95, -7.42, scene, false);
-    box(2.0, .04, .1, glow('#ffb066'), 2.6, MEZZ_Y + .3, -7.38, scene, false);
+    // 창 옆 벽: 색면 대작 · 종이 오리기(창 위에 겹치지 않게)
+    canvasArt(2.3, 1.45, colorField, 1.05, MEZZ_Y + 1.95, -7.42);
+    canvasArt(1.15, 1.45, cutOut, 3.2, MEZZ_Y + 1.95, -7.42);
     // 2층 오른쪽: 조명 선반 + 병
     for (const y of [MEZZ_Y + .9, MEZZ_Y + 1.5, MEZZ_Y + 2.1]) { box(3.4, .05, .32, M.walnut, 6.4, y, -7.28, scene, false); box(3.3, .025, .03, glow('#ffd19a'), 6.4, y - .04, -7.13, scene, false);
       for (let i = 0; i < 12; i++) addBottle(4.85 + i * .27, y + .025, -7.28, .16 + rnd() * .12); }
@@ -803,7 +836,7 @@ export function createWorld() {
   const sun = new T.DirectionalLight('#ffe4c2', 1.05);
   sun.position.set(5, 13, 8); sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024);
   Object.assign(sun.shadow.camera, {left: -13, right: 13, top: 14, bottom: -14, near: .5, far: 45});
-  sun.shadow.bias = -.0015; sun.shadow.normalBias = .05; scene.add(sun);
+  sun.shadow.bias = -.0025; sun.shadow.normalBias = .09; scene.add(sun);
   const frontFill = new T.PointLight('#ffe0b8', 6, 10, 1.4); frontFill.position.set(0, 2.6, 3.8); scene.add(frontFill);
   const frontFill2 = new T.PointLight('#ffcf9a', 4, 9, 1.4); frontFill2.position.set(0, 2.6, 8.2); scene.add(frontFill2);
   const seatAngles = null;
@@ -1008,56 +1041,49 @@ export function createWorld() {
     const g = new T.Group(); scene.add(g);
     const base = fur && PET_FUR[species] ? fur : PET_FUR[kind];
     const furM = toon(base), lightM = toon(lighter(base)), darkM = toon(darker(base)), pinkM = toon('#ff9fb0');
-    const body = new T.Group(); body.scale.setScalar(1.3); g.add(body);
-    // 몸통(앞뒤로 긴 콩 모양) + 배
-    const torso = sphere(.13, kind === 'hedgehog' ? toon('#f3dcc0') : furM, 0, .19, 0, body); torso.scale.set(1.0, .82, 1.32); outline(torso, .13, .014);
-    if (kind !== 'hedgehog') { const belly = sphere(.09, lightM, 0, .15, .03, body, false); belly.scale.set(.9, .6, 1.2); }
-    // 머리
-    const hy = kind === 'bunny' ? .31 : .29, hz = .17;
-    const head = new T.Group(); head.position.set(0, hy, hz); body.add(head);
-    const skull = sphere(.11, kind === 'hedgehog' ? toon('#f3dcc0') : furM, 0, 0, 0, head); skull.scale.set(1.05, .95, .95); outline(skull, .11, .014);
+    const body = new T.Group(); body.scale.setScalar(1.25); g.add(body);
+    // v2.2 꼬마 펫: 머리가 몸보다 큰 동글동글 2등신, 다리는 작은 콩 발(기다란 다리 없음)
+    const furOrCream = kind === 'hedgehog' ? toon('#f3dcc0') : furM;
+    const torso = sphere(.12, furOrCream, 0, .14, -.03, body); torso.scale.set(1.05, .9, 1.15); outline(torso, .12, .014);
+    if (kind !== 'hedgehog') { const belly = sphere(.08, lightM, 0, .12, .03, body, false); belly.scale.set(.95, .75, .9); }
+    const head = new T.Group(); head.position.set(0, kind === 'bunny' ? .3 : .28, .08); body.add(head);
+    const skull = sphere(.15, furOrCream, 0, 0, 0, head); skull.scale.set(1.08, .98, 1); outline(skull, .15, .016);
+    if (kind === 'hedgehog') { // 등·머리 뒤 보송한 밤톨 털(뾰족 가시 대신)
+      const tuftM = toon(base === PET_FUR.hedgehog ? '#8a6446' : darker(base));
+      const cap = sphere(.155, tuftM, 0, .02, -.035, head); cap.scale.set(1.12, 1.02, 1.0);
+      const back = sphere(.125, tuftM, 0, .17, -.07, body); back.scale.set(1.1, .9, 1.2);
+      for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2; const t = sphere(.04, tuftM, Math.cos(a) * .11, .2 + Math.sin(a * 2) * .03, -.08 + Math.sin(a) * .1, body, false); t.scale.set(1, .8, 1); }
+    }
     for (const sx of [-1, 1]) {
-      const eye = sphere(.02, DARK, sx * .045, .015, .095, head); eye.scale.set(1, 1.25, .6);
-      sphere(.007, WHITE, sx * .045 + .006, .025, .108, head, false);
-      const bl = sphere(.022, BLUSH, sx * .075, -.025, .08, head, false); bl.scale.set(1, .55, .35);
+      const eye = sphere(.03, DARK, sx * .058, .005, .135, head); eye.scale.set(.85, 1.15, .5);
+      sphere(.011, WHITE, sx * .058 + .009, .02, .15, head, false);
+      sphere(.005, WHITE, sx * .058 - .006, -.008, .15, head, false);
+      const bl = sphere(.028, BLUSH, sx * .095, -.04, .11, head, false); bl.scale.set(1, .55, .35);
     }
-    if (kind === 'piglet') { const sn = cyl(.042, .045, .03, pinkM, 0, -.02, .105, head); sn.rotation.x = Math.PI / 2; for (const sx of [-1, 1]) sphere(.009, DARK, sx * .015, -.02, .122, head, false); }
-    else if (kind === 'hedgehog') { const sn = cone(.035, .07, lightM, 0, -.02, .12, head, 10); sn.rotation.x = Math.PI / 2; sphere(.014, DARK, 0, -.02, .155, head, false); }
-    else { const mz = sphere(.045, lightM, 0, -.03, .085, head, false); mz.scale.set(1.2, .8, .8); sphere(.014, kind === 'puppy' ? DARK : pinkM, 0, -.012, .13, head, false); }
-    // 귀
+    if (kind === 'piglet') { const sn = cyl(.04, .042, .025, pinkM, 0, -.04, .145, head); sn.rotation.x = Math.PI / 2; for (const sx of [-1, 1]) sphere(.008, DARK, sx * .014, -.04, .158, head, false); }
+    else if (kind === 'hedgehog') { sphere(.03, lightM, 0, -.04, .14, head).scale.set(1.1, .8, .9); sphere(.012, DARK, 0, -.03, .165, head, false); }
+    else { const mz = sphere(.045, lightM, 0, -.045, .12, head, false); mz.scale.set(1.25, .75, .7); sphere(.013, kind === 'puppy' ? DARK : pinkM, 0, -.025, .15, head, false); }
+    // 귀(머리 크기에 맞게 작고 동글게)
     for (const sx of [-1, 1]) {
-      if (kind === 'puppy') { const e = sphere(.05, darkM, sx * .1, .02, -.01, head); e.scale.set(.45, 1.1, .8); e.rotation.z = sx * .35; }
-      else if (kind === 'kitty') { const e = cone(.04, .07, furM, sx * .065, .1, 0, head, 4); e.rotation.z = sx * -.25; const ei = cone(.022, .04, pinkM, sx * .065, .095, .012, head, 4); ei.rotation.z = sx * -.25; }
-      else if (kind === 'bunny') { const e = capsule(.026, .14, furM, sx * .04, .17, -.02, head); e.rotation.z = sx * -.15; const ei = capsule(.013, .11, pinkM, sx * .04, .17, -.004, head); ei.rotation.z = sx * -.15; }
-      else if (kind === 'piglet') { const e = cone(.035, .05, furM, sx * .07, .085, .01, head, 4); e.rotation.set(.6, 0, sx * -.4); }
-      else { const e = sphere(.022, toon('#f3dcc0'), sx * .07, .07, 0, head); e.scale.set(1, 1, .5); }
+      if (kind === 'puppy') { const e = sphere(.055, darkM, sx * .14, .0, -.01, head); e.scale.set(.45, 1.0, .75); e.rotation.z = sx * .3; }
+      else if (kind === 'kitty') { const e = cone(.05, .07, furM, sx * .085, .135, 0, head, 4); e.rotation.z = sx * -.3; const ei = cone(.028, .04, pinkM, sx * .085, .13, .015, head, 4); ei.rotation.z = sx * -.3; }
+      else if (kind === 'bunny') { const e = capsule(.032, .12, furM, sx * .05, .2, -.02, head); e.rotation.z = sx * -.18; const ei = capsule(.016, .09, pinkM, sx * .05, .2, -.002, head); ei.rotation.z = sx * -.18; }
+      else if (kind === 'piglet') { const e = cone(.04, .055, furM, sx * .095, .115, .01, head, 4); e.rotation.set(.6, 0, sx * -.45); }
+      else { const e = sphere(.028, toon('#f3dcc0'), sx * .1, .1, 0, head); e.scale.set(1, 1, .5); }
     }
-    // 고슴도치 가시
-    if (kind === 'hedgehog') {
-      const spikeM = toon(base === PET_FUR.hedgehog ? '#7a5a3e' : darker(base));
-      const up = new T.Vector3(0, 1, 0), dir = new T.Vector3();
-      for (let i = 0; i < 30; i++) {
-        const u = i / 30, a = u * Math.PI * 2 * 4.3, ph = .25 + u * 1.25; // 등 위쪽 반구에 나선형으로
-        const x = Math.cos(a) * Math.sin(ph) * .13, y = .19 + Math.cos(ph) * .11 + .02, z = -.04 + Math.sin(a) * Math.sin(ph) * .16 - u * .06;
-        if (z > .1) continue;
-        const sp = cone(.026, .085, spikeM, x, y, z, body, 5);
-        dir.set(x, y - .17, z + .02).normalize(); sp.quaternion.setFromUnitVectors(up, dir);
-      }
-    }
-    // 네 다리(짧고 통통) — 대각선끼리 같이 움직여 기어다니는 느낌
+    // 콩 발 네 개(짧고 동글)
     const legs4 = [];
     for (const [sx, sz] of [[-1, 1], [1, 1], [-1, -1], [1, -1]]) {
-      const leg = new T.Group(); leg.position.set(sx * .075, .12, sz * .1); body.add(leg);
-      cyl(.034, .03, .09, furM, 0, -.045, 0, leg);
-      const paw = sphere(.036, lightM, 0, -.095, .012, leg); paw.scale.set(1, .6, 1.2);
+      const leg = new T.Group(); leg.position.set(sx * .065, .07, sz * .075 - .02); body.add(leg);
+      const paw = sphere(.042, lightM, 0, -.035, .01, leg); paw.scale.set(1, .7, 1.15); outline(paw, .042, .008);
       legs4.push(leg);
     }
     // 꼬리
-    let tail = new T.Group(); tail.position.set(0, .22, -.17); body.add(tail);
-    if (kind === 'puppy') { const t = capsule(.022, .07, darkM, 0, .04, -.02, tail); t.rotation.x = -.7; }
-    else if (kind === 'kitty') { const t1 = capsule(.016, .1, furM, 0, .06, -.02, tail); t1.rotation.x = -.35; const t2 = capsule(.016, .06, darkM, 0, .14, .0, tail); t2.rotation.x = .3; }
-    else if (kind === 'bunny') sphere(.04, toon('#ffffff'), 0, 0, -.01, tail);
-    else if (kind === 'piglet') { const t = mesh(geo('pigtail', () => new T.TorusGeometry(.025, .007, 6, 14, Math.PI * 1.6)), pinkM, 0, .01, -.02, tail); t.rotation.y = Math.PI / 2; }
+    let tail = new T.Group(); tail.position.set(0, .17, -.15); body.add(tail);
+    if (kind === 'puppy') { const t = sphere(.04, darkM, 0, .03, -.02, tail); t.scale.set(.8, 1.2, .8); }
+    else if (kind === 'kitty') { const t1 = capsule(.02, .09, furM, 0, .06, -.02, tail); t1.rotation.x = -.35; sphere(.026, darkM, 0, .12, .0, tail); }
+    else if (kind === 'bunny') sphere(.045, toon('#ffffff'), 0, 0, -.01, tail);
+    else if (kind === 'piglet') { const t = mesh(geo('pigtail', () => new T.TorusGeometry(.025, .008, 6, 14, Math.PI * 1.6)), pinkM, 0, .01, -.02, tail); t.rotation.y = Math.PI / 2; }
     g.traverse(o => { if (o.isMesh) { o.userData.ignorePick = true; o.castShadow = false; } });
     const pair = (a, b) => ({rotation: {set x(v) { a.rotation.x = v; b.rotation.x = v; }, get x() { return a.rotation.x; }}});
     return {group: g, body, legs: [pair(legs4[0], legs4[3]), pair(legs4[1], legs4[2])], tail, kind, hop: kind === 'bunny', phase: Math.random() * 6};

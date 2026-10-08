@@ -547,3 +547,32 @@ label.sw:has(input:checked) span { box-shadow: 0 0 0 3px var(--brown); }
 .topbar .brand { min-width: 0; flex-shrink: 1; overflow: hidden; }
 .topbar .brand > div { min-width: 0; overflow: hidden; }
 .topbar .brand small, .topbar .brand b { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* 🔭 시점 버튼: 표현 버튼 위 */
+.cam-btn { position: absolute; right: 26px; bottom: 160px; width: 48px; height: 48px; border-radius: 50%; border: var(--line); background: var(--cream); box-shadow: 0 3px 0 var(--brown);
+  display: grid; place-content: center; font-size: 19px; line-height: 1; padding: 0; z-index: 2; touch-action: manipulation; }
+.cam-btn small { font-family: var(--font-display); font-size: 9px; color: var(--brown-soft); }
+.cam-btn.on { background: var(--sun); }
+.cam-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--brown); }
+@media (max-width: 520px) { .cam-btn { right: 24px; bottom: 152px; width: 46px; height: 46px; } }
+
+/* 🎒 가방(인벤토리) — 게임 인벤토리처럼 칸으로 */
+.inv { display: grid; grid-template-columns: 200px 1fr; gap: 12px; margin: 6px 0 12px; }
+@media (max-width: 520px) { .inv { grid-template-columns: 1fr; } }
+.inv-equip { background: #2c221c; border: 3px solid #8a6a45; border-radius: 14px; padding: 10px; display: grid; justify-items: center; gap: 8px; box-shadow: inset 0 0 0 2px #4a3a2e; }
+.inv-equip .char-preview { width: 150px; height: 150px; background: radial-gradient(circle, #5a4636 0, #2c221c 70%); border-radius: 12px; }
+.eq-slots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; width: 100%; }
+.eq-slot, .inv-slot { position: relative; aspect-ratio: 1; display: grid; place-content: center; justify-items: center; gap: 1px; padding: 2px; border-radius: 9px;
+  background: linear-gradient(#4a3a2e, #3a2d24); border: 2px solid #8a6a45; box-shadow: inset 0 2px 0 #ffffff14, 0 2px 0 #1b1410; color: #f6e7cc; font-size: 22px; line-height: 1; }
+.eq-slot small, .inv-slot small { font-size: 9px; font-family: var(--font-body); color: #e9d3ae; max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.eq-slot .ghost { color: #8a6a45; font-size: 18px; }
+.eq-slot.on, .inv-slot.on { border-color: #f2c230; box-shadow: 0 0 0 2px #f2c23066, inset 0 2px 0 #ffffff22; }
+.inv-slot.on::after { content: 'E'; position: absolute; top: 2px; right: 4px; font: 700 10px/1 var(--font-body); color: #2c221c; background: #f2c230; border-radius: 4px; padding: 1px 3px; }
+.inv-slot.empty { opacity: .45; pointer-events: none; }
+.inv-bag { background: #2c221c; border: 3px solid #8a6a45; border-radius: 14px; padding: 10px; box-shadow: inset 0 0 0 2px #4a3a2e; }
+.inv-head { display: flex; align-items: baseline; gap: 8px; color: #f6e7cc; margin-bottom: 8px; }
+.inv-head small { color: #cbb391; font-size: 11px; }
+.inv-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.inv-jacket { display: grid; place-content: center; width: 30px; height: 30px; border-radius: 8px; background: var(--c); font-size: 18px; }
+.shop-ic { font-style: normal; margin-right: 6px; display: inline-flex; vertical-align: middle; }
+.shop-ic .inv-jacket { width: 22px; height: 22px; font-size: 13px; }
