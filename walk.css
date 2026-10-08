@@ -576,3 +576,37 @@ label.sw:has(input:checked) span { box-shadow: 0 0 0 3px var(--brown); }
 .inv-jacket { display: grid; place-content: center; width: 30px; height: 30px; border-radius: 8px; background: var(--c); font-size: 18px; }
 .shop-ic { font-style: normal; margin-right: 6px; display: inline-flex; vertical-align: middle; }
 .shop-ic .inv-jacket { width: 22px; height: 22px; font-size: 13px; }
+
+/* v2.5 상점 · 가방: 카드형, 겹침 없이(모달 기본 버튼 스타일 덮어씀) */
+#modalContent .cat-tabs { display: flex; gap: 6px; margin: 10px 0 8px; overflow-x: auto; }
+#modalContent .cat-tabs button { flex: 1 0 auto; min-height: 36px; padding: 6px 12px; border-radius: 999px; border: 2px solid var(--cream-3); background: var(--cream); font-family: var(--font-display); font-size: 14px; color: var(--brown); }
+#modalContent .cat-tabs button.on { background: var(--brown); color: var(--cream); border-color: var(--brown); }
+.sh-top { display: flex; align-items: baseline; gap: 8px; font-family: var(--font-display); font-size: 18px; }
+.sh-top small { font-family: var(--font-body); font-size: 12px; color: var(--brown-soft); }
+.sh-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 380px) { .sh-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.sh-card { min-width: 0; background: #fff; border: 2px solid var(--cream-3); border-radius: 14px; padding: 6px; display: grid; gap: 4px; justify-items: center; text-align: center; }
+.sh-card .thumb { width: 100%; aspect-ratio: 1; height: auto; border-radius: 10px; background: radial-gradient(circle at 50% 40%, #fff8e9, #ecd3ad); }
+.sh-card b { font-family: var(--font-display); font-weight: 400; font-size: 13px; line-height: 1.2; max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+#modalContent .sh-card button { width: 100%; min-height: 32px; padding: 4px; border: 2px solid var(--brown); border-radius: 10px; background: var(--sun); font-family: var(--font-display); font-size: 14px; box-shadow: 0 2px 0 var(--brown); }
+.sh-card.own { background: #f6f1e8; }
+.sh-own { font-family: var(--font-display); font-size: 13px; color: #3c8a5a; min-height: 32px; display: grid; place-items: center; }
+.pager { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 10px 0 2px; font-family: var(--font-display); }
+#modalContent .pager button { min-height: 34px; width: 44px; border-radius: 10px; border: 2px solid var(--brown); background: var(--cream); }
+.buy-box { display: grid; justify-items: center; gap: 4px; text-align: center; }
+.buy-box .thumb { width: 200px; height: 200px; border-radius: 18px; background: radial-gradient(circle at 50% 40%, #fff8e9, #ecd3ad); border: 3px solid var(--brown); }
+.buy-box h2 { margin: 6px 0 0; }
+
+.iv-equip { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 10px; align-items: center; background: #2c221c; border: 3px solid #8a6a45; border-radius: 14px; padding: 10px; }
+.iv-preview { width: 130px; height: 130px; border-radius: 12px; background: radial-gradient(circle, #5a4636 0, #2c221c 70%); }
+.iv-slots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; min-width: 0; }
+#modalContent .iv-slot, #modalContent .iv-cell { position: relative; min-width: 0; min-height: 0; padding: 4px; border-radius: 10px; display: grid; justify-items: center; gap: 2px;
+  background: linear-gradient(#4a3a2e, #3a2d24); border: 2px solid #8a6a45; box-shadow: inset 0 2px 0 #ffffff14; color: #e9d3ae; }
+#modalContent .iv-slot { aspect-ratio: auto; }
+.iv-slot .thumb, .iv-cell .thumb { width: 100%; max-width: 64px; aspect-ratio: 1; height: auto; border-radius: 8px; }
+.iv-slot .ghost { display: grid; place-items: center; width: 100%; max-width: 64px; aspect-ratio: 1; color: #8a6a45; font-size: 20px; }
+.iv-slot small, .iv-cell small { font-size: 10px; max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+#modalContent .iv-slot.on, #modalContent .iv-cell.on { border-color: #f2c230; box-shadow: 0 0 0 2px #f2c23055; }
+.iv-cell.on::after { content: 'E'; position: absolute; top: 3px; right: 3px; font: 700 10px/1 var(--font-body); color: #2c221c; background: #f2c230; border-radius: 4px; padding: 2px 4px; }
+.iv-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; background: #2c221c; border: 3px solid #8a6a45; border-radius: 14px; padding: 8px; }
+.iv-cell.empty { aspect-ratio: .82; opacity: .4; }

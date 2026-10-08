@@ -1,14 +1,14 @@
 // 밤마을 v0.7 — 카메라, 입력, 군중, 상호작용, 다이얼로그.
-import * as T from './vendor/three.min.mjs?v=1791441451';
-import {createBgm} from './bgm.mjs?v=1791441451';
-import {createWorld, HOST_STEP} from './world.mjs?v=1791441451';
-import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791441451';
+import * as T from './vendor/three.min.mjs?v=1791443431';
+import {createBgm} from './bgm.mjs?v=1791443431';
+import {createWorld, HOST_STEP} from './world.mjs?v=1791443431';
+import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791443431';
 import {TABLES, SPOTS, WANDERERS, LOUNGERS, DRINKS, ENTRY, ROOM, MOODS, JACKETS, ACCESSORIES, DRINK_MINUTES, PROFILE_TAGS, ROUND_MINUTES, NEXT_TOPICS, VILLAGES, RESIDENT_COUNT, RING, OBSTACLES,
-  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC, DOOR_Z} from './map-data.mjs?v=1791441451';
-import {createSession} from './session.mjs?v=1791441451';
-import {createOnline} from './online.mjs?v=1791441451';
-import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791441451';
-import {createGames} from './games.mjs?v=1791441451';
+  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC, DOOR_Z} from './map-data.mjs?v=1791443431';
+import {createSession} from './session.mjs?v=1791443431';
+import {createOnline} from './online.mjs?v=1791443431';
+import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791443431';
+import {createGames} from './games.mjs?v=1791443431';
 
 const $ = id => document.getElementById(id);
 const view = $('viewport'), dialog = $('villageDialog'), calm = $('calm');
@@ -1055,17 +1055,7 @@ function showMy(tab = 'profile') {
         ${own ? `<button data-title="${t.id}">${wallet.title === t.id ? '장착 중' : '장착'}</button>` : '<span class="lock">🔒</span>'}</div>`;
     }).join('')}</div>${wallet.title ? '<button class="secondary" data-title="">칭호 떼기</button>' : ''}`;
   } else if (tab === 'shop') {
-    const eq = wallet.equipped;
-    const isOn = itemOn;
-    const groups = [['extra', '머리 장식'], ['accessory', '소품 · 모자'], ['jacket', '옷'], ['pet', '펫 · 단골의 상징']];
-    body = `<p class="coin-line">🪙 <b>${coinText()}</b> 코인 <small>${TEST_MODE.infiniteCoins ? '테스트판이라 코인이 줄지 않아요' : `음료 1잔 주문할 때마다 +${COIN_RULES.drink} 충전`}</small></p>
-      ${groups.map(([k, l]) => `<h3>${l}</h3><div class="shop">${k === 'jacket' ? `<div class="item${eq.jacket === 'lime' ? ' on' : ''}"><b>기본 라임 재킷</b><small>기본</small><button data-base="jacket">${eq.jacket === 'lime' ? '착용 중' : '입기'}</button></div>` : ''}${k === 'accessory' ? `<div class="item${eq.accessory === 'none' ? ' on' : ''}"><b>없음</b><small>기본</small><button data-base="accessory">${eq.accessory === 'none' ? '착용 중' : '빼기'}</button></div>` : ''}${SHOP.filter(i => i.kind === k).map(i => {
-        const own = wallet.owned.includes(i.id);
-        const petLock = i.kind === 'pet' && !own && (!TEST_MODE.petsOpen && wallet.visitDays.length < PET_UNLOCK_DAYS);
-        if (petLock) return `<div class="item"><b>${i.name}</b><small>🔒 방문일 ${wallet.visitDays.length}/${PET_UNLOCK_DAYS}</small><button disabled>잠김</button></div>`;
-        return `<div class="item${isOn(i) ? ' on' : ''}"><b><i class="shop-ic">${invIcon(i)}</i>${i.name}</b><small>${own ? '보유' : '🪙 ' + i.price}</small><button data-item="${i.id}" ${!own && !TEST_MODE.infiniteCoins && wallet.coins < i.price ? 'disabled' : ''}>${own ? (isOn(i) ? (k === 'pet' ? '데려가는 중' : '착용 중') : (k === 'pet' ? '데려가기' : '입기')) : '사기'}</button></div>`;
-      }).join('')}</div>`).join('')}
-      <p class="note">${TEST_MODE.petsOpen ? '테스트판이라 펫을 바로 데려올 수 있어요(실서비스는 서로 다른 날 ' + PET_UNLOCK_DAYS + '번 방문 후).' : `펫은 단골의 상징이라 서로 다른 날 ${PET_UNLOCK_DAYS}번 방문하면 입양할 수 있어요(임시 기준).`} 코인은 꾸미기에 쓰고, 음료를 주문하면 1잔에 +${COIN_RULES.drink}씩 충전돼요(논알코올 포함, 현금 충전 없음).</p>`;
+    body = shopBody();
   } else {
     body = `<h3>주문</h3>${orderRows()}
       <div class="order-total"><span>합계 ${s.orders}잔</span><b>${won(s.total)}</b></div>
@@ -1095,7 +1085,12 @@ function showMy(tab = 'profile') {
   });
   if ($('jLeave')) $('jLeave').onclick = confirmStandOnly;
   $('modalContent').querySelectorAll('[data-base]').forEach(b => b.onclick = () => { wallet.equipped[b.dataset.base] = b.dataset.base === 'jacket' ? 'lime' : 'none'; saveWallet(); applyLook(); refresh(); showMy('shop'); });
-  $('modalContent').querySelectorAll('[data-item]').forEach(b => b.onclick = () => buyOrEquip(b.dataset.item));
+  $('modalContent').querySelectorAll('[data-buy]').forEach(b => b.onclick = () => openBuy(b.dataset.buy));
+  $('modalContent').querySelectorAll('[data-scat]').forEach(b => b.onclick = () => { shopUI.cat = b.dataset.scat; shopUI.page = 0; showMy('shop'); });
+  $('modalContent').querySelectorAll('[data-spage]').forEach(b => b.onclick = () => { shopUI.page += +b.dataset.spage; showMy('shop'); });
+  $('modalContent').querySelectorAll('[data-icat]').forEach(b => b.onclick = () => { invUI.cat = b.dataset.icat; invUI.page = 0; showMy('char'); });
+  $('modalContent').querySelectorAll('[data-ipage]').forEach(b => b.onclick = () => { invUI.page += +b.dataset.ipage; showMy('char'); });
+  if (tab === 'shop' || tab === 'char') paintThumbs();
   $('modalContent').querySelectorAll('[data-title]').forEach(b => b.onclick = () => { wallet.title = b.dataset.title || null; saveWallet(); refresh(); showMy('titles'); });
 }
 
@@ -1105,10 +1100,9 @@ function buyOrEquip(id) {
   if (!wallet.owned.includes(id)) {
     if (!TEST_MODE.infiniteCoins && wallet.coins < i.price) { status('코인이 모자라요. 자리에서 한 잔 주문하면 충전돼요'); return; }
     if (!TEST_MODE.infiniteCoins) wallet.coins -= i.price; wallet.owned.push(id); renderCoins(); session.record(`상점 · ${i.name} (-${i.price})`);
-    status(`${i.name}${i.kind === 'pet' ? '를 데려왔어요 🐾' : '를 샀어요'}`);
+    status(`${i.name} 구매 완료 · 🎒 가방에서 착용할 수 있어요`);
   }
-  equip(i);
-  saveWallet(); applyLook(); refresh(); showMy('shop');
+  saveWallet(); refresh(); showMy('shop');
 }
 // ── 가방(인벤토리): 산 아이템만 들어오고, 여기서 끼고 뺀다 ──
 const SLOTS = [['extra', '머리'], ['accessory', '소품'], ['jacket', '옷'], ['pet', '펫']];
@@ -1131,19 +1125,79 @@ function toggleEquip(id) {
   equip(i); saveWallet(); applyLook(); refresh(); status(`${i.icon} ${i.name} 착용!`);
 }
 function invIcon(i) { return i.kind === 'jacket' ? `<span class="inv-jacket" style="--c:${JACKETS.find(j => j.id === i.value)?.color ?? '#ccc'}">🧥</span>` : `<span>${i.icon ?? '✨'}</span>`; }
+const CATS = [['extra', '머리'], ['accessory', '소품'], ['jacket', '옷'], ['pet', '펫']];
+const shopUI = {cat: 'extra', page: 0}, invUI = {cat: 'all', page: 0};
+const thumbTag = i => `<canvas class="thumb" data-thumb="${i.id}" width="112" height="112"></canvas>`;
+function pager(n, per, ui, key) {
+  const pages = Math.max(1, Math.ceil(n / per)); ui.page = Math.min(Math.max(0, ui.page), pages - 1);
+  return pages > 1 ? `<div class="pager"><button data-${key}="-1" ${ui.page ? '' : 'disabled'}>◀</button><span>${ui.page + 1} / ${pages}</span><button data-${key}="1" ${ui.page < pages - 1 ? '' : 'disabled'}>▶</button></div>` : '';
+}
+// 상점: 종류 탭 · 한 페이지 6개 · 3D 미리보기 그림 · 사면 '보유 중'(착용은 가방에서)
+function shopBody() {
+  const list = SHOP.filter(i => i.kind === shopUI.cat), per = 6;
+  const pg = pager(list.length, per, shopUI, 'spage');
+  const cards = list.slice(shopUI.page * per, shopUI.page * per + per).map(i => {
+    const own = wallet.owned.includes(i.id);
+    return `<div class="sh-card${own ? ' own' : ''}">${thumbTag(i)}<b>${esc(i.name)}</b>
+      ${own ? '<span class="sh-own">✓ 보유 중</span>' : `<button data-buy="${i.id}">🪙 ${i.price}</button>`}</div>`;
+  }).join('');
+  return `<div class="sh-top"><span>🪙 <b>${coinText()}</b></span><small>${TEST_MODE.infiniteCoins ? '테스트판 · 코인이 줄지 않아요' : `음료 1잔에 +${COIN_RULES.drink}`}</small></div>
+    <div class="cat-tabs">${CATS.map(([k, l]) => `<button data-scat="${k}" class="${shopUI.cat === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+    <div class="sh-grid">${cards}</div>${pg}
+    <p class="note">산 아이템은 🎒 가방으로 들어가요. 착용은 가방에서 해요.</p>`;
+}
+function openBuy(id) {
+  const i = SHOP.find(i => i.id === id); if (!i) return;
+  show('SHOP · 구매', `<div class="buy-box">${thumbTag(i).replace('width="112" height="112"', 'width="200" height="200"')}<h2>${esc(i.name)}</h2><p class="meta">🪙 ${i.price}</p></div>
+    <button class="action" id="buyYes">사기</button><button class="secondary" id="buyNo">그만두기</button>`);
+  paintThumbs();
+  $('buyYes').onclick = () => buyOrEquip(id); $('buyNo').onclick = () => showMy('shop');
+}
+// 가방: 장착 칸 + 종류 필터 + 한 페이지 12칸
 function inventoryBody() {
-  const owned = SHOP.filter(i => wallet.owned.includes(i.id));
+  const owned = SHOP.filter(i => wallet.owned.includes(i.id) && (invUI.cat === 'all' || i.kind === invUI.cat)), per = 12;
   const worn = kind => SHOP.find(i => i.kind === kind && itemOn(i));
-  const cells = owned.map(i => `<button class="inv-slot${itemOn(i) ? ' on' : ''}" data-inv="${i.id}" title="${esc(i.name)}">${invIcon(i)}<small>${esc(i.name)}</small></button>`);
-  while (cells.length < 20 || cells.length % 5) cells.push('<button class="inv-slot empty" data-inv="" aria-hidden="true" tabindex="-1"></button>');
-  return `<div class="inv">
-    <div class="inv-equip"><canvas id="charPreview" width="220" height="220" class="char-preview"></canvas>
-      <div class="eq-slots">${SLOTS.map(([k, l]) => { const i = worn(k); return `<button class="eq-slot${i ? ' on' : ''}" ${i ? `data-uneq="${k}"` : ''} title="${i ? esc(i.name) + ' · 눌러서 빼기' : l + ' 칸 비어 있음'}">${i ? invIcon(i) : '<span class="ghost">＋</span>'}<small>${l}</small></button>`; }).join('')}</div></div>
-    <div class="inv-bag"><div class="inv-head"><b>가방</b><small>${owned.length}개 · 눌러서 착용 / 다시 누르면 빼기</small></div>
-      <div class="inv-grid">${cells.join('')}</div></div>
-  </div>
-  <button class="action" id="invShop">🛍 상점에서 아이템 사기</button>
-  <p class="note">몸(종·털 색)은 체크인할 때 정해요. 꾸미기는 상점에서 산 아이템만 가방에 들어와요.</p>`;
+  const pg = pager(owned.length, per, invUI, 'ipage');
+  const cells = owned.slice(invUI.page * per, invUI.page * per + per).map(i => `<button class="iv-cell${itemOn(i) ? ' on' : ''}" data-inv="${i.id}">${thumbTag(i)}<small>${esc(i.name)}</small></button>`);
+  while (cells.length < per) cells.push('<div class="iv-cell empty"></div>');
+  return `<div class="iv-equip"><canvas id="charPreview" width="220" height="220" class="iv-preview"></canvas>
+      <div class="iv-slots">${SLOTS.map(([k, l]) => { const i = worn(k); return `<button class="iv-slot${i ? ' on' : ''}" ${i ? `data-uneq="${k}"` : 'disabled'}>${i ? thumbTag(i) : '<span class="ghost">＋</span>'}<small>${i ? '빼기' : l}</small></button>`; }).join('')}</div></div>
+    <div class="cat-tabs">${[['all', '전체'], ...CATS].map(([k, l]) => `<button data-icat="${k}" class="${invUI.cat === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+    <div class="iv-grid">${cells.join('')}</div>${pg}
+    ${wallet.owned.length ? '<p class="note">누르면 착용, 다시 누르면 빼기. 위 칸을 눌러도 빠져요.</p>' : '<p class="note">아직 가방이 비었어요.</p>'}
+    <button class="action" id="invShop">🛍 상점 가기</button>`;
+}
+// 아이템 미리보기 그림: 오프스크린 3D로 한 번 그려서 캐시
+const thumbCache = new Map(); let thumbR = null;
+function itemThumbURL(i) {
+  if (thumbCache.has(i.id)) return thumbCache.get(i.id);
+  if (!thumbR) {
+    const r = new T.WebGLRenderer({antialias: true, alpha: true, preserveDrawingBuffer: true}); r.setSize(160, 160, false); r.setPixelRatio(1);
+    const sc = new T.Scene(); sc.add(new T.HemisphereLight('#fff3e0', '#6b5040', 1.7)); const dl = new T.DirectionalLight('#ffffff', 1.3); dl.position.set(2, 4, 5); sc.add(dl);
+    thumbR = {r, sc, cam: new T.PerspectiveCamera(30, 1, .05, 20), holder: new T.Group()}; sc.add(thumbR.holder);
+  }
+  const {r, sc, cam, holder} = thumbR; holder.clear();
+  const L = wallet.look ?? CHAR_DEFAULT;
+  if (i.kind === 'pet') {
+    const pet = makePet(i.value, i.fur); pet.group.removeFromParent(); pet.group.position.set(0, 0, 0); pet.group.rotation.y = -.5; holder.add(pet.group);
+    cam.position.set(0, .45, 1.25); cam.lookAt(0, .26, 0);
+  } else {
+    const jc = i.kind === 'jacket' ? JACKETS.find(j => j.id === i.value)?.color : '#d9c8a8';
+    const c = world.critter({species: L.species, fur: L.fur, outfit: jc ?? '#cddc83', accent: '#f4b942', extra: i.kind === 'extra' ? i.value : 'none'});
+    if (i.kind === 'accessory') world.addAccessory(c.head, i.value);
+    c.rig.rotation.y = -.45; holder.add(c.rig);
+    if (i.kind === 'jacket') { cam.position.set(0, .75, 2.6); cam.lookAt(0, .6, 0); }
+    else if (i.value === 'wings' || i.value === 'batwings') { cam.position.set(.6, 1.0, -2.2); cam.lookAt(0, .75, 0); c.rig.rotation.y = .2; }
+    else { cam.position.set(0, 1.3, 2.1); cam.lookAt(0, 1.08, 0); }
+  }
+  r.render(sc, cam);
+  const url = r.domElement.toDataURL(); thumbCache.set(i.id, url); return url;
+}
+function paintThumbs() {
+  document.querySelectorAll('canvas[data-thumb]').forEach(cv => {
+    const i = SHOP.find(x => x.id === cv.dataset.thumb); if (!i) return;
+    const img = new Image(); img.onload = () => { const g = cv.getContext('2d'); g.clearRect(0, 0, cv.width, cv.height); g.drawImage(img, 0, 0, cv.width, cv.height); }; img.src = itemThumbURL(i);
+  });
 }
 
 function showMap() {
