@@ -1,8 +1,8 @@
 // 밤마을 v0.7 — 앰버 조명의 미드센추리 바 디오라마와 2등신 동물 주민.
 // 모든 그림은 코드와 캔버스로 직접 만든다(외부 이미지·모델 없음).
 // 무드: 월넛 루버 · 러스트 벨벳 커튼 · 웜다크 콘크리트 · 돌기둥 링 바 · 버섯 램프 · 캐러멜 가죽 · 앰버 빛 웅덩이.
-import * as T from './vendor/three.min.mjs?v=1791365203';
-import {TABLES, WANDERERS, LOUNGERS, ENTRY, DOOR_Z, ROOM, RING, SOFA, MEZZ, MEZZ_Y, STAIRS, WELCOME_ZONE, PEOPLE} from './map-data.mjs?v=1791365203';
+import * as T from './vendor/three.min.mjs?v=1791424785';
+import {TABLES, WANDERERS, LOUNGERS, ENTRY, DOOR_Z, ROOM, RING, SOFA, MEZZ, MEZZ_Y, STAIRS, WELCOME_ZONE, PEOPLE} from './map-data.mjs?v=1791424785';
 
 export const HOST_STEP = .32; // 링 바 안쪽 발판 높이: 호스트 얼굴이 카운터 위로 보이게
 const SKY = '#211b17'; // v1.8 젠 하이엔드: 바깥은 깊은 웜 차콜
@@ -794,12 +794,68 @@ export function createWorld() {
   for (const n of LOUNGERS) resident({...n, seated: true});
 
   // ── 펫: 단골의 상징. 작은 동물이 주인을 따라다닌다 ──
+  // ── 펫(v1.9): 사람 캐릭터 축소판이 아니라 네 발로 아장아장 기어다니는 꼬마 동물 ──
+  // 종류는 적게: 강아지 · 고양이 · 토끼 · 아기 돼지 · 고슴도치. 예전 펫 이름은 가까운 종류로 바꿔 보여준다.
+  const PET_ALIAS = {dog: 'puppy', fox: 'puppy', sheep: 'puppy', koala: 'puppy', raccoon: 'puppy', tiger: 'kitty', cat: 'kitty', panda: 'kitty', rabbit: 'bunny', mouse: 'bunny', hamster: 'piglet', frog: 'piglet', penguin: 'hedgehog', dragon: 'hedgehog', ghost: 'bunny', robot: 'puppy', dokkaebi: 'piglet'};
+  const PET_FUR = {puppy: '#e8bd85', kitty: '#f2b675', bunny: '#fbf3ea', piglet: '#f6b6b0', hedgehog: '#c9a27c'};
   function makePet(species, fur) {
+    const kind = PET_FUR[species] ? species : PET_ALIAS[species] ?? 'puppy';
     const g = new T.Group(); scene.add(g);
-    const c = critter({species, fur, outfit: fur, accent: '#ff8fb1'});
-    c.rig.scale.setScalar(.42); g.add(c.rig);
+    const base = fur && PET_FUR[species] ? fur : PET_FUR[kind];
+    const furM = toon(base), lightM = toon(lighter(base)), darkM = toon(darker(base)), pinkM = toon('#ff9fb0');
+    const body = new T.Group(); body.scale.setScalar(1.3); g.add(body);
+    // 몸통(앞뒤로 긴 콩 모양) + 배
+    const torso = sphere(.13, kind === 'hedgehog' ? toon('#f3dcc0') : furM, 0, .19, 0, body); torso.scale.set(1.0, .82, 1.32); outline(torso, .13, .014);
+    if (kind !== 'hedgehog') { const belly = sphere(.09, lightM, 0, .15, .03, body, false); belly.scale.set(.9, .6, 1.2); }
+    // 머리
+    const hy = kind === 'bunny' ? .31 : .29, hz = .17;
+    const head = new T.Group(); head.position.set(0, hy, hz); body.add(head);
+    const skull = sphere(.11, kind === 'hedgehog' ? toon('#f3dcc0') : furM, 0, 0, 0, head); skull.scale.set(1.05, .95, .95); outline(skull, .11, .014);
+    for (const sx of [-1, 1]) {
+      const eye = sphere(.02, DARK, sx * .045, .015, .095, head); eye.scale.set(1, 1.25, .6);
+      sphere(.007, WHITE, sx * .045 + .006, .025, .108, head, false);
+      const bl = sphere(.022, BLUSH, sx * .075, -.025, .08, head, false); bl.scale.set(1, .55, .35);
+    }
+    if (kind === 'piglet') { const sn = cyl(.042, .045, .03, pinkM, 0, -.02, .105, head); sn.rotation.x = Math.PI / 2; for (const sx of [-1, 1]) sphere(.009, DARK, sx * .015, -.02, .122, head, false); }
+    else if (kind === 'hedgehog') { const sn = cone(.035, .07, lightM, 0, -.02, .12, head, 10); sn.rotation.x = Math.PI / 2; sphere(.014, DARK, 0, -.02, .155, head, false); }
+    else { const mz = sphere(.045, lightM, 0, -.03, .085, head, false); mz.scale.set(1.2, .8, .8); sphere(.014, kind === 'puppy' ? DARK : pinkM, 0, -.012, .13, head, false); }
+    // 귀
+    for (const sx of [-1, 1]) {
+      if (kind === 'puppy') { const e = sphere(.05, darkM, sx * .1, .02, -.01, head); e.scale.set(.45, 1.1, .8); e.rotation.z = sx * .35; }
+      else if (kind === 'kitty') { const e = cone(.04, .07, furM, sx * .065, .1, 0, head, 4); e.rotation.z = sx * -.25; const ei = cone(.022, .04, pinkM, sx * .065, .095, .012, head, 4); ei.rotation.z = sx * -.25; }
+      else if (kind === 'bunny') { const e = capsule(.026, .14, furM, sx * .04, .17, -.02, head); e.rotation.z = sx * -.15; const ei = capsule(.013, .11, pinkM, sx * .04, .17, -.004, head); ei.rotation.z = sx * -.15; }
+      else if (kind === 'piglet') { const e = cone(.035, .05, furM, sx * .07, .085, .01, head, 4); e.rotation.set(.6, 0, sx * -.4); }
+      else { const e = sphere(.022, toon('#f3dcc0'), sx * .07, .07, 0, head); e.scale.set(1, 1, .5); }
+    }
+    // 고슴도치 가시
+    if (kind === 'hedgehog') {
+      const spikeM = toon(base === PET_FUR.hedgehog ? '#7a5a3e' : darker(base));
+      const up = new T.Vector3(0, 1, 0), dir = new T.Vector3();
+      for (let i = 0; i < 30; i++) {
+        const u = i / 30, a = u * Math.PI * 2 * 4.3, ph = .25 + u * 1.25; // 등 위쪽 반구에 나선형으로
+        const x = Math.cos(a) * Math.sin(ph) * .13, y = .19 + Math.cos(ph) * .11 + .02, z = -.04 + Math.sin(a) * Math.sin(ph) * .16 - u * .06;
+        if (z > .1) continue;
+        const sp = cone(.026, .085, spikeM, x, y, z, body, 5);
+        dir.set(x, y - .17, z + .02).normalize(); sp.quaternion.setFromUnitVectors(up, dir);
+      }
+    }
+    // 네 다리(짧고 통통) — 대각선끼리 같이 움직여 기어다니는 느낌
+    const legs4 = [];
+    for (const [sx, sz] of [[-1, 1], [1, 1], [-1, -1], [1, -1]]) {
+      const leg = new T.Group(); leg.position.set(sx * .075, .12, sz * .1); body.add(leg);
+      cyl(.034, .03, .09, furM, 0, -.045, 0, leg);
+      const paw = sphere(.036, lightM, 0, -.095, .012, leg); paw.scale.set(1, .6, 1.2);
+      legs4.push(leg);
+    }
+    // 꼬리
+    let tail = new T.Group(); tail.position.set(0, .22, -.17); body.add(tail);
+    if (kind === 'puppy') { const t = capsule(.022, .07, darkM, 0, .04, -.02, tail); t.rotation.x = -.7; }
+    else if (kind === 'kitty') { const t1 = capsule(.016, .1, furM, 0, .06, -.02, tail); t1.rotation.x = -.35; const t2 = capsule(.016, .06, darkM, 0, .14, .0, tail); t2.rotation.x = .3; }
+    else if (kind === 'bunny') sphere(.04, toon('#ffffff'), 0, 0, -.01, tail);
+    else if (kind === 'piglet') { const t = mesh(geo('pigtail', () => new T.TorusGeometry(.025, .007, 6, 14, Math.PI * 1.6)), pinkM, 0, .01, -.02, tail); t.rotation.y = Math.PI / 2; }
     g.traverse(o => { if (o.isMesh) { o.userData.ignorePick = true; o.castShadow = false; } });
-    return {group: g, legs: c.legs, phase: Math.random() * 6};
+    const pair = (a, b) => ({rotation: {set x(v) { a.rotation.x = v; b.rotation.x = v; }, get x() { return a.rotation.x; }}});
+    return {group: g, body, legs: [pair(legs4[0], legs4[3]), pair(legs4[1], legs4[2])], tail, kind, hop: kind === 'bunny', phase: Math.random() * 6};
   }
   const npcPets = [];
   for (const n of npcs) { const info = PEOPLE[n.name]; if (info?.pet) npcPets.push({...makePet(info.pet.species, info.pet.fur), owner: n}); }

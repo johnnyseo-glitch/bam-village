@@ -1,7 +1,7 @@
 // 밤마을 v0.5 — 한 손님의 체험 상태.
 // 서버가 없으므로 이 브라우저 안에서만 유지된다. 실제 파일럿에서는 좌석·요청·주문의
 // 최종 상태를 서버 한 곳에서만 확정해야 한다.
-import {TABLES, DRINKS} from './map-data.mjs?v=1791365203';
+import {TABLES, DRINKS} from './map-data.mjs?v=1791424785';
 
 export const ORDER_STEPS = ['접수', '준비 중', '서빙 완료'];
 

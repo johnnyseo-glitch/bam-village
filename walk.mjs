@@ -1,14 +1,14 @@
 // 밤마을 v0.7 — 카메라, 입력, 군중, 상호작용, 다이얼로그.
-import * as T from './vendor/three.min.mjs?v=1791365203';
-import {createBgm} from './bgm.mjs?v=1791365203';
-import {createWorld, HOST_STEP} from './world.mjs?v=1791365203';
-import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791365203';
+import * as T from './vendor/three.min.mjs?v=1791424785';
+import {createBgm} from './bgm.mjs?v=1791424785';
+import {createWorld, HOST_STEP} from './world.mjs?v=1791424785';
+import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791424785';
 import {TABLES, SPOTS, WANDERERS, LOUNGERS, DRINKS, ENTRY, ROOM, MOODS, JACKETS, ACCESSORIES, DRINK_MINUTES, PROFILE_TAGS, ROUND_MINUTES, NEXT_TOPICS, VILLAGES, RESIDENT_COUNT, RING, OBSTACLES,
-  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC, DOOR_Z} from './map-data.mjs?v=1791365203';
-import {createSession} from './session.mjs?v=1791365203';
-import {createOnline} from './online.mjs?v=1791365203';
-import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791365203';
-import {createGames} from './games.mjs?v=1791365203';
+  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC, DOOR_Z} from './map-data.mjs?v=1791424785';
+import {createSession} from './session.mjs?v=1791424785';
+import {createOnline} from './online.mjs?v=1791424785';
+import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791424785';
+import {createGames} from './games.mjs?v=1791424785';
 
 const $ = id => document.getElementById(id);
 const view = $('viewport'), dialog = $('villageDialog'), calm = $('calm');
@@ -73,6 +73,10 @@ const wallet = Object.assign({coins: DEMO_WALLET.coins, visits: DEMO_WALLET.visi
 for (const f of wallet.friends) f.key ??= 'npc:' + f.name; // v0.9 친구 기록 → 사람 키
 // 테스트판: 이전 지갑에도 시작 코인 1,000을 한 번 채워 준다
 if (!wallet.bonus1000) { if (wallet.visits > 0) wallet.coins += 1000; wallet.bonus1000 = true; }
+// v1.9: 예전 펫(사람 캐릭터 축소판)은 정리한다. 새 펫은 상점에서 다시 데려온다.
+{ const petIds = new Set(SHOP.filter(i => i.kind === 'pet').map(i => i.value));
+  if (wallet.equipped.pet && !petIds.has(wallet.equipped.pet)) wallet.equipped.pet = null;
+  wallet.owned = wallet.owned.filter(id => !id.startsWith('pet-') || SHOP.some(i => i.id === id)); }
 
 // ── 해금: 행동하면서 자연스럽게 열리는 밤마을 ─────────────
 // 배우기 위한 해금(LEARN)은 MY의 '전체 기능 보기'로 먼저 열 수 있고, 보상(펫·칭호)은 조건을 채워야 한다.
@@ -195,7 +199,6 @@ function refreshLabels() {
 }
 function refresh() {
   refreshLabels();
-  $('exitButton').hidden = !inVillage;
   const p = state.profile;
   $('nameplate').innerHTML = `<b class="mood-dot ${p.mood}"></b>${wallet.title && has('titles') ? `<small class="ttl">〈${esc(titleName(wallet.title))}〉</small>` : ''}${esc(p.name)} <i>${genderMark(p.gender)}</i>${wallet.equipped.pet ? '🐾' : ''}`;
   const open = TABLES.filter(t => !session.isFull(t.id)).length;
@@ -210,13 +213,14 @@ function activeOrder() {
 function renderDock() {
   const dock = $('dock'), p = state.profile, o = activeOrder();
   const moodChip = `<button class="mood-chip" id="dockMood"><b class="mood-dot ${p.mood}"></b>${MOODS[p.mood].short}</button>`;
+  const exitChip = inVillage ? '<button class="exit-chip" id="dockExit" aria-label="오늘 방문 마치고 나가기">🚪 나가기</button>' : '';
   const orderChip = o ? `<button class="order-chip" id="dockOrder"><span style="--drink:${o.color}"></span>${esc(o.name)} · ${o.status}</button>` : '';
   if (escorting) {
     dock.innerHTML = `<div class="dock-line"><span class="pulse"></span>JAY가 자리까지 안내하는 중이에요</div>`;
     return;
   }
   if (place === 'town') {
-    dock.innerHTML = `<div class="dock-head">${moodChip}${orderChip}<span class="dock-seat">🌆 밤마을 골목 · 산책 중</span></div>
+    dock.innerHTML = `<div class="dock-head">${moodChip}${orderChip}<span class="dock-seat">🌆 골목 산책 중</span>${exitChip}</div>
       <div class="dock-actions">
         <button class="primary" id="tBar">바로 들어가기</button>
         <button id="tPlaza">광장</button>
@@ -230,7 +234,7 @@ function renderDock() {
   }
   if (state.table) {
     const t = tableOf(state.table);
-    dock.innerHTML = `<div class="dock-head"><span class="dock-seat">T${t.number} · ${esc(t.title)}</span>${orderChip}</div>
+    dock.innerHTML = `<div class="dock-head"><span class="dock-seat">T${t.number} · ${esc(t.title)}</span>${orderChip}${exitChip}</div>
       <div class="dock-actions seated${has('games') ? '' : ' four'}">
         <button class="primary" id="dockMenu">한잔 주문</button>
         ${has('games') ? '<button id="dockGame">🎲 게임</button>' : ''}
@@ -241,14 +245,14 @@ function renderDock() {
     $('dockMenu').onclick = () => openMenu(); $('dockHost').onclick = openHostHelp; if ($('dockGame')) $('dockGame').onclick = () => games.menu();
     $('dockCalm').onclick = () => showCalm(t); $('dockStand').onclick = confirmStandOnly;
   } else {
-    dock.innerHTML = `<div class="dock-head">${moodChip}${orderChip}</div>
-      <div class="dock-actions">
+    dock.innerHTML = `<div class="dock-head">${moodChip}${orderChip}${exitChip}</div>
+      <div class="dock-actions three">
         <button id="toBar">바 앞으로</button>
         <button id="toMap">열린 테이블</button>
-        <button class="quiet" id="toEntry">🚪 나가기</button>
+        <button id="toOut">🌆 골목으로</button>
       </div>`;
     $('toBar').onclick = () => selectEntity('host');
-    $('toMap').onclick = showMap; $('toEntry').onclick = finishVisit;
+    $('toMap').onclick = showMap; $('toOut').onclick = () => selectEntity('exit');
     $('dockMood').onclick = openMood;
   }
   if (o) $('dockOrder').onclick = showJournal;
@@ -397,6 +401,7 @@ function selectEntity(id) {
   closeDialog();
   const spot = SPOTS.find(s => s.id === id);
   if (spot) {
+    peekLabel(id);
     if (state.table === id) { openTable(tableOf(id)); return; }
     if (state.table && id === 'host') { openHostHelp(); return; }
     if (state.table) { confirmStand(spot.title, () => selectEntity(id)); return; }
@@ -1650,8 +1655,10 @@ function animatePets(now, dt) {
     else g.quaternion.slerp(owner.quaternion, 1 - Math.exp(-dt * 2));
     p.phase += dt * (moving ? 14 : 2);
     p.legs[0].rotation.x = moving ? Math.sin(p.phase) * .6 : 0; p.legs[1].rotation.x = moving ? -Math.sin(p.phase) * .6 : 0;
+    if (p.tail) p.tail.rotation.y = Math.sin(now * (moving ? .02 : .008)) * (p.kind === 'puppy' ? .7 : .3); // 꼬리 살랑
+    if (p.body) { p.body.rotation.x = moving && p.hop ? -Math.abs(Math.sin(p.phase * .5)) * .25 : 0; }
     if (p.jv || p.jy) { p.jv = (p.jv ?? 0) - GRAVITY * dt; p.jy = (p.jy ?? 0) + p.jv * dt; if (p.jy <= 0) { p.jy = 0; p.jv = 0; } }
-    g.position.y = floor + (p.jy ?? 0) + (moving && !reduced ? Math.abs(Math.sin(p.phase)) * .05 : 0);
+    g.position.y = floor + (p.jy ?? 0) + (moving && !reduced ? (p.hop ? Math.abs(Math.sin(p.phase * .5)) * .12 : Math.abs(Math.sin(p.phase)) * .03) : 0);
   }
 }
 
@@ -1698,13 +1705,16 @@ function updateClock() {
 }
 updateClock(); setInterval(updateClock, 30000);
 
+const labelPeek = {id: null, until: 0};
+function peekLabel(id, ms = 4000) { labelPeek.id = id; labelPeek.until = performance.now() + ms; }
 function updateOverlay() {
   for (const l of labels) {
     projected.copy(l.anchor).project(camera);
     const d = l.anchor.distanceTo(actor.position);
     const nearExit = l.spot.kind === 'exit' && Math.hypot(actor.position.x - ENTRY.x, actor.position.z - ENTRY.z) < 2.4;
     const ownSeat = state.table && l.spot.id === state.table;
-    const visible = place === 'bar' && !nearExit && !ownSeat && projected.z > -1 && projected.z < 1 && Math.abs(projected.x) < .88 && Math.abs(projected.y) < .83 && d < 10;
+    // 이름표는 가까이 가서 누른 것만 잠깐 보인다(근처만 가도 우르르 뜨지 않게)
+    const visible = place === 'bar' && labelPeek.id === l.spot.id && performance.now() < labelPeek.until && !nearExit && !ownSeat && projected.z > -1 && projected.z < 1 && Math.abs(projected.x) < .88 && Math.abs(projected.y) < .83 && d < 10;
     l.button.hidden = !visible;
     if (visible) { l.button.style.left = (projected.x + 1) / 2 * view.clientWidth + 'px'; l.button.style.top = (-projected.y + 1) / 2 * view.clientHeight + 'px'; }
   }
@@ -1723,7 +1733,7 @@ function updateOverlay() {
   if (place === 'town') {
     for (const l of townLabels) {
       projected.set(l.spot.wx, l.y, l.spot.z); const d = Math.hypot(actor.position.x - l.spot.wx, actor.position.z - l.spot.z); projected.project(camera);
-      const vis = d < 12 && projected.z > -1 && projected.z < 1 && Math.abs(projected.x) < .9 && Math.abs(projected.y) < .85;
+      const vis = labelPeek.id === 'town:' + l.spot.id && performance.now() < labelPeek.until && projected.z > -1 && projected.z < 1 && Math.abs(projected.x) < .9 && Math.abs(projected.y) < .85;
       l.button.hidden = !vis; if (vis) { l.button.style.left = (projected.x + 1) / 2 * view.clientWidth + 'px'; l.button.style.top = (-projected.y + 1) / 2 * view.clientHeight + 'px'; }
       const r = l.spot.kind === 'door' ? 1.5 : 2.0;
       if (d < Math.min(best + .5, r)) { best = d; nearest = {id: 'town:' + l.spot.id, label: l.spot.label}; }
@@ -1922,6 +1932,7 @@ function goInside() {
 }
 function walkTownSpot(id) {
   const s = TOWN_SPOTS.find(s => s.id === id); if (!s) return;
+  peekLabel('town:' + id);
   const near = Math.hypot(actor.position.x - s.wx, actor.position.z - s.z) < 1.6;
   if (near) { openTownSpot(id); return; }
   const r = town.route({x: actor.position.x, z: actor.position.z}, {x: s.wx, z: s.z});
@@ -2069,7 +2080,7 @@ bgm.onChange(on => { $('bgmBtn').classList.toggle('off', !on); $('bgmBtn').setAt
 addEventListener('pointerdown', e => { if (e.target.id !== 'bgmBtn') try { bgm.start(); } catch {} }, {once: true, capture: true});
 addEventListener('keydown', () => { try { bgm.start(); } catch {} }, {once: true, capture: true});
 $('bgmBtn').onclick = e => { e.stopPropagation(); if (!bgm.started && bgm.on) { bgm.start(); status('🎵 배경음악을 켰어요'); return; } const on = bgm.toggle(); status(on ? '🎵 배경음악을 켰어요' : '🔇 배경음악을 껐어요'); };
-$('exitButton').onclick = finishVisit;
+$('dock').addEventListener('click', e => { if (e.target.closest('#dockExit')) finishVisit(); });
 online = createOnline({
   scene, critter: world.critter, makePet, eulreul, iga, qrImg: QR_IMG, camera, view, actor, state, session, esc, genderMark,
   bubbleOver, status, show, closeDialog, refresh, tableOf, openMenu, openTable, serveToMe, hideCalm,

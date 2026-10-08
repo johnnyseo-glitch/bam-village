@@ -136,20 +136,25 @@ export const OPEN_TOPICS = [
 ];
 
 // 이동 장애물(내비게이션). 원: [x, z, r] · 사각형: {minX, maxX, minZ, maxZ}
+// v1.9: 실제 가구 크기에 맞게 줄였다(보이지 않는 벽 없애기). 의자·스툴까지만 막는다.
 export const OBSTACLES = {
   circles: [
-    [RING.x, RING.z, 2.35],
-    [-5.6, -4.2, 1.62], [5.6, -4.4, 1.95],
-    [-7.9, -6.4, .55], [7.9, -6.4, .55],   // 뒤쪽 모서리 화분
-    [-3.7, 4.75, 1.62],                     // 빈 테이블(T6)
-    [-8.0, 10.4, .45], [8.0, 10.4, .45]    // 앞쪽 모서리 화분
+    [RING.x, RING.z, 2.2],                  // 링 바 + 스툴
+    [-5.6, -4.2, 1.38],                     // 원형 테이블 T2 + 의자
+    [5.6, -4.4, 1.62], [7.3, -5.3, .35],    // 부스 + 옆 화분
+    [-7.9, -6.4, .45], [7.9, -6.4, .45],    // 뒤쪽 모서리 화분
+    [-3.7, 4.75, 1.38],                     // 원형 테이블 T6 + 의자
+    [SOFA.coffee.x, SOFA.coffee.z, .58],    // 커피 테이블
+    [SOFA.coffee.x - 1.25, 1.15, .4], [SOFA.coffee.x - 1.25, 2.55, .4], // 라운지 체어
+    [SOFA.coffee.x + .55, SOFA.coffee.z - .7, .38], // 사이드 테이블
+    [-8.0, 10.4, .4], [8.0, 10.4, .4]       // 앞쪽 모서리 화분
   ],
   rects: [
-    {minX: -5.1, maxX: -2.1, minZ: .45, maxZ: 2.75},   // 긴 테이블
-    {minX: 3.55, maxX: 8.5, minZ: .35, maxZ: 3.45},    // 소파 거실존
-    {minX: -6.35, maxX: -2.85, minZ: 6.1, maxZ: 8.5},  // 바 테이블 1
-    {minX: 2.85, maxX: 6.35, minZ: 6.1, maxZ: 8.5},    // 바 테이블 2
-    {minX: -8.5, maxX: -7.2, minZ: -5.3, maxZ: -1.25}  // 계단 아래
+    {minX: -4.95, maxX: -2.25, minZ: .55, maxZ: 2.65},  // 긴 테이블 + 의자
+    {minX: 6.2, maxX: 7.35, minZ: .3, maxZ: 3.35},      // 소파(+ 플로어 램프)
+    {minX: -6.3, maxX: -2.9, minZ: 6.25, maxZ: 8.35},   // 바 테이블 1 + 스툴
+    {minX: 2.9, maxX: 6.3, minZ: 6.25, maxZ: 8.35},     // 바 테이블 2 + 스툴
+    {minX: -8.5, maxX: -7.25, minZ: -5.2, maxZ: -1.3}   // 계단
   ]
 };
 // 2층 장애물
@@ -315,23 +320,12 @@ export const SHOP = [
   {id: 'acc-starpin', kind: 'accessory', value: 'starpin', name: '별 머리핀', price: 150},
   {id: 'acc-earmuff', kind: 'accessory', value: 'earmuff', name: '귀마개', price: 250},
   {id: 'acc-sakura', kind: 'accessory', value: 'sakura', name: '벚꽃 핀', price: 150},
-  {id: 'pet-hamster', kind: 'pet', value: 'hamster', fur: '#f3c48e', name: '아기 햄찌', price: 700},
-  {id: 'pet-cat', kind: 'pet', value: 'cat', fur: '#f2b675', name: '아기 고양이', price: 900},
-  {id: 'pet-dog', kind: 'pet', value: 'dog', fur: '#e8bd85', name: '아기 강아지', price: 1100},
-  {id: 'pet-rabbit', kind: 'pet', value: 'rabbit', fur: '#fbf3ea', name: '아기 토끼', price: 900},
-  {id: 'pet-panda', kind: 'pet', value: 'panda', fur: '#fbfbf6', name: '아기 판다', price: 1200},
-  {id: 'pet-penguin', kind: 'pet', value: 'penguin', fur: '#2f2b30', name: '아기 펭귄', price: 1000},
-  {id: 'pet-fox', kind: 'pet', value: 'fox', fur: '#f08a3c', name: '아기 여우', price: 1000},
-  {id: 'pet-tiger', kind: 'pet', value: 'tiger', fur: '#f2a03c', name: '아기 호랑이', price: 1300},
-  {id: 'pet-sheep', kind: 'pet', value: 'sheep', fur: '#f6f1e6', name: '아기 양', price: 900},
-  {id: 'pet-koala', kind: 'pet', value: 'koala', fur: '#a9a6ad', name: '아기 코알라', price: 1100},
-  {id: 'pet-frog', kind: 'pet', value: 'frog', fur: '#8fcf6a', name: '아기 개구리', price: 700},
-  {id: 'pet-mouse', kind: 'pet', value: 'mouse', fur: '#c9bdb4', name: '아기 생쥐', price: 600},
-  {id: 'pet-raccoon', kind: 'pet', value: 'raccoon', fur: '#8a7a6c', name: '아기 너구리', price: 900},
-  {id: 'pet-dragon', kind: 'pet', value: 'dragon', fur: '#7fc99a', name: '아기 용', price: 1800},
-  {id: 'pet-ghost', kind: 'pet', value: 'ghost', fur: '#f6f2ff', name: '꼬마 유령', price: 1500},
-  {id: 'pet-robot', kind: 'pet', value: 'robot', fur: '#a9b8c8', name: '꼬마 로봇', price: 1500},
-  {id: 'pet-dokkaebi', kind: 'pet', value: 'dokkaebi', fur: '#e8735a', name: '꼬마 도깨비', price: 1600}
+  // v1.9 펫: 네 발로 기어다니는 꼬마 동물 다섯
+  {id: 'pet-puppy', kind: 'pet', value: 'puppy', fur: '#e8bd85', name: '아기 강아지', price: 800},
+  {id: 'pet-kitty', kind: 'pet', value: 'kitty', fur: '#f2b675', name: '아기 고양이', price: 800},
+  {id: 'pet-bunny', kind: 'pet', value: 'bunny', fur: '#fbf3ea', name: '아기 토끼', price: 900},
+  {id: 'pet-piglet', kind: 'pet', value: 'piglet', fur: '#f6b6b0', name: '아기 돼지', price: 900},
+  {id: 'pet-hedgehog', kind: 'pet', value: 'hedgehog', fur: '#c9a27c', name: '아기 고슴도치', price: 1000}
 ];
 // 테스트판: 코인 무한(사도 줄지 않음) · 펫 방문일 잠금 해제
 export const TEST_MODE = {infiniteCoins: true, petsOpen: true};
