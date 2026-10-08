@@ -1,14 +1,14 @@
 // 밤마을 v0.7 — 카메라, 입력, 군중, 상호작용, 다이얼로그.
-import * as T from './vendor/three.min.mjs?v=1791443431';
-import {createBgm} from './bgm.mjs?v=1791443431';
-import {createWorld, HOST_STEP} from './world.mjs?v=1791443431';
-import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791443431';
+import * as T from './vendor/three.min.mjs?v=1791443580';
+import {createBgm} from './bgm.mjs?v=1791443580';
+import {createWorld, HOST_STEP} from './world.mjs?v=1791443580';
+import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791443580';
 import {TABLES, SPOTS, WANDERERS, LOUNGERS, DRINKS, ENTRY, ROOM, MOODS, JACKETS, ACCESSORIES, DRINK_MINUTES, PROFILE_TAGS, ROUND_MINUTES, NEXT_TOPICS, VILLAGES, RESIDENT_COUNT, RING, OBSTACLES,
-  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC, DOOR_Z} from './map-data.mjs?v=1791443431';
-import {createSession} from './session.mjs?v=1791443431';
-import {createOnline} from './online.mjs?v=1791443431';
-import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791443431';
-import {createGames} from './games.mjs?v=1791443431';
+  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC, DOOR_Z} from './map-data.mjs?v=1791443580';
+import {createSession} from './session.mjs?v=1791443580';
+import {createOnline} from './online.mjs?v=1791443580';
+import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791443580';
+import {createGames} from './games.mjs?v=1791443580';
 
 const $ = id => document.getElementById(id);
 const view = $('viewport'), dialog = $('villageDialog'), calm = $('calm');
@@ -75,6 +75,8 @@ const wallet = Object.assign({coins: DEMO_WALLET.coins, visits: DEMO_WALLET.visi
 for (const f of wallet.friends) f.key ??= 'npc:' + f.name; // v0.9 친구 기록 → 사람 키
 // 테스트판: 이전 지갑에도 시작 코인 1,000을 한 번 채워 준다
 if (!wallet.bonus1000) { if (wallet.visits > 0) wallet.coins += 1000; wallet.bonus1000 = true; }
+// 테스트판: 칭호 전부 해금
+for (const t of TITLES) if (!wallet.titles.includes(t.id)) wallet.titles.push(t.id);
 // v2.2: 지금 쓰고 있는 머리 장식은 가방에 넣어 준다(예전엔 무료였으니)
 if (wallet.look?.extra && wallet.look.extra !== 'none' && !wallet.owned.includes('extra-' + wallet.look.extra)) wallet.owned.push('extra-' + wallet.look.extra);
 // v1.9: 예전 펫(사람 캐릭터 축소판)은 정리한다. 새 펫은 상점에서 다시 데려온다.
@@ -89,6 +91,7 @@ const UNLOCK_TEXT = {order: '🍸 자리에서 한 잔 주문할 수 있어요',
   openRoom: '👑 이제 빈 테이블에서 직접 판을 열 수 있어요', games: '🎲 다음에 앉으면 술게임을 할 수 있어요', postcards: '💌 오늘 밤이 엽서로 남았어요',
   titles: '🏷 칭호가 생겼어요', coins: '🪙 코인', shop: '👕 상점', charFull: '✨ 캐릭터 꾸미기', town: '🌆 마을 산책'};
 wallet.unlocked ??= wallet.visits > 0 ? [...LEARN] : []; // 이미 놀아본 사람은 다 열린 상태로 시작
+if (!wallet.unlocked.includes('titles')) wallet.unlocked.push('titles'); // 테스트판: 칭호 탭 열기
 const has = f => wallet.unlocked.includes(f) || (wallet.allFeatures && LEARN.includes(f));
 const toastQueue = []; let toastBusy = false;
 function quietToast(text) { toastQueue.push(text); if (!toastBusy) nextToast(); }
