@@ -1,8 +1,8 @@
 // 밤마을 v0.7 — 앰버 조명의 미드센추리 바 디오라마와 2등신 동물 주민.
 // 모든 그림은 코드와 캔버스로 직접 만든다(외부 이미지·모델 없음).
 // 무드: 월넛 루버 · 러스트 벨벳 커튼 · 웜다크 콘크리트 · 돌기둥 링 바 · 버섯 램프 · 캐러멜 가죽 · 앰버 빛 웅덩이.
-import * as T from './vendor/three.min.mjs?v=1791439165';
-import {TABLES, WANDERERS, LOUNGERS, LOUNGES, ENTRY, DOOR_Z, ROOM, RING, SOFA, MEZZ, MEZZ_Y, STAIRS, WELCOME_ZONE, PEOPLE} from './map-data.mjs?v=1791439165';
+import * as T from './vendor/three.min.mjs?v=1791439581';
+import {TABLES, WANDERERS, LOUNGERS, LOUNGES, COUNTER, ENTRY, DOOR_Z, ROOM, RING, SOFA, MEZZ, MEZZ_Y, STAIRS, WELCOME_ZONE, PEOPLE} from './map-data.mjs?v=1791439581';
 
 export const HOST_STEP = .32; // 링 바 안쪽 발판 높이: 호스트 얼굴이 카운터 위로 보이게
 const SKY = '#211b17'; // v1.8 젠 하이엔드: 바깥은 깊은 웜 차콜
@@ -248,7 +248,7 @@ export function createWorld() {
   chromeShelf(-7.6, -5.6, -7.2); chromeShelf(5.6, 7.6, -7.2);
   const bottleColors = ['#c98a2e', '#4f6b4b', '#8e3a34', '#7c9fae', '#d8b46a', '#5c3a2a', '#efe8dc'].map(c => new T.Color(c));
   const m4 = new T.Matrix4();
-  const nB = 96;
+  const nB = 140;
   const bodies = new T.InstancedMesh(new T.CylinderGeometry(.07, .075, 1, 14), toon('#ffffff'), nB);
   const necks = new T.InstancedMesh(new T.CylinderGeometry(.025, .032, 1, 10), toon('#ffffff'), nB);
   let bi = 0;
@@ -463,19 +463,30 @@ export function createWorld() {
   // 벨벳 부스(6인): 뒤를 감싸는 큰 반원 소파 + 대리석 원형 테이블 + 브라스 램프
   function booth6Table(t) {
     const g = new T.Group(); g.position.set(t.x, 0, t.z); scene.add(g);
+    const green = t.style === 'green';
+    // 왼쪽: 러스트 벨벳 + 그린 쿠션 + 블랙 마블 / 오른쪽: 딥 그린 벨벳 + 코냑 가죽 쿠션 + 월넛 상판 + 주황 유리 램프
+    const C = green ? {seat: toon('#2b4a3a'), seatD: toon('#1f3a2c'), top: '#355a46', back: '#264434', backIn: '#1e392b', pillow: COGNAC}
+                    : {seat: RUST, seatD: RUST_D, top: '#b8582f', back: '#a14a28', backIn: '#93431f', pillow: GREEN_V};
     const a0 = -172 * Math.PI / 180, a1 = -8 * Math.PI / 180, start = Math.PI / 2 - a1, len = a1 - a0;
-    arcWall(1.42, .34, start, len, RUST, 0, .17, 0, g); arcWall(.95, .34, start, len, RUST_D, 0, .17, 0, g);
-    arcTop(.95, 1.42, start, len, toon('#b8582f', {side: T.DoubleSide}), 0, .35, 0, g);
-    const back = arcWall(1.66, .82, start, len, toon('#a14a28', {side: T.DoubleSide}), 0, .66, 0, g); outline(back, 1.66, .02);
-    arcWall(1.46, .56, start, len, toon('#93431f', {side: T.DoubleSide}), 0, .64, 0, g);
-    arcTop(1.46, 1.66, start, len, toon('#b8582f', {side: T.DoubleSide}), 0, 1.07, 0, g);
-    for (const d of [-150, -90, -30]) { const a = d * Math.PI / 180; const p = box(.32, .26, .1, GREEN_V, Math.cos(a) * 1.36, .56, Math.sin(a) * 1.36, g); p.rotation.y = -a - Math.PI / 2; p.rotation.x = -.2; }
-    // 테이블: 블랙 마블 상판 + 브라스 테두리 + 원통 받침
-    outline(cyl(.78, .78, .05, MARBLE, 0, .74, 0, g, true, 40), .78, .02);
-    cyl(.79, .79, .02, BRASS, 0, .715, 0, g, false, 40);
-    cyl(.24, .3, .7, IRON, 0, .36, 0, g);
-    mushroomLamp(0, .765, -.32, 1.0, g);
-    bloomVase(.32, .765, -.12, g, 1.4, '#1f1c1b');
+    arcWall(1.42, .34, start, len, C.seat, 0, .17, 0, g); arcWall(.95, .34, start, len, C.seatD, 0, .17, 0, g);
+    arcTop(.95, 1.42, start, len, toon(C.top, {side: T.DoubleSide}), 0, .35, 0, g);
+    const back = arcWall(1.66, .82, start, len, toon(C.back, {side: T.DoubleSide}), 0, .66, 0, g); outline(back, 1.66, .02);
+    arcWall(1.46, .56, start, len, toon(C.backIn, {side: T.DoubleSide}), 0, .64, 0, g);
+    arcTop(1.46, 1.66, start, len, toon(C.top, {side: T.DoubleSide}), 0, 1.07, 0, g);
+    if (green) for (let d = -165; d <= -15; d += 15) { const a = d * Math.PI / 180; const rib = box(.03, .5, .04, toon('#1a3226'), Math.cos(a) * 1.465, .66, Math.sin(a) * 1.465, g, false); rib.rotation.y = -a; } // 채널 스티치
+    for (const d of [-150, -90, -30]) { const a = d * Math.PI / 180; const p = box(.32, .26, .1, C.pillow, Math.cos(a) * 1.36, .56, Math.sin(a) * 1.36, g); p.rotation.y = -a - Math.PI / 2; p.rotation.x = -.2; }
+    if (green) { // 월넛 원형 상판 + 브라스 받침, 주황 유리 버섯 램프 셋
+      outline(cyl(.8, .8, .06, toon('#6a4a32'), 0, .74, 0, g, true, 40), .8, .02);
+      cyl(.06, .08, .7, M.brass, 0, .36, 0, g); cyl(.4, .45, .03, M.brass, 0, .015, 0, g);
+      for (const [x, z, s] of [[-.35, -.25, .9], [0, -.42, 1.05], [.35, -.25, .9]]) glassLamp(x, .77, z, s, g);
+      bloomVase(.2, .77, .12, g, 1.2, '#efe8dc');
+    } else {
+      outline(cyl(.78, .78, .05, MARBLE, 0, .74, 0, g, true, 40), .78, .02);
+      cyl(.79, .79, .02, BRASS, 0, .715, 0, g, false, 40);
+      cyl(.24, .3, .7, IRON, 0, .36, 0, g);
+      mushroomLamp(0, .765, -.32, 1.0, g);
+      bloomVase(.32, .765, -.12, g, 1.4, '#1f1c1b');
+    }
     tag(g, t.id);
     const l = new T.PointLight('#ffb070', 6, 5, 1.6); l.position.set(t.x, 1.4, t.z + .1); scene.add(l);
   }
@@ -501,6 +512,99 @@ export function createWorld() {
     const ox = -t.side * 1.62;
     sideTableYellow(t.x + ox, t.z + sz - .05);
     tag(g, t.id);
+  }
+  // 주황 유리 갓 테이블 램프(갓 전체가 은은히 빛난다)
+  function glassLamp(x, y, z, s = 1, parent = scene) {
+    cyl(.05 * s, .06 * s, .012, IRON, x, y + .006, z, parent, false);
+    rod([x, y, z], [x, y + .3 * s, z], .008 * s, IRON, parent);
+    const sh = cone(.12 * s, .14 * s, glow('#ff8a3d'), x, y + .33 * s, z, parent, 20); sh.userData.ignorePick = true;
+    dome(.12 * s, glow('#ffa860'), x, y + .26 * s, z, parent).scale.y = .25;
+  }
+  // 서재 라운지(오른쪽): 채널 스티치 딥 그린 소파 · 코냑 가죽 라운지 체어 둘 · 곡선 셸 체어 · 월넛 커피 테이블 · 주름 돔 플로어 램프
+  function libraryLounge(t) {
+    const g = new T.Group(); g.position.set(t.x, 0, t.z); scene.add(g);
+    const rug = mesh(new T.PlaneGeometry(4.2, 3.4), toon('#7d756c'), 0, .012, .1, g, false); rug.rotation.x = -Math.PI / 2;
+    const rug2 = mesh(new T.PlaneGeometry(3.9, 3.1), toon('#8f877d'), 0, .014, .1, g, false); rug2.rotation.x = -Math.PI / 2;
+    const sz = -1.12, GV = toon('#2b4a3a'), GD = toon('#1f3a2c');
+    outline(box(2.5, .3, .86, GV, 0, .19, sz, g), .45, .02);
+    for (const dx of [-.76, 0, .76]) outline(box(.72, .13, .7, toon('#355a46'), dx, .4, sz + .05, g), .36, .015);
+    const sb = box(2.5, .48, .2, GV, 0, .66, sz - .36, g); outline(sb, .5, .015);
+    for (let i = 0; i < 12; i++) box(.025, .42, .03, GD, -1.15 + i * .21, .66, sz - .25, g, false); // 등받이 채널 스티치
+    for (const sx of [-1.28, 1.28]) outline(box(.14, .4, .86, GV, sx, .32, sz, g), .2, .012);
+    for (const sx of [-1.15, 1.15]) for (const dz of [-.36, .36]) cyl(.025, .02, .12, toon('#6a4a32'), sx, .06, sz + dz, g, false);
+    for (const [dx, m] of [[-.7, toon('#d9c8a8')], [.62, COGNAC]]) { const p = box(.34, .3, .1, m, dx, .6, sz - .18, g); p.rotation.x = -.25; }
+    // 월넛 직사각 커피 테이블(가는 다리) + 책 + 화병
+    outline(box(1.5, .05, .7, toon('#6a4a32'), 0, .4, .35, g), .5, .015);
+    for (const [dx, dz] of [[-.65, .05], [.65, .05], [-.65, .65], [.65, .65]]) rod([dx, .38, dz], [dx * 1.05, 0, dz + (dz > .3 ? .05 : -.05)], .018, toon('#4a3324'), g);
+    box(.32, .05, .24, toon('#e9e1d2'), -.4, .45, .35, g); box(.28, .04, .2, toon('#c43d26'), -.4, .495, .34, g);
+    bloomVase(.3, .425, .35, g, 1.4, '#1f1c1b');
+    const [, , , c1, c2, c3] = t.seats;
+    tag(leatherChair(c1), t.id); tag(leatherChair(c2), t.id); tag(shellChair(c3), t.id);
+    // 소파 옆 월넛 사이드 테이블 + 도자기 테이블 램프
+    const ox = -t.side * 1.62, x = t.x + ox, z = t.z + sz - .05;
+    outline(box(.5, .5, .45, toon('#6a4a32'), x, .25, z), .25, .012);
+    const lb = cyl(.1, .14, .28, toon('#9a5a32'), x, .64, z); outline(lb, .12, .01);
+    cyl(.2, .24, .24, glow('#ffd49a'), x, .92, z, scene, false);
+    tag(g, t.id);
+  }
+  // 코냑 가죽 라운지 체어(블랙 각 프레임)
+  function leatherChair(seat) {
+    const c = new T.Group(); c.position.set(seat.x, 0, seat.z); c.rotation.y = seat.heading; scene.add(c);
+    outline(box(.6, .14, .6, COGNAC, 0, .34, .02, c), .3, .015);
+    const b = box(.58, .52, .14, COGNAC, 0, .64, -.27, c); b.rotation.x = -.28; outline(b, .29, .015);
+    for (const sx of [-.33, .33]) { rod([sx, .02, .32], [sx, .5, .3], .018, IRON, c); rod([sx, .02, -.3], [sx, .9, -.42], .018, IRON, c); rod([sx, .5, .3], [sx, .5, -.2], .018, IRON, c); rod([sx, .02, .32], [sx, .02, -.3], .018, IRON, c); }
+    return c;
+  }
+  // 곡선 셸 라운지 체어(크림 가죽 + X 다리)
+  function shellChair(seat) {
+    const c = new T.Group(); c.position.set(seat.x, 0, seat.z); c.rotation.y = seat.heading; scene.add(c);
+    const s1 = capsule(.16, .5, toon('#e2c79a'), 0, .36, .05, c); s1.rotation.z = Math.PI / 2; s1.scale.set(1, 1, 1.9); outline(s1, .16, .012);
+    const s2 = capsule(.14, .48, toon('#e2c79a'), 0, .7, -.26, c); s2.rotation.set(-.5, 0, Math.PI / 2); s2.scale.z = .8; outline(s2, .14, .012);
+    rod([-.3, 0, .3], [.3, .22, -.2], .02, IRON, c); rod([.3, 0, .3], [-.3, .22, -.2], .02, IRON, c);
+    return c;
+  }
+  // 앰버 카운터 바(오른쪽 앞 벽): 빛나는 앞판 · 다크 상판 · 뒤 선반 병 · 위쪽 라이트박스
+  function counterTable(t) {
+    const L = COUNTER.len, g = new T.Group(); g.position.set(t.x, 0, t.z); scene.add(g);
+    outline(box(.6, 1.0, L, toon('#2a1f1a'), 0, .5, 0, g), .5, .012);
+    const front = mesh(new T.PlaneGeometry(L - .1, .8), glow('#ff8a3d', {transparent: true, opacity: .85}), -.305, .52, 0, g, false); front.rotation.y = -Math.PI / 2;
+    for (let i = 1; i < 6; i++) box(.02, .82, .03, toon('#2a1f1a'), -.31, .52, -L / 2 + i * L / 6, g, false);
+    outline(box(.8, .06, L + .1, toon('#1b1715'), -.08, 1.04, 0, g), .5, .012);
+    box(.05, .03, L + .1, M.brass, -.48, 1.0, 0, g, false);
+    rod([-.6, .3, -L / 2], [-.6, .3, L / 2], .018, M.brass, g);
+    // 뒤쪽 선반 + 병 + 라이트박스
+    for (const y of [1.45, 1.95]) { box(.3, .04, L, toon('#2a1f1a'), .78, y, 0, g, false); box(.02, .02, L, glow('#ffd19a'), .7, y - .03, 0, g, false); for (let i = 0; i < 14; i++) addBottle(t.x + .78, y + .02, t.z - L / 2 + .2 + i * (L - .4) / 13, .16 + rnd() * .12); }
+    const box1 = mesh(new T.PlaneGeometry(L, .7), glow('#ff9a4d'), .92, 2.75, 0, g, false); box1.rotation.y = -Math.PI / 2;
+    box(.08, .8, L + .1, toon('#2a1f1a'), .96, 2.75, 0, g, false);
+    mushroomLamp(-.1, 1.07, -1.2, .9, g); glassLamp(-.1, 1.07, 1.2, .9, g); bloomVase(-.1, 1.07, 0, g, 1.2, '#1f1c1b');
+    tag(g, t.id);
+    for (const s of t.seats) { // 테라코타 벨벳 스툴(굵은 기둥 + 발받침)
+      const sg = new T.Group(); scene.add(sg);
+      const seat = cyl(.22, .2, .1, toon('#c25a35'), s.x, .82, s.z, sg); outline(seat, .22); seat.scale.y = 1.2;
+      cyl(.05, .05, .78, toon('#a8482a'), s.x, .4, s.z, sg); rod([s.x, .3, s.z], [s.x + .22, .3, s.z], .015, toon('#a8482a'), sg);
+      cyl(.18, .2, .03, toon('#a8482a'), s.x, .015, s.z, sg);
+      tag(sg, t.id);
+    }
+    const l = new T.PointLight('#ff9a4d', 6, 6, 1.6); l.position.set(t.x - 1.2, 1.6, t.z); scene.add(l);
+  }
+  // 주름 돔 플로어 램프(가는 다리 위 커다란 주름 갓)
+  function pleatLamp(x, z) {
+    cyl(.18, .2, .03, IRON, x, .015, z); rod([x, 0, z], [x, 1.55, z], .016, IRON);
+    const shade = dome(.5, glow('#fff0d6'), x, 1.5, z); shade.scale.y = .62; shade.userData.ignorePick = true;
+    for (let i = 0; i < 20; i++) { const a = i / 20 * Math.PI * 2; rod([x + Math.cos(a) * .5, 1.5, z + Math.sin(a) * .5], [x + Math.cos(a) * .12, 1.79, z + Math.sin(a) * .12], .006, toon('#e8d6b8')); }
+    const l = new T.PointLight('#ffd49a', 6, 5, 1.6); l.position.set(x, 1.3, z); scene.add(l);
+  }
+  // 큰 화이트 랜턴 펜던트(긴 줄에 매달린 우윳빛 원통 + 넓은 챙)
+  function lanternPendant(x, z, y = 4.0) {
+    const mats = [new T.MeshBasicMaterial({color: '#fff3e0', toneMapped: false, transparent: true}), new T.MeshToonMaterial({color: '#f1ece2', gradientMap: grad, transparent: true})];
+    const g = new T.Group(); g.position.set(x, y, z); scene.add(g);
+    for (const dx of [-.2, .2]) mesh(new T.CylinderGeometry(.006, .006, WALL_H - y, 4), mats[1], dx, (WALL_H - y) / 2 + .3, 0, g, false);
+    mesh(new T.CylinderGeometry(.62, .62, .04, 40), mats[1], 0, .3, 0, g, false);
+    mesh(new T.CylinderGeometry(.32, .26, .7, 32), mats[0], 0, -.05, 0, g, false);
+    mesh(new T.SphereGeometry(.26, 24, 10, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), mats[0], 0, -.4, 0, g, false);
+    g.traverse(o => { if (o.isMesh) { o.userData.ignorePick = true; o.castShadow = false; } });
+    lampShades.push({x, z, mats, opacity: 1, r: 1.6});
+    const l = new T.PointLight('#ffe2b8', 6, 6, 1.5); l.position.set(x, y - .8, z); scene.add(l);
   }
   const tubShellM = toon('#2f5240', {side: T.DoubleSide});
   function tubChair(seat, m, md) {
@@ -638,7 +742,7 @@ export function createWorld() {
       sphere(.08, toon('#d6402b'), x + .05, .98, z);
     }
   }
-  plinth(7.75, 5.0, 0); plinth(-7.75, -0.0 + 8.6, 1);
+  plinth(3.3, 9.75, 0); plinth(-7.75, 8.6, 1);
   // 모빌(라운지 위에 매달린 색 원반): 카메라를 가리면 흐려진다
   function mobile(x, z, y = 3.6) {
     const mats = ['#1b1918', '#d6402b', '#2f5fb0', '#f2b630', '#1b1918'].map(c => toon(c, {transparent: true}));
@@ -651,8 +755,8 @@ export function createWorld() {
     lampShades.push({x, z, mats: [...mats, wireM], opacity: 1, r: 1.6});
     return g;
   }
-  const mobiles = LOUNGES.map(l => mobile(l.x, l.z + .2));
-  mobiles[1].rotation.y = 1.4;
+  mobile(LOUNGES[0].x, LOUNGES[0].z + .2); // 왼쪽 라운지: 색 원반 모빌
+  lanternPendant(LOUNGES[1].x, LOUNGES[1].z + .35); // 오른쪽 서재: 화이트 랜턴 펜던트
 
   // ── 식물: 큰 나무 화분 · 야자 ─────────────────────────
   function bigTree(x, z, s = 1) {
@@ -678,7 +782,22 @@ export function createWorld() {
     const l = new T.PointLight('#ffcf8f', 6, 5.5, 1.6); l.position.set(x, 1.3, z); scene.add(l);
   }
   coneLamp(-3.6, 5.0); coneLamp(3.6, 5.0);
-  for (const l of LOUNGES) arcLamp(l.x + l.side * 1.75, l.z - 1.45, l.x, l.z + .35);
+  // 하이엔드 플로어 스피커(오리지널 디자인): 검은 스톤 받침 위 타원 기둥 · 앞면 패브릭 · 브라스 링 · 바닥에서 은은히 숨 쉬는 빛
+  const speaker = (() => {
+    const x = -2.0, z = 9.55, g = new T.Group(); g.position.set(x, 0, z); g.rotation.y = .35; scene.add(g);
+    outline(cyl(.42, .46, .08, toon('#1c1816'), 0, .04, 0, g, true, 40), .46, .012);
+    const pulse = mesh(new T.RingGeometry(.48, .8, 48), glow('#ffcf8a', {transparent: true, opacity: .35, depthWrite: false}), 0, .015, 0, g, false); pulse.rotation.x = -Math.PI / 2;
+    const body = cyl(.2, .26, 1.5, toon('#151313'), 0, .86, 0, g, true, 40); body.scale.z = .72; outline(body, .26, .014);
+    const cloth = cyl(.205, .262, 1.3, toon('#3a3533', {side: T.DoubleSide}), 0, .84, .012, g, false, 40); cloth.scale.z = .74; // 앞면 패브릭
+    for (const y of [.24, 1.6]) { const r = mesh(new T.TorusGeometry(y > 1 ? .2 : .26, .018, 8, 40), M.brass, 0, y, 0, g, false); r.rotation.x = Math.PI / 2; r.scale.y = .72; }
+    const cap = sphere(.2, toon('#d8c7a8'), 0, 1.62, 0, g); cap.scale.set(1, .35, .72); outline(cap, .2, .01); // 위쪽 알루미늄 렌즈
+    for (const [y, r] of [[1.25, .07], [.85, .11], [.45, .09]]) { const d = mesh(new T.CircleGeometry(r, 28), toon('#222'), 0, y, .19, g, false); const ring = mesh(new T.RingGeometry(r, r + .015, 28), M.brass, 0, y, .191, g, false); d.userData.ignorePick = ring.userData.ignorePick = true; }
+    const spot = new T.PointLight('#ffd9a0', 4, 3.5, 1.6); spot.position.set(x + .6, 2.6, z + .6); scene.add(spot);
+    tag(g, 'speaker'); entities.set('speaker', {anchor: new T.Vector3(x, 2.0, z)});
+    return {pulse};
+  })();
+  { const l = LOUNGES[0]; arcLamp(l.x + l.side * 1.75, l.z - 1.45, l.x, l.z + .35); }
+  { const l = LOUNGES[1]; pleatLamp(l.x + l.side * 1.75, l.z - 1.45); }
   tripodLamp(-2.9, -5.4, .4); tripodLamp(2.9, -5.4, -.4);
   // 샹들리에: 세 겹 브라스 링에 유리 구슬 조명(가운데 통로 위). 카메라를 가리면 흐려진다.
   {
@@ -700,7 +819,8 @@ export function createWorld() {
 
   for (const t of TABLES) {
     if (t.type === 'booth6') booth6Table(t);
-    else if (t.type === 'lounge') loungeTable(t);
+    else if (t.type === 'lounge') (t.style === 'green' ? libraryLounge : loungeTable)(t);
+    else if (t.type === 'counter') counterTable(t);
     else if (t.type === 'round') roundTable(t);
     else if (t.type === 'booth') boothTable(t);
     else if (t.type === 'long') longTable(t);
@@ -714,7 +834,7 @@ export function createWorld() {
       c.strokeStyle = '#2e1f17'; c.lineWidth = 6; c.stroke();
       c.fillStyle = '#2e1f17'; c.font = `74px ${font}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(t.number), 64, 70);
     }); drawables.push(fTex);
-    const fy = ly + (t.type === 'ring' ? 1.42 : t.type === 'sofa' ? .8 : t.type === 'long' ? 1.08 : t.type === 'booth' ? 1.0 : t.type === 'after' ? .9 : t.type === 'bar' ? 1.36 : t.type === 'booth6' ? 1.05 : t.type === 'lounge' ? .72 : 1.12);
+    const fy = ly + (t.type === 'ring' ? 1.42 : t.type === 'sofa' ? .8 : t.type === 'long' ? 1.08 : t.type === 'booth' ? 1.0 : t.type === 'after' ? .9 : t.type === 'bar' ? 1.36 : t.type === 'booth6' ? 1.05 : t.type === 'lounge' ? .72 : t.type === 'counter' ? 1.36 : 1.12);
     const fx = t.type === 'ring' ? t.x - .95 : t.x - .3, fz = t.type === 'ring' ? t.z + .85 : t.z + .25;
     rod([fx, fy - .3, fz], [fx, fy - .1, fz], .01, M.black);
     const flag = mesh(new T.CircleGeometry(.12, 24), basic('#ffffff', {map: fTex, side: T.DoubleSide}), fx, fy, fz, scene, false);
@@ -1206,6 +1326,6 @@ export function createWorld() {
   function drawSign(font) { currentFont = font; for (const t of drawables) t.userData.redraw(font); }
   drawSign('sans-serif');
 
-  return {get fist() { return fox.fist; }, get fists() { return fox.fists; }, get ouch() { return fox.ouch; }, critter, setLook, addAccessory, makePet, npcPets, scene, actor, rig, legs: fox.legs, arms: fox.arms, eyes: fox.eyes, shadow, marker, entities, npcs, glassGroup, setGlass, setFill, setAccessory, makeBubble,
+  return {speaker, get fist() { return fox.fist; }, get fists() { return fox.fists; }, get ouch() { return fox.ouch; }, critter, setLook, addAccessory, makePet, npcPets, scene, actor, rig, legs: fox.legs, arms: fox.arms, eyes: fox.eyes, shadow, marker, entities, npcs, glassGroup, setGlass, setFill, setAccessory, makeBubble,
     seatAngles, jacket: ownJacket, drawSign, lampShades, emoteTextures, flags: flagTexes, clock: {hourHand, minHand}};
 }

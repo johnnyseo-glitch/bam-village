@@ -1,14 +1,14 @@
 // 밤마을 v0.7 — 카메라, 입력, 군중, 상호작용, 다이얼로그.
-import * as T from './vendor/three.min.mjs?v=1791439165';
-import {createBgm} from './bgm.mjs?v=1791439165';
-import {createWorld, HOST_STEP} from './world.mjs?v=1791439165';
-import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791439165';
+import * as T from './vendor/three.min.mjs?v=1791439581';
+import {createBgm} from './bgm.mjs?v=1791439581';
+import {createWorld, HOST_STEP} from './world.mjs?v=1791439581';
+import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791439581';
 import {TABLES, SPOTS, WANDERERS, LOUNGERS, DRINKS, ENTRY, ROOM, MOODS, JACKETS, ACCESSORIES, DRINK_MINUTES, PROFILE_TAGS, ROUND_MINUTES, NEXT_TOPICS, VILLAGES, RESIDENT_COUNT, RING, OBSTACLES,
-  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC, DOOR_Z} from './map-data.mjs?v=1791439165';
-import {createSession} from './session.mjs?v=1791439165';
-import {createOnline} from './online.mjs?v=1791439165';
-import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791439165';
-import {createGames} from './games.mjs?v=1791439165';
+  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC, DOOR_Z} from './map-data.mjs?v=1791439581';
+import {createSession} from './session.mjs?v=1791439581';
+import {createOnline} from './online.mjs?v=1791439581';
+import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791439581';
+import {createGames} from './games.mjs?v=1791439581';
 
 const $ = id => document.getElementById(id);
 const view = $('viewport'), dialog = $('villageDialog'), calm = $('calm');
@@ -400,6 +400,7 @@ dialog.addEventListener('close', () => { release(); const fn = onDialogClose; on
 
 // ── 선택 ─────────────────────────────────────────────────
 function selectEntity(id) {
+  if (id === 'speaker') { const on = bgm.toggle(); status(on ? '🎵 JAY가 고른 오늘의 음악을 틀었어요' : '🔇 음악을 잠깐 껐어요'); return; }
   if (place === 'town') { status('바 안에서 할 수 있어요 · [바로 들어가기]를 눌러요'); return; }
   if (escorting) { status('JAY가 안내하는 중이에요. 잠깐만요.'); return; }
   closeDialog();
@@ -1180,6 +1181,7 @@ function drawMap() {
     else if (t.type === 'bar') c.roundRect(mx(t.x - 1.6), mz(t.z - .45), 3.2 * K, .9 * K, 5);
     else if (t.type === 'booth6') { c.arc(mx(t.x), mz(t.z), 1.5 * K, Math.PI, Math.PI * 2); c.lineTo(mx(t.x), mz(t.z)); }
     else if (t.type === 'lounge') c.roundRect(mx(t.x - 1.7), mz(t.z - 1.5), 3.4 * K, 3.0 * K, 12);
+    else if (t.type === 'counter') c.roundRect(mx(t.x - .3), mz(t.z - 2.1), .6 * K, 4.2 * K, 4);
     else if (t.type === 'sofa') c.roundRect(mx(4.6), mz(.6), 3.2 * K, 2.5 * K, 10);
     else c.arc(mx(t.x), mz(t.z), 19, 0, Math.PI * 2);
     c.fill();
@@ -1916,6 +1918,7 @@ function animate(now) {
   const blink = now < ouchUntil ? 0.001 : now % 4800 > 4630 ? .15 : 1.25; eyes.forEach(e => e.scale.y = blink);
   if (now < shakeUntil && !reduced) { const a = (shakeUntil - now) / 260 * .07; camera.position.x += (Math.random() - .5) * a; camera.position.y += (Math.random() - .5) * a; }
   animateHitFx(now);
+  if (world.speaker && place === 'bar') { const on = bgm.on && bgm.started, k = on ? (Math.sin(now * .0042) + 1) / 2 : 0; world.speaker.pulse.scale.setScalar(1 + k * .18); world.speaker.pulse.material.opacity = on ? .18 + k * .3 : .1; }
   shadow.position.set(actor.position.x, .045, actor.position.z);
   marker.scale.setScalar(reduced ? 1 : 1 + Math.sin(now * .004) * .08);
   online?.tick(now, dt);
