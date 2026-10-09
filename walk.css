@@ -610,3 +610,7 @@ label.sw:has(input:checked) span { box-shadow: 0 0 0 3px var(--brown); }
 .iv-cell.on::after { content: 'E'; position: absolute; top: 3px; right: 3px; font: 700 10px/1 var(--font-body); color: #2c221c; background: #f2c230; border-radius: 4px; padding: 2px 4px; }
 .iv-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; background: #2c221c; border: 3px solid #8a6a45; border-radius: 14px; padding: 8px; }
 .iv-cell.empty { aspect-ratio: .82; opacity: .4; }
+
+/* v2.7: 상호작용 버튼은 위쪽(알림 아래)에 — 가까이 가도 캐릭터를 가리지 않게 */
+.interact { top: 128px; bottom: auto !important; }
+@media (max-width: 560px) { .interact { top: 122px; } }

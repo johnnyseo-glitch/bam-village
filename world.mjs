@@ -1,8 +1,8 @@
 // 밤마을 v0.7 — 앰버 조명의 미드센추리 바 디오라마와 2등신 동물 주민.
 // 모든 그림은 코드와 캔버스로 직접 만든다(외부 이미지·모델 없음).
 // 무드: 월넛 루버 · 러스트 벨벳 커튼 · 웜다크 콘크리트 · 돌기둥 링 바 · 버섯 램프 · 캐러멜 가죽 · 앰버 빛 웅덩이.
-import * as T from './vendor/three.min.mjs?v=1791444439';
-import {TABLES, WANDERERS, LOUNGERS, LOUNGES, COUNTER, ENTRY, DOOR_Z, ROOM, RING, SOFA, MEZZ, MEZZ_Y, STAIRS, WELCOME_ZONE, PEOPLE} from './map-data.mjs?v=1791444439';
+import * as T from './vendor/three.min.mjs?v=1791521530';
+import {TABLES, WANDERERS, LOUNGERS, LOUNGES, COUNTER, ENTRY, DOOR_Z, ROOM, RING, SOFA, MEZZ, MEZZ_Y, STAIRS, WELCOME_ZONE, PEOPLE} from './map-data.mjs?v=1791521530';
 
 export const HOST_STEP = .32; // 링 바 안쪽 발판 높이: 호스트 얼굴이 카운터 위로 보이게
 const SKY = '#211b17'; // v1.8 젠 하이엔드: 바깥은 깊은 웜 차콜
@@ -1114,6 +1114,16 @@ export function createWorld() {
     else if (extra === 'crown') { const c = cyl(.17, .15, .1, toon('#f2c14e'), 0, .38, 0, head); outline(c, .17, .012); for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2; cone(.035, .1, toon('#f2c14e'), Math.cos(a) * .15, .47, Math.sin(a) * .15, head, 6); } sphere(.03, toon('#e0475b'), 0, .39, .17, head); }
     else if (extra === 'flower') { for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2; sphere(.05, toon('#ff9fc0'), .24 + Math.cos(a) * .06, .3 + Math.sin(a) * .06, .12, head); } sphere(.04, toon('#ffd34a'), .24, .3, .15, head); }
     else if (extra === 'unicorn') { const u = cone(.05, .3, toon('#f6e7ff'), 0, .4, .2, head, 10); u.rotation.x = .4; outline(u, .05, .01); }
+    else if (extra === 'guitar') { const gb = new T.Group(); gb.position.set(.05, .55, -.26); gb.rotation.set(.1, 0, -.5); rig.add(gb);
+      const b1 = sphere(.13, toon('#c97a3a'), 0, -.08, 0, gb); b1.scale.z = .35; outline(b1, .13, .01); const b2 = sphere(.1, toon('#c97a3a'), 0, .1, 0, gb); b2.scale.z = .35;
+      mesh(new T.CircleGeometry(.035, 16), toon('#2b2228'), 0, .02, -.05, gb, false).rotation.y = Math.PI; box(.04, .36, .03, toon('#5a3a26'), 0, .32, 0, gb); box(.06, .08, .03, toon('#2b2228'), 0, .52, 0, gb);
+      const strap = mesh(new T.TorusGeometry(.24, .015, 6, 24), toon('#2b2228'), 0, .55, 0, rig, false); strap.rotation.set(Math.PI / 2, .6, 0); }
+    else if (extra === 'balloon') { const c = ['#ff6f9c', '#ffd34a', '#7fc4ff']; c.forEach((col, k) => { const b = sphere(.13, toon(col), .38 + k * .12 - .12, 1.55 + (k % 2) * .18, -.05 * k, rig); b.scale.y = 1.15; outline(b, .13, .01); rod([.24, .5, .05], [.38 + k * .12 - .12, 1.42 + (k % 2) * .18, -.05 * k], .004, toon('#f6f3ec'), rig); }); }
+    else if (extra === 'camera') { const cm = new T.Group(); cm.position.set(0, .5, .22); rig.add(cm); outline(box(.16, .1, .06, toon('#2b2a2f'), 0, 0, 0, cm), .08, .01); const l = cyl(.035, .035, .05, toon('#9aa4ad'), 0, 0, .04, cm); l.rotation.x = Math.PI / 2; box(.04, .02, .02, toon('#d6383a'), .05, .06, 0, cm);
+      const s2 = mesh(new T.TorusGeometry(.17, .01, 6, 24, Math.PI), toon('#7a4a2a'), 0, .6, .08, rig, false); s2.rotation.set(-.4, 0, Math.PI); }
+    else if (extra === 'backpack') { const bp = box(.3, .32, .14, toon('#e8b423'), 0, .55, -.27, rig); outline(bp, .16, .012); box(.22, .1, .04, toon('#c9951a'), 0, .47, -.35, rig); for (const s of [-1, 1]) box(.04, .3, .03, toon('#5a3a26'), s * .11, .6, .18, rig, false); }
+    else if (extra === 'bouquet') { const g2 = new T.Group(); g2.position.set(.26, .42, .2); g2.rotation.z = -.3; rig.add(g2); const wrap = cone(.08, .2, toon('#f1ece2'), 0, 0, 0, g2, 10); wrap.rotation.x = Math.PI; outline(wrap, .08, .008);
+      ['#ff6f9c', '#ffd34a', '#ffffff', '#e86a55', '#c9a2e8'].forEach((col, k) => { const a = k * 1.3; sphere(.045, toon(col), Math.cos(a) * .05, .13 + (k % 2) * .03, Math.sin(a) * .05, g2, false); }); }
     else if (extra === 'wings' || extra === 'batwings') {
       const wm = extra === 'wings' ? toon('#ffffff') : toon('#3a2f45');
       for (const s of [-1, 1]) { const w = extra === 'wings' ? sphere(.2, wm, s * .22, .6, -.2, rig) : cone(.2, .4, wm, s * .26, .62, -.18, rig, 3); w.scale.set(extra === 'wings' ? .55 : 1, 1, .25); w.rotation.z = s * (extra === 'wings' ? -.5 : -1.1); outline(w, .2, .012); }
@@ -1310,6 +1320,27 @@ export function createWorld() {
       for (const s of [-1, 1]) { const r = box(.04, .22, .02, toon('#c9343f'), s * .025 + .03, .5, .215, g, false); r.rotation.z = s * .25; }
       F(.03, .62, .07, .04, toon('#c9343f'));
       const hem = mesh(new T.TorusGeometry(.2, .025, 6, 28), toon('#7fa0d8'), 0, .38, 0, g, false); hem.rotation.x = Math.PI / 2;
+    } else if (id === 'hawaiian') { // 하와이안 셔츠: 꽃무늬 + 열린 칼라
+      const cols = ['#ffd34a', '#ff6f9c', '#ffffff', '#3fb58a'];
+      for (let k = 0; k < 14; k++) { const a = -1.2 + (k % 7) * .4, y = .4 + Math.floor(k / 7) * .16 + (k % 2) * .05; sphere(.025, toon(cols[k % 4]), Math.sin(a) * .2, y, Math.cos(a) * .19, g, false); }
+      for (const s of [-1, 1]) F(s * .06, .65, .08, .06, toon('#1f8a9a'), s * .6, .19);
+    } else if (id === 'trench') { // 트렌치코트: 베이지 + 더블 단추 + 벨트
+      for (const x of [-.07, .07]) for (const y of [.6, .5]) sphere(.016, toon('#5a3a26'), x, y, .21, g, false);
+      const belt = mesh(new T.TorusGeometry(.215, .028, 6, 28), toon('#a88456'), 0, .42, 0, g, false); belt.rotation.x = Math.PI / 2; box(.06, .05, .03, toon('#5a3a26'), 0, .42, .215, g, false);
+      for (const s of [-1, 1]) F(s * .08, .63, .07, .14, toon('#b8955f'), s * .4, .2);
+    } else if (id === 'pajama') { // 줄무늬 파자마 + 수면 단추
+      for (let k = 0; k < 5; k++) { const r = mesh(new T.TorusGeometry(.215 - Math.abs(k - 2) * .012, .012, 4, 28), toon('#ffffff'), 0, .38 + k * .07, 0, g, false); r.rotation.x = Math.PI / 2; r.scale.y = .92; }
+      for (const y of [.58, .48]) sphere(.018, toon('#ffd34a'), 0, y, .215, g, false);
+    } else if (id === 'bartender') { // 바텐더: 흰 셔츠 + 검정 조끼 + 나비넥타이
+      F(0, .55, .16, .3, W);
+      for (const s of [-1, 1]) F(s * .09, .5, .09, .3, toon('#1c1a1e'), s * .2, .205);
+      for (const s of [-1, 1]) { const w = cone(.04, .06, toon('#8e2a35'), s * .035, .67, .2, g, 4); w.rotation.z = s * Math.PI / 2; }
+      for (const y of [.5, .43]) sphere(.012, toon('#d6a856'), .04, y, .215, g, false);
+    } else if (id === 'astronaut') { // 우주복: 흰 슈트 + 가슴 패널 + 등 산소팩
+      const pn = box(.12, .09, .03, toon('#c9d3dc'), 0, .55, .2, g, false);
+      ['#d6383a', '#3fb58a', '#ffd34a'].forEach((col, k) => sphere(.013, glow(col), -.035 + k * .035, .55, .22, g, false));
+      outline(box(.26, .3, .12, toon('#e9ecef'), 0, .55, -.25, g), .15, .01); for (const s of [-1, 1]) cyl(.035, .035, .26, toon('#9aa4ad'), s * .08, .55, -.33, g);
+      const nk = mesh(new T.TorusGeometry(.14, .04, 8, 20), toon('#9aa4ad'), 0, .72, 0, g, false); nk.rotation.x = Math.PI / 2;
     } else if (id === 'varsity') {
       F(0, .52, .02, .3, W);                                   // 지퍼 라인
       const rib = mesh(new T.TorusGeometry(.2, .03, 6, 28), W, 0, .36, 0, g, false); rib.rotation.x = Math.PI / 2;
@@ -1320,6 +1351,15 @@ export function createWorld() {
     return g;
   }
   const ACC = {
+    fedora: g => { const b = cyl(.36, .38, .025, toon('#3a2f2a'), 0, .27, -.02, g, false, 28); outline(b, .38, .008); const c = cyl(.2, .24, .2, toon('#3a2f2a'), 0, .37, -.02, g, false, 24); outline(c, .24, .01); cyl(.245, .245, .045, toon('#c9943a'), 0, .3, -.02, g, false, 24); const dent = box(.05, .02, .3, toon('#2a221e'), 0, .47, -.02, g, false); },
+    ballcap: g => { const c = dome(.36, toon('#2f5fb0'), 0, .14, -.02, g, false); c.scale.y = .78; outline(c, .36, .012); const v = cyl(.22, .22, .02, toon('#2f5fb0'), 0, .16, .3, g, false, 20); v.scale.z = .6; sphere(.03, toon('#ffffff'), 0, .42, -.02, g, false); const l = mesh(new T.CircleGeometry(.06, 16), toon('#ffffff'), 0, .3, .29, g, false); l.rotation.x = -.5; },
+    knitbeanie: g => { const c = dome(.375, toon('#e8735a'), 0, .1, -.02, g, false); outline(c, .37, .012); const r = cyl(.38, .38, .1, toon('#c9543b'), 0, .14, -.02, g, false, 28); outline(sphere(.08, toon('#f6f3ec'), 0, .5, -.02, g), .08, .01); },
+    catears: g => { const band = mesh(new T.TorusGeometry(.35, .02, 6, 24, Math.PI), toon('#2b2228'), 0, .1, -.02, g, false); band.rotation.y = Math.PI / 2; for (const s of [-1, 1]) { const e = cone(.09, .16, toon('#2b2228'), s * .18, .36, -.02, g, 4); e.rotation.z = s * -.35; outline(e, .09, .008); const ei = cone(.05, .09, toon('#ff9fb0'), s * .18, .35, .01, g, 4); ei.rotation.z = s * -.35; } },
+    witch: g => { const b = cyl(.42, .44, .025, toon('#2b2033'), 0, .26, -.02, g, false, 28); outline(b, .44, .008); const c = cone(.22, .5, toon('#2b2033'), 0, .52, -.04, g, 20); c.rotation.x = -.2; outline(c, .22, .01); cyl(.225, .225, .05, toon('#9b6cd8'), 0, .3, -.02, g, false, 24); },
+    monocle: g => { const r = mesh(geo('mono', () => new T.TorusGeometry(.08, .014, 6, 20)), toon('#d6a856'), .14, .04, .37, g, false); const lens = mesh(new T.CircleGeometry(.075, 18), toon('#dff2ff', {transparent: true, opacity: .45}), .14, .04, .37, g, false); rod([.2, -.02, .36], [.22, -.3, .25], .004, toon('#d6a856'), g); },
+    mustache: g => { for (const s of [-1, 1]) { const m = capsule(.03, .1, toon('#3a2a22'), s * .07, -.13, .4, g); m.rotation.z = s * (Math.PI / 2 - .35); outline(m, .03, .008); } },
+    aviator: g => { for (const s of [-1, 1]) { const l = sphere(.085, toon('#3b3a3a', {transparent: true, opacity: .9}), s * .14, .03, .36, g, false); l.scale.set(1.05, .85, .3); const r = mesh(geo('avr', () => new T.TorusGeometry(.085, .01, 6, 22)), toon('#d6a856'), s * .14, .03, .37, g, false); r.scale.y = .85; } box(.12, .012, .012, toon('#d6a856'), 0, .08, .37, g, false); for (const s of [-1, 1]) box(.012, .012, .22, toon('#d6a856'), s * .23, .05, .27, g, false); },
+    starglasses: g => { for (const s of [-1, 1]) { const st = cone(.1, .02, toon('#ffd34a'), s * .14, .04, .37, g, 5); st.rotation.x = Math.PI / 2; outline(st, .1, .008); } box(.08, .015, .015, toon('#ff6f9c'), 0, .05, .38, g, false); },
     roundglasses: g => { for (const s of [-1, 1]) { const r = mesh(geo('rlens', () => new T.TorusGeometry(.075, .013, 6, 20)), toon('#2b2228'), s * .14, .04, .37, g, false); } box(.1, .015, .015, toon('#2b2228'), 0, .05, .37, g, false); for (const s of [-1, 1]) box(.015, .015, .2, toon('#2b2228'), s * .22, .05, .28, g, false); },
     beret: g => { const b = sphere(.3, toon('#b5532c'), .04, .3, -.02, g); b.scale.set(1.05, .32, 1); b.rotation.z = -.18; outline(b, .3, .016); cyl(.015, .02, .06, toon('#8f3d1e'), .06, .41, -.02, g); },
     shades: g => { for (const sx of [-.14, .14]) { const l = cyl(.08, .08, .02, toon('#1f1a18'), sx, .04, .35, g, false); l.rotation.x = Math.PI / 2; outline(l, .08, .01); } box(.12, .02, .02, toon('#1f1a18'), 0, .06, .36, g, false); },
@@ -1337,7 +1377,7 @@ export function createWorld() {
     sakura: g => { for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2; sphere(.035, toon('#ffc4d6'), -.22 + Math.cos(a) * .04, .28 + Math.sin(a) * .04, .13, g, false); } sphere(.02, toon('#ff8fb1'), -.22, .28, .15, g, false); },
     ribbon: g => { for (const sx of [-1, 1]) { const w = cone(.08, .14, toon('#ff8fb1'), .2 + sx * .07, .3, .1, g, 12); w.rotation.z = sx * Math.PI / 2; outline(w, .07, .012); } sphere(.04, toon('#ff6f9c'), .2, .3, .1, g); }
   };
-  const FACE = new Set(['shades', 'roundglasses', 'heartglasses', 'mask']);
+  const FACE = new Set(['shades', 'roundglasses', 'heartglasses', 'mask', 'monocle', 'mustache', 'aviator', 'starglasses']);
   const fitFace = (g, id, head) => { const e = head?.userData.eye; if (FACE.has(id) && e) g.position.set(0, e.y - .03, e.z - .335); else g.position.set(0, 0, 0); };
   function addAccessory(head, id) { if (!ACC[id]) return null; const g = new T.Group(); head.add(g); ACC[id](g); fitFace(g, id, head); g.traverse(o => { if (o.isMesh) o.userData.ignorePick = true; }); return g; }
   const acc = {};
