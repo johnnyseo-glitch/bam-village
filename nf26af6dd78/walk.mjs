@@ -1,14 +1,14 @@
 // 밤마을 v0.7 — 카메라, 입력, 군중, 상호작용, 다이얼로그.
-import * as T from './vendor/three.min.mjs?v=1791559404';
-import {createBgm} from './bgm.mjs?v=1791559404';
-import {createWorld, HOST_STEP} from './world.mjs?v=1791559404';
-import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791559404';
+import * as T from './vendor/three.min.mjs?v=1791559678';
+import {createBgm} from './bgm.mjs?v=1791559678';
+import {createWorld, HOST_STEP} from './world.mjs?v=1791559678';
+import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791559678';
 import {TABLES, SPOTS, WANDERERS, LOUNGERS, DRINKS, ENTRY, ROOM, MOODS, JACKETS, ACCESSORIES, DRINK_MINUTES, PROFILE_TAGS, ROUND_MINUTES, NEXT_TOPICS, VILLAGES, RESIDENT_COUNT, RING, OBSTACLES,
-  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC, DOOR_Z} from './map-data.mjs?v=1791559404';
-import {createSession} from './session.mjs?v=1791559404';
-import {createOnline} from './online.mjs?v=1791559404';
-import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791559404';
-import {createGames} from './games.mjs?v=1791559404';
+  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC, DOOR_Z} from './map-data.mjs?v=1791559678';
+import {createSession} from './session.mjs?v=1791559678';
+import {createOnline} from './online.mjs?v=1791559678';
+import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791559678';
+import {createGames} from './games.mjs?v=1791559678';
 
 const $ = id => document.getElementById(id);
 const view = $('viewport'), dialog = $('villageDialog'), calm = $('calm');
@@ -1534,7 +1534,7 @@ function showWelcomeBoard() {
 
 // ── 입력 ─────────────────────────────────────────────────
 // ── QR 공유 ─────────────────────────────────────────────
-const ARTIFACT_URL = 'https://claude.ai/artifact/QDA8x2k7YFAGr4Jh5ntH9S', PAGES_URL = 'https://johnnyseo-glitch.github.io/bam-village/';
+const ARTIFACT_URL = 'https://claude.ai/artifact/NFhifuA9moiordAtthnuq6', PAGES_URL = 'https://johnnyseo-glitch.github.io/bam-village/nf26af6dd78/';
 const ON_PAGES = /github\.io$/.test(location.hostname);
 const SHARE_URL = ON_PAGES ? PAGES_URL : ARTIFACT_URL;
 const QR_IMG = ON_PAGES ? 'qr-pages.png' : 'qr.png';
@@ -2145,7 +2145,7 @@ function netLine() {
   const st = online?.net.status;
   if (st === 'on') return `<p>👥 <b>팀 테스트 연결됨</b> <small>(${window.__bamNet?.via === 'mqtt' ? '공개 실시간 서버 · 로그인 없이 모두 같은 방' : 'Claude 로그인 사용자끼리'})</small> · 지금 마을에 ${online.count}명${online.net.isHost ? ' · 내가 호스트' : ''}</p>${online.net.isHost ? `<button class="secondary" id="netHost">${online.net.hostMode ? '호스트 화면 (켜짐)' : '호스트 화면 열기 · QR 입장 코드'}</button>` : ''}`;
   if (st === 'off') { const inClaude = /claude\.ai|claudeusercontent|anthropic/.test(location.hostname) || !!window.claude;
-    return `<p>혼자 체험 모드예요. 실시간 서버에 연결하지 못했어요.</p>${inClaude ? '<p>👉 이 Claude 링크에서는 외부 실시간 연결이 막혀 있을 수 있어요. <b>johnnyseo-glitch.github.io/bam-village</b> 주소로 열어주세요.</p>' : '<p>회사·공용 와이파이가 막았을 수 있어요. 휴대폰 데이터로 다시 열어보세요.</p>'}<p class="net-err">${(window.__bamNet?.errors ?? []).map(esc).join('<br>')}</p>`; }
+    return `<p>혼자 체험 모드예요. 실시간 서버에 연결하지 못했어요.</p>${inClaude ? '<p>👉 이 Claude 링크에서는 외부 실시간 연결이 막혀 있을 수 있어요. <b>공유받은 GitHub 주소</b>로 열어주세요.</p>' : '<p>회사·공용 와이파이가 막았을 수 있어요. 휴대폰 데이터로 다시 열어보세요.</p>'}<p class="net-err">${(window.__bamNet?.errors ?? []).map(esc).join('<br>')}</p>`; }
   return '<p>팀 연결 확인 중…</p>';
 }
 function bindNetLine() { if ($('netHost')) $('netHost').onclick = () => online.openHost(); }

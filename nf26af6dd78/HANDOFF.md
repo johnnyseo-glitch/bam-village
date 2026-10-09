@@ -122,6 +122,10 @@ v0.4(ChatGPT/Codex 구현)를 이어받아 Claude가 v0.5로 수정했다. 이 Z
 - 모든 데이터는 이 브라우저(localStorage)에만 있다. 주민 반응·칭찬 받기·친구 수락은 정해진 체험 응답이다.
 - 상점 테스트용 코인은 직접 주문으로만 모인다(한 잔 100). 빠른 체험이 필요하면 콘솔에서 __bam.wallet.coins를 바꾼다.
 
+## v2.9: 예전 링크 폐쇄 · 새 주소
+- GitHub Pages 루트(예전 링크)는 '문을 닫았어요' 페이지만. 앱은 추측하기 어려운 하위 폴더(scratchpad/slug.txt, build-site.sh가 옮김)에만. robots.txt Disallow.
+- 예전 Claude 아티팩트 삭제, 새 아티팩트(비공개로 시작)에 같은 앱 게시. 새 파일은 bamvillage.html(= index.html 복사본).
+
 ## v2.8: 비밀번호 입장
 - index.html에서 walk·netshim을 불러오기 전에 비밀번호 화면. 확인은 SHA-256(bam-check:pw) 해시 비교(코드에 비밀번호 원문 없음), 맞으면 localStorage 'bam-pass'에 기억.
 - 실시간 방 이름 = 'k' + SHA-256(bam-room:pw) 앞 24자. 비밀번호를 모르면 코드를 뜯어봐도 같은 방을 알 수 없다. 예전 seongsu 방·?room 링크는 무효(?room은 테스트용 ?broker와 함께일 때만).
