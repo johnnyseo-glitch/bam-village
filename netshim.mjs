@@ -11,7 +11,9 @@ const store = {get: k => { try { return localStorage.getItem(k); } catch { retur
 
 export function install({brokers = BROKERS} = {}) {
   const params = new URLSearchParams(location.search);
-  const ROOM = (params.get('room') || 'seongsu').replace(/[^a-zA-Z0-9-]/g, '').slice(0, 32) || 'seongsu';
+  // v2.8: 방 이름은 비밀번호에서 만든 키로만 정해진다(링크·코드만으로는 같은 방에 들어올 수 없다). 테스트 도구용 ?room은 ?broker와 함께일 때만.
+  const testRoom = params.get('broker') && params.get('room');
+  const ROOM = (testRoom || ('k' + (window.__bamKey || 'locked'))).replace(/[^a-zA-Z0-9-]/g, '').slice(0, 32);
   const P = `bamvillage/v1/${ROOM}`;
   const custom = params.get('broker'); if (custom && /^wss?:\/\//.test(custom)) brokers = [custom]; // 테스트용 브로커 지정
   let uid = store.get('bam-uid'); if (!uid) { uid = 'u_' + rand(10); store.set('bam-uid', uid); }

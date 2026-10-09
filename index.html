@@ -5,7 +5,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=IBM+Plex+Mono:wght@500&family=Jua&display=swap">
-<link rel="stylesheet" href="walk.css?v=1791521530">
+<link rel="stylesheet" href="walk.css?v=1791559404">
 
 <div class="app">
   <section class="stage" id="stage" aria-label="미니미가 걷는 3D 바">
@@ -39,9 +39,14 @@
     <div id="roundCard" class="tutorial round-card" hidden></div>
     <button id="jumpBtn" class="jump-btn" aria-label="점프 (스페이스바)">점프<small>SPACE</small></button>
     <button id="punchBtn" class="punch-btn" aria-label="때리기 (Ctrl)">👊<small>CTRL</small></button>
-    <span class="demo-chip">팀 테스트 v2.7</span>
+    <span class="demo-chip">팀 테스트 v2.8</span>
 
     <div id="fade" class="fade" aria-hidden="true"></div>
+    <div id="passGate" class="pass-gate" hidden>
+      <div class="pass-card"><span class="pass-moon">☾</span><h2>밤마을</h2><p>초대받은 사람만 들어올 수 있어요</p>
+        <input id="passInput" type="password" autocomplete="current-password" placeholder="비밀번호" aria-label="비밀번호">
+        <button id="passGo">들어가기</button><small id="passMsg"></small></div>
+    </div>
     <div id="loading" class="loading"><span>☾</span><p>작은 마을을 여는 중…</p></div>
     <div id="failure" class="failure" hidden>
       <h2>3D 화면을 열지 못했어요</h2>
@@ -76,8 +81,32 @@
 
 <script type="module">
 // 실시간 연결 어댑터를 먼저 깐다: 공개 실시간 서버(모두 같은 방) → 안 되면 Claude 자체 실시간.
-import('./netshim.mjs?v=1791521530').then(m => { m.install(); }).catch(e => console.warn('online off', e))
-.then(() => import('./walk.mjs?v=1791521530')).catch(error => {
+// v2.8 비밀번호 입장: 비밀번호를 아는 사람만 들어오고, 같은 비밀번호끼리만 같은 방에서 만난다
+const CHECK = '53bccbe65b609c646b95a93a6653e49d5233c45ee8bbed9c8f0b6c075f2c4168';
+const sha = async t => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)))].map(b => b.toString(16).padStart(2, '0')).join('');
+const testing = new URLSearchParams(location.search).has('broker');
+async function unlock() {
+  let saved = ''; try { saved = localStorage.getItem('bam-pass') || ''; } catch {}
+  if (testing) return;
+  if (saved && await sha('bam-check:' + saved) === CHECK) { window.__bamKey = (await sha('bam-room:' + saved)).slice(0, 24); return; }
+  document.getElementById('loading').hidden = true;
+  const box = document.getElementById('passGate'); box.hidden = false;
+  const input = document.getElementById('passInput'), msg = document.getElementById('passMsg');
+  setTimeout(() => input.focus(), 50);
+  await new Promise(resolve => {
+    const tryIt = async () => {
+      const pw = input.value.trim();
+      if (await sha('bam-check:' + pw) !== CHECK) { msg.textContent = '비밀번호가 달라요'; input.value = ''; box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake'); return; }
+      try { localStorage.setItem('bam-pass', pw); } catch {}
+      window.__bamKey = (await sha('bam-room:' + pw)).slice(0, 24);
+      box.hidden = true; document.getElementById('loading').hidden = false; resolve();
+    };
+    document.getElementById('passGo').onclick = tryIt;
+    input.onkeydown = e => { if (e.key === 'Enter') tryIt(); };
+  });
+}
+unlock().then(() => import('./netshim.mjs?v=1791559404')).then(m => { m.install(); }).catch(e => console.warn('online off', e))
+.then(() => import('./walk.mjs?v=1791559404')).catch(error => {
   console.error(error);
   document.getElementById('loading').hidden = true;
   document.getElementById('failure').hidden = false;
