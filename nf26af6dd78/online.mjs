@@ -4,8 +4,8 @@
 //
 // 입장: 호스트 화면(QR + 1분마다 바뀌는 4자리 코드) → 손님이 코드 입력 → 호스트 화면이 확인하고
 // passes/<손님 id> 입장권을 쓴다. 입장권이 있는 사람만 마을에 들어오고, 서로의 화면에도 보인다.
-import * as T from './vendor/three.min.mjs?v=1791559678';
-import {EMOTES, TABLES, SPOTS, PRAISE_TAGS, DRINKS} from './map-data.mjs?v=1791559678';
+import * as T from './vendor/three.min.mjs?v=1791561358';
+import {EMOTES, TABLES, SPOTS, PRAISE_TAGS, DRINKS} from './map-data.mjs?v=1791561358';
 
 const PASS_MS = 6 * 3600 * 1000, CODE_MS = 60000, SEND_MS = 110;
 const NONCE_KEY = 'bam-net-nonce';
@@ -354,7 +354,7 @@ export function createOnline(G) {
       <p class="meta"><b class="mood-dot ${esc(p.md || 'talk')}"></b>${esc(G.moodShort(p.md))}${t ? ` · T${t.number} ${esc(t.title)}${p.own ? ' 👑' : ''}` : ' · 걷는 중'}</p>
       <details class="more"><summary>자세히 (나이 · 직업 · MBTI)</summary><p class="meta profile-line">${p.a ? esc(p.a) + '세 · ' : ''}${esc(p.j || '')}${p.m ? ' · ' + esc(p.m) : ''}</p></details>
       <button class="action" id="pWave">👋 손 흔들기</button>
-      ${G.state.table ? '<button class="secondary" id="pGift">🍸 한 잔 보내기</button>' : ''}
+      <button class="secondary" id="pGift">🍸 한 잔 보내기</button>
       ${t && !seatedWithMe ? '<button class="secondary" id="pTable">이 테이블 살펴보기</button>' : ''}
       <p class="note">실제 팀원이에요. 🌙 현장에서는 연락처·친구 신청·칭찬을 부탁하지 않아요. 퇴장한 뒤 ‘오늘의 기억’에서 전해요.</p>`);
     $('pWave').onclick = () => { emit('wave', {to: R.peer}); G.wave(); G.closeDialog(); G.status(`${p.n}님에게 손을 흔들었어요`); };
@@ -410,7 +410,7 @@ export function createOnline(G) {
     const back = remotes.size && [...remotes.values()].find(R => R.by === x.from);
     G.hideCalm?.();
     if (x.kind === 'drink') {
-      G.show('🍸 자리 비운 사이에', `<h2>${esc(x.fromNick)}님이 ${esc(G.eulreul(String(x.drink)))} 맡겨뒀어요</h2><p>받으면 바에서 만들어 자리로 가져다드려요.</p>
+      G.show('🍸 맡겨둔 한 잔', `<h2>${esc(x.fromNick)}님이 ${esc(G.eulreul(String(x.drink)))} 맡겨뒀어요</h2><p>받으면 바에서 만들어 자리로 가져다드려요.</p>
         <button class="action" id="ibYes">고마워요, 받을게요</button><button class="secondary" id="ibNo">마음만 받을게요</button>`, {lock: true});
       $('ibYes').onclick = () => {
         net.db.collection('inbox').doc().set({to: x.from, from: net.myId, fromNick: G.state.profile.name || '팀원', at: Date.now(), kind: 'thanks', drink: x.drink}).catch(() => {});
@@ -448,13 +448,16 @@ export function createOnline(G) {
   const giftQueue = [];
   function onGift(m) {
     const d = m.data || {}; if (d.to !== myPeer() || m.sameTab) return;
-    if (G.state.profile.mood !== 'talk') { emit('giftans', {to: m.peer, oid: d.oid, ok: false}); return; }
-    giftQueue.push({m, d}); pumpGift();
+    // v2.10: 상태와 상관없이 항상 받는 사람이 직접 고른다(예전엔 '놀자'가 아니면 자동 거절이라 안 가는 것처럼 보였다)
+    giftQueue.push({m, d, at: Date.now()}); G.status(`🎁 ${remotes.get(m.peer)?.p.n || '팀원'}님이 한 잔을 보냈어요`); pumpGift();
   }
   function pumpGift() {
     if (!giftQueue.length) return;
-    if (G.dialogLabel()) { setTimeout(pumpGift, 1500); return; }
-    const {m, d} = giftQueue.shift();
+    while (giftQueue.length && Date.now() - giftQueue[0].at > 38000) giftQueue.shift(); // 보낸 쪽이 이미 '맡겨두기'로 돌렸다
+    if (!giftQueue.length) return;
+    if (G.dialogLabel() && !G.dialogLabel().startsWith('🎁')) { if (/MY|MENU|TABLE|MAP|지도|SHOP/.test(G.dialogLabel())) G.closeDialog(); else { setTimeout(pumpGift, 1200); return; } }
+    if (G.dialogLabel()) { setTimeout(pumpGift, 1200); return; }
+    const {m, d, at} = giftQueue.shift();
     const R = remotes.get(m.peer), name = R?.p.n || '팀원';
     G.hideCalm?.();
     G.show('🎁 한 잔 도착', `<h2>${esc(name)}님이 ${esc(G.eulreul(String(d.drink || '한 잔')))} 보내고 싶어해요</h2>
@@ -462,6 +465,9 @@ export function createOnline(G) {
       <button class="action" id="gYes">고마워요, 받을게요</button><button class="secondary" id="gNo">마음만 받을게요</button>`);
     const answer = ok => { emit('giftans', {to: m.peer, oid: d.oid, ok}); if (ok) giftAccepted.set(m.peer + ':' + d.oid, true); G.closeDialog(); G.status(ok ? `${name}님에게 고맙다고 전했어요` : '마음만 받았어요'); setTimeout(pumpGift, 400); };
     $('gYes').onclick = () => answer(true); $('gNo').onclick = () => answer(false);
+    // 답을 못 하고 시간이 지나면 보낸 쪽이 바에 맡긴다 → 이 창은 닫고, 맡겨둔 잔(인박스)이 이어서 뜬다
+    const gYes = $('gYes'), left = Math.max(1000, 39500 - (Date.now() - at));
+    setTimeout(() => { if ($('gYes') === gYes && G.dialogLabel().startsWith('🎁')) { G.closeDialog(); G.status(`🍸 ${name}님이 바에 맡겨뒀대요`); setTimeout(pumpInbox, 600); } }, left);
   }
   function onGiftServed(m) {
     const d = m.data || {}; if (d.to !== myPeer() || !giftAccepted.has(m.peer + ':' + d.oid)) return;
@@ -569,5 +575,6 @@ export function createOnline(G) {
     isHere: id => !!net.room?.peers().some(p => p.by === id && !p.sameTab && p.presence?.in),
     pumpInbox: () => setTimeout(pumpInbox, 6000),
     playHit: R => { const now = performance.now(); R.localHitAt = now; R.hitAt = now; },
+    leaveDrink: (R, d) => leave(R, {kind: 'drink', drink: d.name, glass: d.glass, color: d.color}),
     get count() { return remotes.size; }, players: () => [...remotes.values()]};
 }

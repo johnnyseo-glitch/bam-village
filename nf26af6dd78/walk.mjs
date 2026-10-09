@@ -1,14 +1,14 @@
 // 밤마을 v0.7 — 카메라, 입력, 군중, 상호작용, 다이얼로그.
-import * as T from './vendor/three.min.mjs?v=1791559678';
-import {createBgm} from './bgm.mjs?v=1791559678';
-import {createWorld, HOST_STEP} from './world.mjs?v=1791559678';
-import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791559678';
+import * as T from './vendor/three.min.mjs?v=1791561358';
+import {createBgm} from './bgm.mjs?v=1791561358';
+import {createWorld, HOST_STEP} from './world.mjs?v=1791561358';
+import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791561358';
 import {TABLES, SPOTS, WANDERERS, LOUNGERS, DRINKS, ENTRY, ROOM, MOODS, JACKETS, ACCESSORIES, DRINK_MINUTES, PROFILE_TAGS, ROUND_MINUTES, NEXT_TOPICS, VILLAGES, RESIDENT_COUNT, RING, OBSTACLES,
-  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC, DOOR_Z} from './map-data.mjs?v=1791559678';
-import {createSession} from './session.mjs?v=1791559678';
-import {createOnline} from './online.mjs?v=1791559678';
-import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791559678';
-import {createGames} from './games.mjs?v=1791559678';
+  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC, DOOR_Z} from './map-data.mjs?v=1791561358';
+import {createSession} from './session.mjs?v=1791561358';
+import {createOnline} from './online.mjs?v=1791561358';
+import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791561358';
+import {createGames} from './games.mjs?v=1791561358';
 
 const $ = id => document.getElementById(id);
 const view = $('viewport'), dialog = $('villageDialog'), calm = $('calm');
@@ -777,7 +777,7 @@ function helpResult(kind) {
 // opts.to: 받는 주민(npc) · opts.round: 내 테이블 전체
 function openMenu(opts = {}) {
   const t = state.table ? tableOf(state.table) : null;
-  if (!t) { // 주문은 앉은 자리에서만
+  if (!t && !opts.to) { // 주문은 앉은 자리에서만(팀원에게 한 잔 보내기는 어디서나)
     show('BAR MENU', `<h2>주문은 자리에서 해요</h2>
       <div class="bubble-line">JAY: 자리에 앉으면 거기로 바로 가져다드려요. ${opts.to ? '한 잔 보내기도 자리에서 할 수 있어요.' : '먼저 판을 골라볼까요?'}</div>
       <button class="action" id="mReco">테이블 추천받기</button><button class="secondary" id="mMap">지도 보기</button>`);
@@ -849,8 +849,12 @@ function placeOrder(id, opts = {}) {
       if (gen !== orderGen || o.status !== '접수') return;
       if (!ok) {
         session.cancelOrder(o.id); if (o.free) { wallet.coupons++; saveWallet(); } refresh();
-        if (why !== 'timeout') bubbleOver(R.root, '마음만 받을게요', '#d8f0ff', 2400);
-        status(why === 'timeout' ? `${opts.to.name}님이 답이 없어 취소했어요. 결제되지 않아요` : `${opts.to.name}님이 마음만 받았어요. 제조 전이라 결제되지 않아요`); return;
+        if (why === 'timeout') { // 답이 없으면(폰을 안 보는 중) 바에 맡겨둔다 → 돌아오면 받을 수 있게
+          const d = DRINKS.find(x => x.name === o.drink) ?? {name: o.drink, glass: o.glass, color: o.color};
+          online.leaveDrink(R, d); status(`${opts.to.name}님이 지금 화면을 안 봐서 바에 맡겨뒀어요 · 돌아오면 받을 수 있어요`); return;
+        }
+        bubbleOver(R.root, '마음만 받을게요', '#d8f0ff', 2400);
+        status(`${opts.to.name}님이 마음만 받았어요. 제조 전이라 결제되지 않아요`); return;
       }
       bubbleOver(R.root, '고마워요!', '#ffdbe8', 2000); status(`${opts.to.name}님이 한 잔을 받기로 했어요`);
       setTimeout(() => {
@@ -859,7 +863,7 @@ function placeOrder(id, opts = {}) {
         setTimeout(() => {
           if (gen !== orderGen || o.status !== '준비 중') return;
           session.advanceOrder(o.id); online.giftServed(o, R); orderReward(o); refresh();
-          status(`${opts.to.name}님에게 ${eulreul(o.drink)} 전해졌어요 🥂`);
+          status(`${opts.to.name}님에게 ${iga(o.drink)} 전해졌어요 🥂`);
         }, 6000);
       }, 3000);
     });
