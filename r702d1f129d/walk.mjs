@@ -1,14 +1,14 @@
 // 밤마을 v0.7 — 카메라, 입력, 군중, 상호작용, 다이얼로그.
-import * as T from './vendor/three.min.mjs?v=1791772977';
-import {createBgm} from './bgm.mjs?v=1791772977';
-import {createWorld, HOST_STEP} from './world.mjs?v=1791772977';
-import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791772977';
+import * as T from './vendor/three.min.mjs?v=1791774586';
+import {createBgm} from './bgm.mjs?v=1791774586';
+import {createWorld, HOST_STEP} from './world.mjs?v=1791774586';
+import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791774586';
 import {TABLES, SPOTS, WANDERERS, LOUNGERS, DRINKS, ENTRY, ROOM, MOODS, JACKETS, ACCESSORIES, DRINK_MINUTES, PROFILE_TAGS, ROUND_MINUTES, NEXT_TOPICS, VILLAGES, RESIDENT_COUNT, RING, OBSTACLES,
-  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC, DOOR_Z} from './map-data.mjs?v=1791772977';
-import {createSession} from './session.mjs?v=1791772977';
-import {createOnline} from './online.mjs?v=1791772977';
-import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791772977';
-import {createGames} from './games.mjs?v=1791772977';
+  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC, DOOR_Z} from './map-data.mjs?v=1791774586';
+import {createSession} from './session.mjs?v=1791774586';
+import {createOnline} from './online.mjs?v=1791774586';
+import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791774586';
+import {createGames} from './games.mjs?v=1791774586';
 
 const $ = id => document.getElementById(id);
 const view = $('viewport'), dialog = $('villageDialog'), calm = $('calm');
@@ -1140,8 +1140,9 @@ function toggleEquip(id) {
   equip(i); saveWallet(); applyLook(); refresh(); status(`${i.icon} ${i.name} 착용!`);
 }
 function invIcon(i) { return i.kind === 'jacket' ? `<span class="inv-jacket" style="--c:${JACKETS.find(j => j.id === i.value)?.color ?? '#ccc'}">🧥</span>` : `<span>${i.icon ?? '✨'}</span>`; }
-const CATS = [['jacket', '옷'], ['accessory', '모자'], ['face', '얼굴'], ['extra', '포인트'], ['pet', '펫']];
-const shopUI = {cat: 'jacket', page: 0}, invUI = {cat: 'all', page: 0};
+const catOf = i => i.kind === 'jacket' && i.value.startsWith('kig-') ? 'costume' : i.kind;
+const CATS = [['costume', '코스튬'], ['jacket', '옷'], ['accessory', '모자'], ['face', '얼굴'], ['extra', '포인트'], ['pet', '펫']];
+const shopUI = {cat: 'costume', page: 0}, invUI = {cat: 'all', page: 0};
 const thumbTag = i => `<canvas class="thumb" data-thumb="${i.id}" width="112" height="112"></canvas>`;
 function pager(n, per, ui, key) {
   const pages = Math.max(1, Math.ceil(n / per)); ui.page = Math.min(Math.max(0, ui.page), pages - 1);
@@ -1149,7 +1150,7 @@ function pager(n, per, ui, key) {
 }
 // 상점: 종류 탭 · 한 페이지 6개 · 3D 미리보기 그림 · 사면 '보유 중'(착용은 가방에서)
 function shopBody() {
-  const list = SHOP.filter(i => i.kind === shopUI.cat), per = 6;
+  const list = SHOP.filter(i => catOf(i) === shopUI.cat), per = 6;
   const pg = pager(list.length, per, shopUI, 'spage');
   const cards = list.slice(shopUI.page * per, shopUI.page * per + per).map(i => {
     const own = wallet.owned.includes(i.id);
@@ -1170,7 +1171,7 @@ function openBuy(id) {
 }
 // 가방: 장착 칸 + 종류 필터 + 한 페이지 12칸
 function inventoryBody() {
-  const owned = SHOP.filter(i => wallet.owned.includes(i.id) && (invUI.cat === 'all' || i.kind === invUI.cat)), per = 12;
+  const owned = SHOP.filter(i => wallet.owned.includes(i.id) && (invUI.cat === 'all' || catOf(i) === invUI.cat)), per = 12;
   const worn = kind => SHOP.find(i => i.kind === kind && itemOn(i));
   const pg = pager(owned.length, per, invUI, 'ipage');
   const cells = owned.slice(invUI.page * per, invUI.page * per + per).map(i => `<button class="iv-cell${itemOn(i) ? ' on' : ''}" data-inv="${i.id}">${thumbTag(i)}<small>${esc(i.name)}</small></button>`);
@@ -1198,7 +1199,7 @@ function itemThumbURL(i) {
   else if (i.kind === 'accessory' || i.kind === 'face') { obj = new T.Group(); const a = world.addAccessory(obj, i.value); obj.rotation.set(.12, -.45, 0); }
   else if (i.kind === 'jacket') {
     const c = world.critter({species: 'bear', fur: '#e6d3b8', outfit: JACKETS.find(j => j.id === i.value)?.color ?? '#cddc83', accent: '#d9c8a8', style: i.value});
-    c.head.visible = false; c.legs.forEach(l => l.visible = false); obj = c.rig; obj.rotation.y = i.value === 'hero' ? -.9 : -.35;
+    if (!i.value.startsWith('kig-')) { c.head.visible = false; c.legs.forEach(l => l.visible = false); } obj = c.rig; obj.rotation.y = i.value === 'hero' ? -.9 : i.value.startsWith('kig-') ? -.6 : -.35;
   } else {
     const make = ex => world.critter({species: 'bear', fur: '#c9a27c', outfit: '#cddc83', accent: '#f4b942', extra: ex});
     const c = make(i.value), base = make('none'), nRig = base.rig.children.length, nHead = base.head.children.length;
@@ -1781,7 +1782,7 @@ function animatePets(now, dt) {
 }
 
 // ── 선택형 감정 말풍선(채팅 없음, 집계 안 함) ───────────
-let emoteAnim = null, myBubble = null, emoteReadyAt = 0;
+let waddleZ = 0, emoteAnim = null, myBubble = null, emoteReadyAt = 0;
 function renderEmotePanel() {
   $('emotePanel').innerHTML = EMOTES.map(e => `<button data-emote="${e.id}"><span>${e.icon}</span>${e.label}</button>`).join('');
   $('emotePanel').querySelectorAll('[data-emote]').forEach(b => b.onclick = () => { doEmote(b.dataset.emote); $('emotePanel').hidden = true; });
@@ -1912,13 +1913,15 @@ function animate(now) {
     phase += dt * 12;
     targetQ.setFromAxisAngle(axis, Math.atan2(direction.x, direction.z)); actor.quaternion.slerp(targetQ, 1 - Math.exp(-dt * 14));
     rig.position.y = reduced ? 0 : Math.abs(Math.sin(phase)) * .042;
-    const swing = reduced ? .12 : .48;
+    const wad = world.waddle, swing = reduced ? .12 : wad ? .22 : .48;
     legs[0].rotation.x = Math.sin(phase) * swing; legs[1].rotation.x = -Math.sin(phase) * swing;
+    waddleZ = wad && !reduced ? Math.sin(phase) * .2 : 0; // 코스튬: 뒤뚱뒤뚱
     arms[0].rotation.x = -Math.sin(phase) * swing * .8; arms[1].rotation.x = glassGroup.visible ? -.6 : Math.sin(phase) * swing * .8;
   } else {
     rig.position.y = reduced ? 0 : Math.sin(now * .002) * .009;
     for (const part of [...legs, ...arms]) part.rotation.x = T.MathUtils.damp(part.rotation.x, part === arms[1] && glassGroup.visible ? -.6 : 0, 16, dt);
   }
+  if (!moved || state.table) waddleZ *= .8;
   walking = moved;
   // 점프 물리 + 찌그러짐/늘어남
   if (jumpV !== 0 || jumpY > 0) {
@@ -1958,7 +1961,8 @@ function animate(now) {
     else if (emoteAnim.id === 'cheers') arms[1].rotation.x = -2.6;
     else if (emoteAnim.id === 'wave') { arms[1].rotation.x = -2.4; arms[1].rotation.z = -.4 + Math.sin(k * 16) * .35; }
     else if (emoteAnim.id === 'agree') rig.rotation.z = Math.sin(k * 10) * .08;
-  } else { arms[0].rotation.z = 0; arms[1].rotation.z = 0; rig.rotation.z = 0; }
+  } else { arms[0].rotation.z = 0; arms[1].rotation.z = 0; rig.rotation.z = knock ? rig.rotation.z : waddleZ; }
+  for (const sp of world.spinners) sp.rotation.y += dt * 9;
   if (place === 'bar') for (const l of lampShades) {
     const blocking = camOverview || (l.hideUpper && level === 2) || (l.behind && level === 1 && actor.position.z < l.z - 1.2 && Math.abs(l.x - actor.position.x) < l.r) || !l.noFade && (!l.upperOnly || actor.position.y > 1.2 || level === 2) && l.z > actor.position.z + .6 && l.z < actor.position.z + 6 && Math.abs(l.x - actor.position.x) < (l.r ?? 2.6);
     const target = blocking ? .12 : 1;

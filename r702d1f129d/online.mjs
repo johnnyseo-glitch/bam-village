@@ -4,8 +4,8 @@
 //
 // 입장: 호스트 화면(QR + 1분마다 바뀌는 4자리 코드) → 손님이 코드 입력 → 호스트 화면이 확인하고
 // passes/<손님 id> 입장권을 쓴다. 입장권이 있는 사람만 마을에 들어오고, 서로의 화면에도 보인다.
-import * as T from './vendor/three.min.mjs?v=1791772977';
-import {EMOTES, TABLES, SPOTS, PRAISE_TAGS, DRINKS} from './map-data.mjs?v=1791772977';
+import * as T from './vendor/three.min.mjs?v=1791774586';
+import {EMOTES, TABLES, SPOTS, PRAISE_TAGS, DRINKS} from './map-data.mjs?v=1791774586';
 
 const PASS_MS = 6 * 3600 * 1000, CODE_MS = 60000, SEND_MS = 110;
 const NONCE_KEY = 'bam-net-nonce';
@@ -305,6 +305,7 @@ export function createOnline(G) {
     if (c.ouch && c.ouch.visible !== hurt) { c.ouch.visible = hurt; for (const o of c.ouch.userData.hide) o.visible = !hurt; }
     if (hurt && ht < 420) { const k = ht / 420; c.rig.rotation.x = -.35 * (1 - k); c.rig.rotation.z = Math.sin(k * 22) * .16 * (1 - k); }
     else if (c.rig.rotation.x || c.rig.rotation.z) { c.rig.rotation.x = 0; c.rig.rotation.z = 0; }
+    if (c.waddle && !(hurt && ht < 420)) c.rig.rotation.z = !p.tb && (p.w || dist > .06) ? Math.sin(R.phase) * .2 : c.rig.rotation.z * .8; // 코스튬 뒤뚱
     if (p.ea !== R.lastEa) { R.lastEa = p.ea; const e = EMOTES.find(e => e.id === p.e); if (e && p.ea) G.bubbleOver(root, e.text, e.bg, 3000, 2.05); }
     if (R.pet && R.pet.species !== p.pt) { G.scene.remove(R.pet.group); R.pet = null; } // 펫을 바꾸면 다시 만든다
     if (p.pt && !R.pet) { R.pet = G.makePet(p.pt, p.pf || null); R.pet.species = p.pt; }

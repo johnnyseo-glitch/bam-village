@@ -1,8 +1,8 @@
 // 밤마을 v0.7 — 앰버 조명의 미드센추리 바 디오라마와 2등신 동물 주민.
 // 모든 그림은 코드와 캔버스로 직접 만든다(외부 이미지·모델 없음).
 // 무드: 월넛 루버 · 러스트 벨벳 커튼 · 웜다크 콘크리트 · 돌기둥 링 바 · 버섯 램프 · 캐러멜 가죽 · 앰버 빛 웅덩이.
-import * as T from './vendor/three.min.mjs?v=1791772977';
-import {TABLES, WANDERERS, LOUNGERS, LOUNGES, COUNTER, ENTRY, DOOR_Z, ROOM, RING, SOFA, MEZZ, MEZZ_Y, STAIRS, WELCOME_ZONE, PEOPLE} from './map-data.mjs?v=1791772977';
+import * as T from './vendor/three.min.mjs?v=1791774586';
+import {TABLES, WANDERERS, LOUNGERS, LOUNGES, COUNTER, ENTRY, DOOR_Z, ROOM, RING, SOFA, MEZZ, MEZZ_Y, STAIRS, WELCOME_ZONE, PEOPLE} from './map-data.mjs?v=1791774586';
 
 export const HOST_STEP = .32; // 링 바 안쪽 발판 높이: 호스트 얼굴이 카운터 위로 보이게
 const SKY = '#211b17'; // v1.8 젠 하이엔드: 바깥은 깊은 웜 차콜
@@ -990,7 +990,8 @@ export function createWorld() {
   // 종(species): 기본 동물 + 오리지널 인외(용·로봇·유령·외계인·개구리·펭귄). extra: 머리·등 장식.
   function critter({species = 'bear', fur = '#c08a5c', outfit = '#8ac26b', accent = '#f4b942', host = false, extra = 'none', style = 'lime'}) {
     const rig = new T.Group();
-    const noEars = ['robot', 'ghost', 'alien', 'frog', 'penguin', 'dokkaebi'].includes(species);
+    const kig = KIG[style]; // v2.13 일체형 코스튬(후드 + 전신 슈트 + 꼬리)
+    const noEars = !!kig || ['robot', 'ghost', 'alien', 'frog', 'penguin', 'dokkaebi'].includes(species);
     const furM = toon(fur), fur2 = toon(species === 'panda' ? '#ffffff' : lighter(fur)), clothes = species === 'ghost' ? toon(fur) : toon(outfit);
     const parts = {legs: [], arms: [], eyes: []};
     // 몸
@@ -1006,17 +1007,17 @@ export function createWorld() {
     for (const s of [-1, 1]) {
       const leg = new T.Group(); leg.position.set(s * .1, .3, 0); rig.add(leg);
       if (species !== 'ghost') {
-        outline(cyl(.07, .075, .18, species === 'panda' ? DARK : furM, 0, -.08, 0, leg), .07);
-        const foot = sphere(.09, species === 'panda' ? DARK : species === 'penguin' || species === 'frog' ? toon('#f39a3c') : fur2, 0, -.2, .03, leg); foot.scale.set(species === 'frog' ? 1.3 : .95, .6, 1.25); outline(foot, .09);
+        outline(cyl(.07, .075, .18, kig ? clothes : species === 'panda' ? DARK : furM, 0, -.08, 0, leg), .07);
+        const foot = sphere(.09, kig ? toon(kig.foot ?? darker(outfit)) : species === 'panda' ? DARK : species === 'penguin' || species === 'frog' ? toon('#f39a3c') : fur2, 0, -.2, .03, leg); foot.scale.set(species === 'frog' ? 1.3 : .95, .6, 1.25); outline(foot, .09);
       }
       parts.legs.push(leg);
       const arm = new T.Group(); arm.position.set(s * .2, .62, 0); rig.add(arm);
       const sleeve = cyl(.06, .065, .16, clothes, 0, -.07, 0, arm); sleeve.rotation.z = s * .25; outline(sleeve, .06);
-      const hand = sphere(.065, species === 'panda' ? DARK : furM, s * .04, -.17, 0, arm); outline(hand, .065);
+      const hand = sphere(.065, kig ? toon(kig.paw ?? lighter(outfit)) : species === 'panda' ? DARK : furM, s * .04, -.17, 0, arm); outline(hand, .065);
       parts.arms.push(arm); (parts.fists ??= []).push(hand); if (s > 0) parts.fist = hand;
     }
     // 머리
-    if (style && style !== 'lime') dressUp(rig, style);
+    if (style && style !== 'lime' && !kig) dressUp(rig, style);
     const head = new T.Group(); head.position.y = 1.0; rig.add(head);
     head.userData.eye = {y: species === 'frog' ? .3 : .03, z: species === 'frog' ? .29 : .335}; // 얼굴 소품(안경)을 눈에 맞춘다
     const skull = sphere(.37, furM, 0, 0, 0, head); skull.scale.set(1.06, .94, .96); outline(skull, .37, .026);
@@ -1066,7 +1067,7 @@ export function createWorld() {
       }
     }
     if (species === 'tiger') for (let i = -1; i <= 1; i++) box(.03, .1, .02, DARK, i * .06, .27, .29, head);
-    if (species === 'sheep') for (let i = 0; i < 9; i++) { const a = i / 9 * Math.PI * 2; const w = sphere(.12, fur2, Math.cos(a) * .26, .22 + Math.sin(a) * .06, Math.sin(a) * .16 - .04, head); outline(w, .12, .012); }
+    if (species === 'sheep' && !kig) for (let i = 0; i < 9; i++) { const a = i / 9 * Math.PI * 2; const w = sphere(.12, fur2, Math.cos(a) * .26, .22 + Math.sin(a) * .06, Math.sin(a) * .16 - .04, head); outline(w, .12, .012); }
     if (species === 'koala') { const n = sphere(.07, DARK, 0, -.04, .37, head); n.scale.set(1, 1.3, .7); }
     if (species === 'mouse') { /* 수염 */ for (const s of [-1, 1]) for (const dy of [-.02, .02]) rod([s * .08, -.07 + dy, .38], [s * .26, -.05 + dy * 2, .34], .006, DARK, head); }
     if (species === 'dokkaebi') {
@@ -1079,7 +1080,8 @@ export function createWorld() {
       cyl(.172, .172, .04, toon('#e65f5c'), 0, .37, 0, head);
     }
     // 꼬리
-    if (species === 'fox') {
+    if (kig) {}
+    else if (species === 'fox') {
       const tail = sphere(.17, furM, 0, .38, -.3, rig); tail.scale.set(.85, .9, 1.7); tail.rotation.x = .5; outline(tail, .17);
       const tip = sphere(.11, fur2, 0, .48, -.5, rig); tip.scale.set(.85, .95, 1.2);
     } else if (species === 'tiger' || species === 'raccoon') {
@@ -1128,13 +1130,75 @@ export function createWorld() {
       const wm = extra === 'wings' ? toon('#ffffff') : toon('#3a2f45');
       for (const s of [-1, 1]) { const w = extra === 'wings' ? sphere(.2, wm, s * .22, .6, -.2, rig) : cone(.2, .4, wm, s * .26, .62, -.18, rig, 3); w.scale.set(extra === 'wings' ? .55 : 1, 1, .25); w.rotation.z = s * (extra === 'wings' ? -.5 : -1.1); outline(w, .2, .012); }
     }
+    if (kig) { head.userData.kig = true; kigurumi(style, rig, head, clothes, species); }
     // 맞았을 때 표정 '> <': 눈 자리에 꺾쇠 두 개(평소엔 숨김)
     const ouch = new T.Group(); ouch.visible = false; head.add(ouch); ouch.userData.hide = [...parts.eyes, ...(parts.hls ?? [])];
     for (const s of [-1, 1]) {
       const ey = species === 'frog' ? .3 : .04, ez = species === 'frog' ? .32 : .372, x = s * (species === 'frog' ? .16 : .14);
       for (const k of [-1, 1]) { const bar = box(.085, .028, .03, DARK, x, ey + k * .022, ez, ouch, false); bar.rotation.z = s * k * .55; }
     }
-    return {rig, head, legs: parts.legs, arms: parts.arms, eyes: parts.eyes, collar, clothes, fist: parts.fist, fists: parts.fists, ouch};
+    return {rig, head, legs: parts.legs, arms: parts.arms, eyes: parts.eyes, collar, clothes, fist: parts.fist, fists: parts.fists, ouch, waddle: !!kig};
+  }
+
+  // ── v2.13 일체형 코스튬: 얼굴만 뚫린 후드 + 배 패치 + 꼬리. 몸·팔·다리·후드는 옷 색(clothes)이라 재킷 색 그대로 ──
+  const KIG = {
+    'kig-bear': {belly: '#e8cba4', rim: '#e8cba4', paw: '#e8cba4', foot: '#6e4a30'},
+    'kig-penguin': {belly: '#fbf6ee', rim: '#fbf6ee', paw: '#2a2d3a', foot: '#f39a3c'},
+    'kig-bunny': {belly: '#ffffff', rim: '#ffffff', paw: '#ffffff', foot: '#ffffff'},
+    'kig-dino': {belly: '#eef3b4', rim: '#5ea64e', paw: '#5ea64e', foot: '#5ea64e'},
+    'kig-shark': {belly: '#f4f6f8', rim: '#f4f6f8', paw: '#5d7c9c', foot: '#5d7c9c'},
+    'kig-chick': {belly: '#fff2a8', rim: '#fff2a8', paw: '#f39a3c', foot: '#f39a3c'},
+    'kig-unicorn': {belly: '#ffffff', rim: '#ffd7ec', paw: '#ffd7ec', foot: '#d9c2f0'},
+    'kig-tiger': {belly: '#fff3e0', rim: '#fff3e0', paw: '#fff3e0', foot: '#fff3e0'},
+    'kig-frog': {belly: '#e8f5c8', rim: '#6fb04e', paw: '#6fb04e', foot: '#6fb04e'},
+    'kig-sheep': {belly: '#ffffff', rim: '#3a3036', paw: '#3a3036', foot: '#3a3036'}
+  };
+  function kigurumi(id, rig, head, mat, species) {
+    const k = KIG[id], R = .43, w = .95, t0 = species === 'frog' ? .12 * Math.PI : .28 * Math.PI, t1 = .74 * Math.PI;
+    mat.side = T.DoubleSide;
+    for (const [ps, pl, ts, tl] of [[Math.PI / 2 + w, Math.PI * 2 - 2 * w, 0, Math.PI], [Math.PI / 2 - w, 2 * w, 0, t0], [Math.PI / 2 - w, 2 * w, t1, Math.PI - t1]]) {
+      const m = mesh(geo(`hood${ps.toFixed(2)}${ts.toFixed(2)}`, () => new T.SphereGeometry(R, 28, 18, ps, pl, ts, tl)), mat, 0, .0, -.01, head); m.scale.set(1.06, .98, 1);
+    }
+    const yT = R * .98 * Math.cos(t0), yB = R * .98 * Math.cos(t1);
+    const rim = mesh(geo('hoodrim' + t0.toFixed(2), () => new T.TorusGeometry(.3, .04, 8, 32)), toon(k.rim), 0, (yT + yB) / 2, .28, head, false);
+    rim.scale.set(R * 1.06 * Math.sin(w) / .3, (yT - yB) / 2 / .3, 1);
+    const belly = sphere(.16, toon(k.belly), 0, .47, .13, rig, false); belly.scale.set(1, 1.15, .5);
+    const C = c => toon(c), ear = (r, inner) => { for (const s of [-1, 1]) { const e = sphere(r, mat, s * .28, .33, -.03, head); e.scale.z = .6; outline(e, r, .014); if (inner) sphere(r * .6, C(inner), s * .28, .33, .02, head, false).scale.z = .3; } };
+    const beak = (y = .3, c = '#f39a3c') => { const b = cone(.07, .15, C(c), 0, y, .38, head, 8); b.rotation.x = Math.PI / 2 + .25; outline(b, .07, .01); };
+    const ball = (c, y = .34, z = -.24, r = .08) => outline(sphere(r, C(c), 0, y, z, rig), r);
+    if (id === 'kig-bear') { ear(.12, '#e8cba4'); ball('#e8cba4'); }
+    else if (id === 'kig-penguin') { beak(); ball('#2a2d3a', .3, -.22, .07); }
+    else if (id === 'kig-bunny') { for (const s of [-1, 1]) { const e = capsule(.075, .34, mat, s * .15, .6, -.04, head); e.rotation.z = s * -.18; outline(e, .075); const i2 = capsule(.04, .27, C('#ffb3c6'), s * .15, .6, .03, head); i2.rotation.z = s * -.18; } ball('#ffffff', .34, -.24, .1); }
+    else if (id === 'kig-dino') {
+      for (let i = 0; i < 4; i++) { const a = .25 + i * .42; const sp = cone(.07 - i * .006, .14, C('#ffb347'), 0, Math.cos(a) * .44, -Math.sin(a) * .44, head, 4); sp.rotation.x = -a; outline(sp, .07, .01); }
+      for (let i = 0; i < 2; i++) cone(.06, .12, C('#ffb347'), 0, .62 - i * .14, -.22 - i * .02, rig, 4).rotation.x = -.6;
+      const tail = cone(.13, .5, mat, 0, .3, -.4, rig, 12); tail.rotation.x = -1.95; outline(tail, .12);
+    }
+    else if (id === 'kig-shark') {
+      const fin = cone(.12, .26, mat, 0, .5, -.06, head, 3); fin.scale.z = .35; fin.rotation.x = -.25; outline(fin, .12, .012);
+      for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2, x = Math.cos(a) * R * 1.06 * Math.sin(w) * .92, y = (yT + yB) / 2 + Math.sin(a) * (yT - yB) / 2 * .92; const t = cone(.032, .07, C('#ffffff'), x, y, .3, head, 4); t.rotation.z = a + Math.PI / 2; }
+      const tf = cone(.14, .24, mat, 0, .42, -.36, rig, 3); tf.scale.z = .35; tf.rotation.x = -1.2; outline(tf, .12, .012);
+    }
+    else if (id === 'kig-chick') { beak(.28); for (let i = -1; i <= 1; i++) { const f = cone(.04, .14, mat, i * .05, .5, .02, head, 6); f.rotation.z = -i * .4; } ball('#ffd84a', .34, -.23, .07); }
+    else if (id === 'kig-unicorn') {
+      const h = cone(.055, .3, C('#f2c14e'), 0, .42, .2, head, 10); h.rotation.x = .45; outline(h, .055, .01);
+      ['#ff8fb1', '#ffd34a', '#8fd6a6', '#8fc4ff', '#c9a2e8'].forEach((c, i) => { const a = -.1 - i * .38; outline(sphere(.07, C(c), 0, Math.cos(a) * .44, -Math.abs(Math.sin(a)) * .44 + .04, head), .07); });
+      for (const s of [-1, 1]) { const e = cone(.06, .14, mat, s * .2, .4, -.02, head, 6); e.rotation.z = s * -.4; }
+      ['#ff8fb1', '#ffd34a', '#8fc4ff'].forEach((c, i) => { const t = capsule(.04, .18, C(c), (i - 1) * .05, .38, -.27, rig); t.rotation.x = -.6; });
+    }
+    else if (id === 'kig-tiger') {
+      ear(.1, '#2b2228');
+      for (let i = -1; i <= 1; i++) { const st = box(.035, .12, .03, DARK, i * .07, .36, .2, head, false); st.rotation.x = -.6; }
+      for (const s of [-1, 1]) for (const dy of [0, .1]) { const st = box(.03, .1, .02, DARK, s * .4, .02 + dy, .05, head, false); st.rotation.z = s * .3; }
+      const tail = capsule(.05, .32, mat, 0, .45, -.27, rig); tail.rotation.x = -.8; outline(tail, .05);
+      for (let i = 0; i < 2; i++) { const b = mesh(geo('tband', () => new T.TorusGeometry(.052, .018, 6, 14)), DARK, 0, .48 - i * .09, -.32 - i * .06, rig); b.rotation.x = .8; }
+    }
+    else if (id === 'kig-frog') { for (const s of [-1, 1]) { const e = sphere(.12, mat, s * .17, .38, .1, head); outline(e, .12, .014); sphere(.08, WHITE, s * .17, .41, .17, head, false); sphere(.04, DARK, s * .17, .42, .23, head, false); } }
+    else if (id === 'kig-sheep') {
+      for (let i = 0; i < 11; i++) { const a = i / 11 * Math.PI * 2; outline(sphere(.1, mat, Math.cos(a) * .3, .3 + Math.sin(a) * .07, Math.sin(a) * .2 - .05, head), .1, .012); }
+      for (const s of [-1, 1]) { const e = sphere(.1, C('#3a3036'), s * .42, .02, -.02, head); e.scale.set(1.3, .5, .5); e.rotation.z = s * -.3; }
+      for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; outline(sphere(.08, mat, Math.cos(a) * .2, .55 + Math.sin(a) * .08, -.12, rig), .08, .01); }
+    }
   }
 
   // ── 주민 배치 ─────────────────────────────────────────
@@ -1231,7 +1295,7 @@ export function createWorld() {
   const actor = new T.Group(); scene.add(actor); actor.position.set(ENTRY.x, 0, ENTRY.z);
   // 바깥 rig는 고정(걷기·점프 애니메이션이 여기에 걸린다), 안쪽 캐릭터는 꾸미기에 따라 다시 만든다.
   const rig = new T.Group(); actor.add(rig);
-  const ownJacket = new T.MeshToonMaterial({color: '#cddc83', gradientMap: grad});
+  const ownJacket = new T.MeshToonMaterial({color: '#cddc83', gradientMap: grad, side: T.DoubleSide});
   const fox = {legs: [], arms: [], eyes: [], head: null, rig: null};
 
   const shadow = mesh(new T.CircleGeometry(.3, 32), new T.MeshBasicMaterial({color: '#3b2a22', transparent: true, opacity: .22, depthWrite: false}), ENTRY.x, .02, ENTRY.z, scene, false);
@@ -1350,6 +1414,7 @@ export function createWorld() {
     g.traverse(o => { if (o.isMesh) { o.userData.ignorePick = true; o.castShadow = false; } });
     return g;
   }
+  const spinners = new Set(); // 프로펠러처럼 돌아가는 부품
   const ACC = {
     fedora: g => { const b = cyl(.36, .38, .025, toon('#3a2f2a'), 0, .27, -.02, g, false, 28); outline(b, .38, .008); const c = cyl(.2, .24, .2, toon('#3a2f2a'), 0, .37, -.02, g, false, 24); outline(c, .24, .01); cyl(.245, .245, .045, toon('#c9943a'), 0, .3, -.02, g, false, 24); const dent = box(.05, .02, .3, toon('#2a221e'), 0, .47, -.02, g, false); },
     ballcap: g => { const c = dome(.36, toon('#2f5fb0'), 0, .14, -.02, g, false); c.scale.y = .78; outline(c, .36, .012); const v = cyl(.22, .22, .02, toon('#2f5fb0'), 0, .16, .3, g, false, 20); v.scale.z = .6; sphere(.03, toon('#ffffff'), 0, .42, -.02, g, false); const l = mesh(new T.CircleGeometry(.06, 16), toon('#ffffff'), 0, .3, .29, g, false); l.rotation.x = -.5; },
@@ -1375,10 +1440,24 @@ export function createWorld() {
     starpin: g => { const st = cone(.07, .02, toon('#ffd34a'), .22, .26, .14, g, 5); st.rotation.x = Math.PI / 2; outline(st, .07, .01); },
     earmuff: g => { const b = mesh(geo('muffband', () => new T.TorusGeometry(.37, .025, 6, 24, Math.PI)), toon('#c9a2e8'), 0, .05, -.02, g); b.rotation.y = Math.PI / 2; for (const s of [-1, 1]) outline(sphere(.12, toon('#fbf3ea'), s * .37, .03, -.02, g), .12, .01); },
     sakura: g => { for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2; sphere(.035, toon('#ffc4d6'), -.22 + Math.cos(a) * .04, .28 + Math.sin(a) * .04, .13, g, false); } sphere(.02, toon('#ff8fb1'), -.22, .28, .15, g, false); },
+    sprout: g => { rod([0, .33, -.02], [.02, .5, -.02], .012, toon('#5f9a3c'), g); for (const sx of [-1, 1]) { const l = sphere(.07, toon('#8fd06a'), .02 + sx * .07, .53, -.02, g); l.scale.set(1.3, .45, .8); l.rotation.z = sx * -.4; outline(l, .07, .008); } },
+    pirate: g => { const h = sphere(.36, toon('#1f1c22'), 0, .3, -.02, g); h.scale.set(1.35, .42, .75); outline(h, .36, .012); const cr = cone(.3, .22, toon('#1f1c22'), 0, .42, -.02, g, 3); cr.scale.z = .5; cr.rotation.y = Math.PI / 6; cyl(.4, .4, .02, toon('#d6a856'), 0, .3, -.02, g, false, 28).scale.set(1.2, 1, .75);
+      outline(sphere(.06, toon('#ffffff'), 0, .4, .25, g), .06, .008); for (const r of [-.7, .7]) { const b = box(.16, .025, .02, toon('#ffffff'), 0, .33, .27, g, false); b.rotation.z = r; } },
+    grad: g => { const c = dome(.33, toon('#26232a'), 0, .2, -.02, g, false); c.scale.y = .55; outline(c, .33, .012); const b = box(.62, .03, .62, toon('#26232a'), 0, .4, -.02, g); b.rotation.y = Math.PI / 4; outline(b, .3, .006); sphere(.03, toon('#f2c14e'), 0, .42, -.02, g, false); rod([0, .42, -.02], [.3, .4, .1], .01, toon('#f2c14e'), g); const t = cyl(.025, .035, .14, toon('#f2c14e'), .3, .32, .1, g); },
+    santa: g => { cyl(.37, .37, .1, toon('#fbf6ee'), 0, .2, -.02, g, false, 28); const c = cone(.3, .5, toon('#d6383a'), .05, .5, -.06, g, 20); c.rotation.z = -.35; c.rotation.x = -.25; outline(c, .3, .012); outline(sphere(.08, toon('#fbf6ee'), .24, .7, -.14, g), .08, .01); },
+    propeller: g => { const c = dome(.36, toon('#ffd34a'), 0, .12, -.02, g, false); outline(c, .36, .012); for (let i = 0; i < 4; i++) { const seg = dome(.362, toon(['#ff6f9c', '#4ab0e6'][i % 2]), 0, .12, -.02, g, false); seg.scale.set(.3, 1, 1); seg.rotation.y = i * Math.PI / 4; }
+      const v = cyl(.2, .2, .02, toon('#4ab0e6'), 0, .14, .3, g, false); v.scale.z = .6; cyl(.015, .015, .14, toon('#9aa4ad'), 0, .52, -.02, g);
+      const p = new T.Group(); p.position.set(0, .6, -.02); g.add(p); for (const s of [-1, 1]) { const b = box(.3, .015, .07, toon(s > 0 ? '#ff6f9c' : '#4ab0e6'), s * .16, 0, 0, p); b.rotation.x = s * .25; } sphere(.03, toon('#d6383a'), 0, 0, 0, p); spinners.add(p); },
+    tiara: g => { mesh(geo('tiara', () => new T.TorusGeometry(.37, .022, 6, 32, Math.PI)), toon('#e4e7ee'), 0, .02, .04, g, false);
+      for (let i = -2; i <= 2; i++) { const a = i * .22, h = .14 - Math.abs(i) * .03; const sp = cone(.035, h, toon('#e4e7ee'), Math.sin(a) * (.37 + h / 2), .02 + Math.cos(a) * (.37 + h / 2), .04, g, 4); sp.rotation.z = -a; }
+      outline(sphere(.04, glow('#7fd6ff'), 0, .42, .07, g, false), .04, .006); for (const s of [-1, 1]) sphere(.026, glow('#ff8fb1'), Math.sin(s * .44) * .4, .02 + Math.cos(.44) * .4, .07, g, false); },
+    clownnose: g => outline(sphere(.07, toon('#e8262f'), 0, -.06, .42, g), .07, .01),
+    eyepatch: g => { const p = sphere(.08, toon('#1c1a1e'), .14, .03, .35, g, false); p.scale.set(1.1, 1, .3); rod([.06, .1, .37], [-.3, .16, .2], .01, toon('#1c1a1e'), g); rod([.22, .0, .34], [.36, -.02, .12], .01, toon('#1c1a1e'), g); },
+    goggles: g => { const f = box(.42, .14, .05, toon('#2b2a2f'), 0, .04, .35, g, false); outline(f, .2, .006); const l = box(.38, .1, .02, toon('#ff9a3c', {transparent: true, opacity: .85}), 0, .04, .38, g, false); for (const sx of [-1, 1]) { const st = box(.04, .06, .24, toon('#4ab0e6'), sx * .23, .04, .22, g, false); st.rotation.y = sx * -.35; } },
     ribbon: g => { for (const sx of [-1, 1]) { const w = cone(.08, .14, toon('#ff8fb1'), .2 + sx * .07, .3, .1, g, 12); w.rotation.z = sx * Math.PI / 2; outline(w, .07, .012); } sphere(.04, toon('#ff6f9c'), .2, .3, .1, g); }
   };
-  const FACE = new Set(['shades', 'roundglasses', 'heartglasses', 'mask', 'monocle', 'mustache', 'aviator', 'starglasses']);
-  const fitFace = (g, id, head) => { const e = head?.userData.eye; if (FACE.has(id) && e) g.position.set(0, e.y - .03, e.z - .335); else g.position.set(0, 0, 0); };
+  const FACE = new Set(['shades', 'roundglasses', 'heartglasses', 'mask', 'monocle', 'mustache', 'aviator', 'starglasses', 'clownnose', 'eyepatch', 'goggles']);
+  const fitFace = (g, id, head) => { const e = head?.userData.eye, kig = head?.userData.kig && !FACE.has(id); if (FACE.has(id) && e) g.position.set(0, e.y - .03, e.z - .335); else g.position.set(0, kig ? .07 : 0, 0); g.scale.setScalar(kig ? 1.15 : 1); };
   function addAccessory(head, id) { if (!ACC[id]) return null; const g = new T.Group(); head.add(g); ACC[id](g); fitFace(g, id, head); g.traverse(o => { if (o.isMesh) o.userData.ignorePick = true; }); return g; }
   const acc = {};
   for (const id of Object.keys(ACC)) { acc[id] = new T.Group(); ACC[id](acc[id]); }
@@ -1392,7 +1471,7 @@ export function createWorld() {
     const c = critter({species, fur, outfit: '#cddc83', accent: '#f4b942', extra, style});
     c.rig.traverse(o => { if (!o.isMesh) return; if (species !== 'ghost' && o.material === c.clothes) o.material = ownJacket; o.userData.ignorePick = true; });
     rig.add(c.rig);
-    fox.rig = c.rig; fox.head = c.head; fox.fist = c.fist; fox.fists = c.fists; fox.ouch = c.ouch;
+    fox.rig = c.rig; fox.head = c.head; fox.waddle = c.waddle; fox.fist = c.fist; fox.fists = c.fists; fox.ouch = c.ouch;
     fox.legs.length = 0; fox.legs.push(...c.legs); fox.arms.length = 0; fox.arms.push(...c.arms); fox.eyes.length = 0; fox.eyes.push(...c.eyes);
     c.arms[1].add(glassGroup);
     for (const [k, g] of Object.entries(acc)) { c.head.add(g); fitFace(g, k, c.head); }
@@ -1414,6 +1493,6 @@ export function createWorld() {
   function drawSign(font) { currentFont = font; for (const t of drawables) t.userData.redraw(font); }
   drawSign('sans-serif');
 
-  return {dressUp, speaker, get fist() { return fox.fist; }, get fists() { return fox.fists; }, get ouch() { return fox.ouch; }, critter, setLook, addAccessory, makePet, npcPets, scene, actor, rig, legs: fox.legs, arms: fox.arms, eyes: fox.eyes, shadow, marker, entities, npcs, glassGroup, setGlass, setFill, setAccessory, makeBubble,
+  return {get waddle() { return !!fox.waddle; }, spinners, dressUp, speaker, get fist() { return fox.fist; }, get fists() { return fox.fists; }, get ouch() { return fox.ouch; }, critter, setLook, addAccessory, makePet, npcPets, scene, actor, rig, legs: fox.legs, arms: fox.arms, eyes: fox.eyes, shadow, marker, entities, npcs, glassGroup, setGlass, setFill, setAccessory, makeBubble,
     seatAngles, jacket: ownJacket, drawSign, lampShades, emoteTextures, flags: flagTexes, clock: {hourHand, minHand}};
 }
