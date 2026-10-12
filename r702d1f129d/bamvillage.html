@@ -39,7 +39,7 @@
     <div id="roundCard" class="tutorial round-card" hidden></div>
     <button id="jumpBtn" class="jump-btn" aria-label="점프 (스페이스바)">점프<small>SPACE</small></button>
     <button id="punchBtn" class="punch-btn" aria-label="때리기 (Ctrl)">👊<small>CTRL</small></button>
-    <span class="demo-chip">팀 테스트 v2.10</span>
+    <span class="demo-chip">팀 테스트 v2.11</span>
 
     <div id="fade" class="fade" aria-hidden="true"></div>
     <div id="passGate" class="pass-gate" hidden>
@@ -82,7 +82,7 @@
 <script type="module">
 // 실시간 연결 어댑터를 먼저 깐다: 공개 실시간 서버(모두 같은 방) → 안 되면 Claude 자체 실시간.
 // v2.8 비밀번호 입장: 비밀번호를 아는 사람만 들어오고, 같은 비밀번호끼리만 같은 방에서 만난다
-const CHECK = '53bccbe65b609c646b95a93a6653e49d5233c45ee8bbed9c8f0b6c075f2c4168';
+const CHECK = 'fc07139ff28cdfabe9a2c8fd67cec5f630722f0a3be2dc74e5d9e16a1c57f6ab';
 const sha = async t => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)))].map(b => b.toString(16).padStart(2, '0')).join('');
 const testing = new URLSearchParams(location.search).has('broker');
 async function unlock() {

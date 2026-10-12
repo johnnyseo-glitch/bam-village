@@ -1,14 +1,14 @@
 // 밤마을 v0.7 — 카메라, 입력, 군중, 상호작용, 다이얼로그.
-import * as T from './vendor/three.min.mjs?v=1791561358';
-import {createBgm} from './bgm.mjs?v=1791561358';
-import {createWorld, HOST_STEP} from './world.mjs?v=1791561358';
-import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791561358';
+import * as T from './vendor/three.min.mjs?v=1791772888';
+import {createBgm} from './bgm.mjs?v=1791772888';
+import {createWorld, HOST_STEP} from './world.mjs?v=1791772888';
+import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791772888';
 import {TABLES, SPOTS, WANDERERS, LOUNGERS, DRINKS, ENTRY, ROOM, MOODS, JACKETS, ACCESSORIES, DRINK_MINUTES, PROFILE_TAGS, ROUND_MINUTES, NEXT_TOPICS, VILLAGES, RESIDENT_COUNT, RING, OBSTACLES,
-  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC, DOOR_Z} from './map-data.mjs?v=1791561358';
-import {createSession} from './session.mjs?v=1791561358';
-import {createOnline} from './online.mjs?v=1791561358';
-import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791561358';
-import {createGames} from './games.mjs?v=1791561358';
+  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC, DOOR_Z} from './map-data.mjs?v=1791772888';
+import {createSession} from './session.mjs?v=1791772888';
+import {createOnline} from './online.mjs?v=1791772888';
+import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791772888';
+import {createGames} from './games.mjs?v=1791772888';
 
 const $ = id => document.getElementById(id);
 const view = $('viewport'), dialog = $('villageDialog'), calm = $('calm');
@@ -1538,7 +1538,7 @@ function showWelcomeBoard() {
 
 // ── 입력 ─────────────────────────────────────────────────
 // ── QR 공유 ─────────────────────────────────────────────
-const ARTIFACT_URL = 'https://claude.ai/artifact/NFhifuA9moiordAtthnuq6', PAGES_URL = 'https://johnnyseo-glitch.github.io/bam-village/nf26af6dd78/';
+const ARTIFACT_URL = 'https://claude.ai/artifact/NFhifuA9moiordAtthnuq6', PAGES_URL = 'https://johnnyseo-glitch.github.io/bam-village/r702d1f129d/';
 const ON_PAGES = /github\.io$/.test(location.hostname);
 const SHARE_URL = ON_PAGES ? PAGES_URL : ARTIFACT_URL;
 const QR_IMG = ON_PAGES ? 'qr-pages.png' : 'qr.png';
