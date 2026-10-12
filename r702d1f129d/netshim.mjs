@@ -3,7 +3,8 @@
 // 테스트용: 공개 브로커라 같은 방 이름을 아는 사람은 메시지를 볼 수 있다. 실제 서비스에서는 전용 서버로 바꾼다.
 import mqtt from './vendor/mqtt.esm.js';
 
-// 차례대로 시도한다(모두 같은 순서라 같은 서버에서 만난다). shiftr는 443 포트라 회사·공용망에서도 잘 열린다.
+// v2.15: 세 공개 서버에 '동시에' 붙는다. 보낼 때는 붙은 서버 모두에 보내고, 받을 때는 중복을 걸러낸다.
+// (예전엔 차례로 하나만 써서, 회사 와이파이에서 첫 서버가 막힌 사람과 LTE 사람이 서로 다른 서버에 붙어 서로 안 보였다)
 const BROKERS = ['wss://broker.hivemq.com:8884/mqtt', 'wss://public:public@public.cloud.shiftr.io', 'wss://broker.emqx.io:8084/mqtt'];
 const errors = [];
 const rand = n => Array.from(crypto.getRandomValues(new Uint8Array(n)), b => b.toString(16).padStart(2, '0')).join('');
@@ -15,7 +16,7 @@ export function install({brokers = BROKERS} = {}) {
   const testRoom = params.get('broker') && params.get('room');
   const ROOM = (testRoom || ('k' + (window.__bamKey || 'locked'))).replace(/[^a-zA-Z0-9-]/g, '').slice(0, 32);
   const P = `bamvillage/v1/${ROOM}`;
-  const custom = params.get('broker'); if (custom && /^wss?:\/\//.test(custom)) brokers = [custom]; // 테스트용 브로커 지정
+  const custom = (params.get('broker') || '').split(',').filter(u => /^wss?:\/\//.test(u)); if (custom.length) brokers = custom; // 테스트용 브로커 지정(쉼표로 여러 개)
   let uid = store.get('bam-uid'); if (!uid) { uid = 'u_' + rand(10); store.set('bam-uid', uid); }
   if (params.has('host')) store.set('bam-host', '1');
   const isHost = store.get('bam-host') === '1';
@@ -28,45 +29,49 @@ export function install({brokers = BROKERS} = {}) {
   bc?.addEventListener('message', e => {
     if (e.data?.t !== 'claim' || passive || e.data.at < tabAt) return;
     passive = true;
-    try { client?.end(false); } catch {} // 정상 종료라 '자리 비움'(will)이 나가지 않는다
+    for (const c of clients) try { c.end(false); } catch {} // 정상 종료라 '자리 비움'(will)이 나가지 않는다
     dispatchEvent(new CustomEvent('bam-passive'));
   });
   bc?.postMessage({t: 'claim', at: tabAt});
   const AWAY_MS = 20 * 60000, STALE_MS = 40000; // 연결이 끊겨도 20분 동안은 '잠깐 자리 비움'으로 남아 있다
 
-  // ── 연결: 브로커를 차례로 시도 ───────────────────────
-  let client = null;
-  const ready = (async () => {
-    for (const url of brokers) {
-      const ok = await new Promise(res => {
-        const c = mqtt.connect(url, {clientId: 'bam_' + peerId + '_' + rand(2), clean: true, reconnectPeriod: 3000, connectTimeout: 7000, keepalive: 30,
-          will: {topic: `${P}/w/${peerId}`, payload: '1', retain: true, qos: 0}}); // 갑자기 끊기면 '자리 비움' 표시만
-        const fail = () => { c.end(true); res(null); };
-        const timer = setTimeout(() => { errors.push(url.replace(/^wss:\/\/([^@]*@)?/, '').split(/[:/]/)[0] + ': 응답 없음'); fail(); }, 8000);
-        c.once('connect', () => { clearTimeout(timer); res(c); });
-        c.once('error', e => { clearTimeout(timer); errors.push(url.replace(/^wss:\/\/([^@]*@)?/, '').split(/[:/]/)[0] + ': ' + (e?.message || 'error').slice(0, 60)); fail(); });
-      });
-      if (ok && passive) { ok.end(false); return false; }
-      if (ok) { client = ok; break; }
-    }
-    if (!client) return false;
-    client.on('message', onMessage);
-    await new Promise(r => client.subscribe([`${P}/p/+`, `${P}/w/+`, `${P}/e/+`, `${P}/db/#`], {qos: 0}, r));
-    // 다시 연결되면(폰을 다시 켰을 때 등) 자리 비움 표시를 지우고 내 상태를 다시 알린다
-    client.on('connect', () => { setAway(false); publishPresence(); });
+  // ── 연결: 모든 브로커에 동시에 ────────────────────────
+  const clients = [];
+  const live = () => clients.filter(c => c.connected);
+  const pub = (topic, payload, opts = {qos: 0}) => { for (const c of live()) { try { c.publish(topic, payload, opts); } catch {} } };
+  const host = url => url.replace(/^wss?:\/\/([^@]*@)?/, '').split(/[:/]/)[0];
+  let started = false;
+  function start() {
+    if (started) return; started = true;
     document.addEventListener('visibilitychange', () => {
       if (passive) return;
       if (document.hidden) setAway(true);
-      else { if (!client.connected) client.reconnect(); setAway(false); publishPresence(); }
+      else { for (const c of clients) if (!c.connected) try { c.reconnect(); } catch {} setAway(false); publishPresence(); }
     });
     setTimeout(() => { dbReady = true; for (const f of dbWaiters.splice(0)) f(); notifyDb(); }, 1200);
-    publishPresence();
     setInterval(publishPresence, 8000, true);
     setInterval(sweep, 5000);
     addEventListener('pagehide', () => { if (!passive) try { setAway(true); } catch {} });
-    setAway(false);
-    return true;
-  })();
+  }
+  const ready = new Promise(resolve => {
+    let pending = brokers.length;
+    const done = () => { if (--pending === 0 && !clients.length) resolve(false); };
+    for (const url of brokers) {
+      const c = mqtt.connect(url, {clientId: 'bam_' + peerId + '_' + rand(2), clean: true, reconnectPeriod: 4000, connectTimeout: 9000, keepalive: 30,
+        will: {topic: `${P}/w/${peerId}`, payload: '1', retain: true, qos: 0}}); // 갑자기 끊기면 '자리 비움' 표시만
+      let first = true;
+      const timer = setTimeout(() => { if (first) { errors.push(host(url) + ': 응답 없음'); first = false; c.end(true); done(); } }, 10000);
+      c.on('error', e => { if (first) { clearTimeout(timer); errors.push(host(url) + ': ' + (e?.message || 'error').slice(0, 60)); first = false; c.end(true); done(); } });
+      c.on('connect', () => {
+        if (passive) { c.end(false); return; }
+        c.subscribe([`${P}/p/+`, `${P}/w/+`, `${P}/e/+`, `${P}/db/#`], {qos: 0});
+        if (first) { first = false; clearTimeout(timer); clients.push(c); c.on('message', onMessage); start(); resolve(true); }
+        // 붙을 때마다(다시 붙을 때 포함) 내 상태를 다시 알린다
+        setAway(false); publishPresence();
+      });
+    }
+  });
+  const client = {get connected() { return live().length > 0; }}; // 예전 코드 호환용
 
   // ── room ─────────────────────────────────────────────
   let myPresence = {}, presenceTimer = 0, connectedNow = false;
@@ -78,10 +83,9 @@ export function install({brokers = BROKERS} = {}) {
     snapshot = Object.freeze([meRow(), ...[...others.entries()].map(([peer, o]) => Object.freeze({peer, by: o.by, isMe: o.by === uid, sameTab: false, kind: 'viewer', guest: false, presence: o.away ? Object.freeze({...o.presence, away: 1}) : o.presence, updatedAt: o.seen}))]);
     for (const h of peerL) { try { h({peers: snapshot, joined: [], left: [], updated: []}); } catch (e) { console.error(e); } }
   }
-  function setAway(on) { try { client?.publish(`${P}/w/${peerId}`, on ? '1' : '', {retain: true, qos: 0}); } catch {} }
+  function setAway(on) { pub(`${P}/w/${peerId}`, on ? '1' : '', {retain: true, qos: 0}); }
   function publishPresence() {
-    if (!client) return;
-    client.publish(`${P}/p/${peerId}`, JSON.stringify({by: uid, presence: myPresence, t: Date.now(), h: document.hidden ? 1 : 0}), {retain: true, qos: 0});
+    pub(`${P}/p/${peerId}`, JSON.stringify({by: uid, presence: myPresence, t: Date.now(), h: document.hidden ? 1 : 0}), {retain: true, qos: 0});
   }
   function sweep() {
     const now = Date.now(); let changed = false;
@@ -95,17 +99,18 @@ export function install({brokers = BROKERS} = {}) {
   function purgeGhost(peer) {
     const o = others.get(peer); if (!o || !o.away || o.by !== uid || peer === peerId) return false;
     others.delete(peer);
-    client?.publish(`${P}/p/${peer}`, '', {retain: true}); client?.publish(`${P}/w/${peer}`, '', {retain: true});
+    pub(`${P}/p/${peer}`, '', {retain: true}); pub(`${P}/w/${peer}`, '', {retain: true});
     return true;
   }
+  const seenMid = new Set();
   function onMessage(topic, buf) {
     const rest = topic.slice(P.length + 1), text = buf.toString();
     if (rest.startsWith('p/')) {
       const peer = rest.slice(2); if (peer === peerId) return;
       if (!text) { if (others.delete(peer)) rebuild(); return; }
       try { const m = JSON.parse(text); const age = Date.now() - (m.t || 0); if (age > AWAY_MS) return;
-        const prev = others.get(peer);
-        others.set(peer, {by: String(m.by || ''), presence: Object.freeze(m.presence || {}), seen: Date.now() - Math.max(0, Math.min(age, AWAY_MS)), away: !!m.h || (prev?.away && !('h' in m) && age > 1000) || age > STALE_MS}); purgeGhost(peer); rebuild(); } catch {}
+        const prev = others.get(peer); if (prev && m.t && prev.t && m.t < prev.t) return; // 다른 서버에서 늦게 온 옛 상태
+        others.set(peer, {t: m.t || 0, by: String(m.by || ''), presence: Object.freeze(m.presence || {}), seen: Date.now() - Math.max(0, Math.min(age, AWAY_MS)), away: !!m.h || (prev?.away && !('h' in m) && age > 1000) || age > STALE_MS}); purgeGhost(peer); rebuild(); } catch {}
     } else if (rest.startsWith('w/')) {
       const peer = rest.slice(2); if (peer === peerId) return;
       const o = others.get(peer); if (!o) return;
@@ -113,6 +118,7 @@ export function install({brokers = BROKERS} = {}) {
     } else if (rest.startsWith('e/')) {
       const t = rest.slice(2);
       try { const m = JSON.parse(text); const self = m.peer === peerId;
+        if (m.mid) { if (seenMid.has(m.mid)) return; seenMid.add(m.mid); if (seenMid.size > 400) seenMid.delete(seenMid.values().next().value); } // 여러 서버로 같은 신호가 두 번 오면 한 번만
         for (const h of topicL.get(t) ?? []) h({peer: m.peer, by: m.by ?? null, isMe: m.by === uid, sameTab: self, kind: 'viewer', guest: false, topic: t, data: m.data}); } catch {}
     } else if (rest.startsWith('db/')) {
       const path = rest.slice(3);
@@ -121,7 +127,7 @@ export function install({brokers = BROKERS} = {}) {
     }
   }
   const room = Object.freeze({
-    emit: async (topic, data) => { await ready; client?.publish(`${P}/e/${topic}`, JSON.stringify({peer: peerId, by: uid, data})); },
+    emit: async (topic, data) => { await ready; pub(`${P}/e/${topic}`, JSON.stringify({peer: peerId, by: uid, mid: rand(6), data})); },
     on: (topic, h) => { if (!topicL.has(topic)) topicL.set(topic, new Set()); topicL.get(topic).add(h); return () => topicL.get(topic).delete(h); },
     presence: async patch => {
       const p = {...myPresence}; for (const [k, v] of Object.entries(patch)) { if (v === null) delete p[k]; else p[k] = v; } myPresence = p;
@@ -129,8 +135,8 @@ export function install({brokers = BROKERS} = {}) {
     },
     peers: () => snapshot,
     onPeers: h => { peerL.add(h); setTimeout(() => h({peers: snapshot, joined: snapshot, left: [], updated: []}), 0); return () => peerL.delete(h); },
-    connected: () => !!client?.connected,
-    onConnection: h => { setTimeout(() => h(!!client?.connected), 0); return () => {}; },
+    connected: () => client.connected,
+    onConnection: h => { setTimeout(() => h(client.connected), 0); return () => {}; },
     join: async () => { throw {code: 'not_permitted'}; }
   });
 
@@ -139,7 +145,7 @@ export function install({brokers = BROKERS} = {}) {
   const waitDb = () => dbReady ? Promise.resolve() : new Promise(r => dbWaiters.push(r));
   function notifyDb() { if (dbReady) for (const f of dbSubs) f(); }
   const snapDoc = path => { const d = cache.get(path); return {id: path.split('/').pop(), exists: !!d, data: () => d ? JSON.parse(JSON.stringify(d)) : undefined, metadata: {fromCache: false, hasPendingWrites: false}}; };
-  const write = (path, data) => { if (data) cache.set(path, data); else cache.delete(path); notifyDb(); return ready.then(() => client?.publish(`${P}/db/${path}`, data ? JSON.stringify(data) : '', {retain: true, qos: 1})); };
+  const write = (path, data) => { if (data) cache.set(path, data); else cache.delete(path); notifyDb(); return ready.then(() => pub(`${P}/db/${path}`, data ? JSON.stringify(data) : '', {retain: true, qos: 1})); };
   function docRef(path) {
     return {id: path.split('/').pop(), path,
       get: async () => { await ready; await waitDb(); return snapDoc(path); },
@@ -170,8 +176,8 @@ export function install({brokers = BROKERS} = {}) {
   // 모두가 같은 공개 실시간 방에서 만난다(Claude 링크든 GitHub 주소든, 로그인 여부와 상관없이).
   // 공개 서버에 못 붙으면(회사망·차단 등) Claude 로그인 사용자는 Claude 자체 실시간으로 대신 연결한다.
   const native = window.claude?.use ? window.claude.use.bind(window.claude) : null;
-  window.__bamNet = {room: ROOM, ready, get broker() { return client?.options?.href ?? null; },
+  window.__bamNet = {room: ROOM, ready, get broker() { return live().map(c => c.options?.hostname || host(c.options?.href || '')).join(' + ') || null; }, get brokers() { return live().length; },
     use: name => ready.then(ok => ok ? (caps[name] ?? null) : (native ? native(name).catch(() => null) : null)),
-    get via() { return client ? 'mqtt' : native ? 'claude' : 'off'; }, errors, get passive() { return passive; }};
+    get via() { return clients.length ? 'mqtt' : native ? 'claude' : 'off'; }, errors, get passive() { return passive; }};
   return ready;
 }

@@ -39,7 +39,7 @@
     <div id="roundCard" class="tutorial round-card" hidden></div>
     <button id="jumpBtn" class="jump-btn" aria-label="점프 (스페이스바)">점프<small>SPACE</small></button>
     <button id="punchBtn" class="punch-btn" aria-label="때리기 (Ctrl)">👊<small>CTRL</small></button>
-    <span class="demo-chip">팀 테스트 v2.14</span>
+    <span class="demo-chip">팀 테스트 v2.14.1</span>
 
     <div id="fade" class="fade" aria-hidden="true"></div>
     <div id="passGate" class="gate" hidden>
@@ -99,7 +99,7 @@
 <script type="module">
 // 실시간 연결 어댑터를 먼저 깐다: 공개 실시간 서버(모두 같은 방) → 안 되면 Claude 자체 실시간.
 // v2.14 입장 시퀀스(초대장 스캔 → 문 열림)는 gate.mjs. 같은 비밀번호끼리만 같은 방에서 만난다
-import('./gate.mjs?v=1791776192').then(m => m.unlock()).then(() => import('./netshim.mjs?v=1791776192').then(m => { m.install(); }).catch(e => console.warn('online off', e)))
+import('./gate.mjs?v=1791776192').then(m => m.unlock()).then(() => import('./netshim.mjs?v=1791791152').then(m => { m.install(); }).catch(e => console.warn('online off', e)))
 .then(() => import('./walk.mjs?v=1791776192')).catch(error => {
   console.error(error);
   document.getElementById('loading').hidden = true;
