@@ -616,11 +616,138 @@ label.sw:has(input:checked) span { box-shadow: 0 0 0 3px var(--brown); }
 @media (max-width: 560px) { .interact { top: 122px; } }
 
 /* v2.8 비밀번호 입장 */
-.pass-gate { position: absolute; inset: 0; z-index: 60; display: grid; place-items: center; background: radial-gradient(circle at 50% 35%, #3a2a20, #1c1411 70%); padding: 16px; }
-.pass-card { width: min(320px, 100%); display: grid; gap: 10px; justify-items: center; text-align: center; background: var(--cream); border: var(--line); border-radius: 24px; padding: 26px 20px; box-shadow: 0 6px 0 var(--brown); }
-.pass-moon { font-size: 34px; } .pass-card h2 { margin: 0; font-family: var(--font-display); } .pass-card p { margin: 0; color: var(--brown-soft); font-size: 14px; }
-.pass-card input { width: 100%; box-sizing: border-box; font-size: 18px; text-align: center; padding: 12px; border: 2px solid var(--brown); border-radius: 14px; background: #fff; }
-.pass-card button { width: 100%; min-height: 48px; border: 2px solid var(--brown); border-radius: 14px; background: var(--sun); font-family: var(--font-display); font-size: 17px; box-shadow: 0 3px 0 var(--brown); }
-.pass-card small { color: #c43d26; min-height: 1em; }
-.pass-gate.shake .pass-card { animation: passShake .35s; }
 @keyframes passShake { 25% { transform: translateX(-8px); } 50% { transform: translateX(8px); } 75% { transform: translateX(-4px); } }
+
+
+/* ── v2.14 입장 시퀀스: 초대장 스캔 → 문 ── */
+.gate { --amber: #ffc94a; --brass: #d9a441; --ok: #3cb98a; --bad: #ff6b5e; position: fixed; inset: 0; z-index: 80; display: flex; flex-direction: column; overflow: hidden; color: #f6e7cc;
+  background: radial-gradient(75% 48% at 50% 40%, #2c1b12 0%, #0d0907 72%); padding: max(14px, env(safe-area-inset-top)) 16px max(18px, env(safe-area-inset-bottom)); transition: background .9s ease; }
+.gate[hidden] { display: none; }
+.gate-glow { position: absolute; left: 50%; top: 34%; width: 560px; height: 560px; margin: -280px 0 0 -280px; border-radius: 50%; pointer-events: none;
+  background: conic-gradient(from 0deg, rgba(255,201,74,0), rgba(255,201,74,.28), rgba(255,122,89,.22), rgba(155,132,224,.2), rgba(255,201,74,0)); filter: blur(56px); opacity: .55; animation: gSpin 12s linear infinite; }
+@keyframes gSpin { to { transform: rotate(360deg); } }
+.gate-grid { position: absolute; inset: -50%; pointer-events: none; background-image: linear-gradient(rgba(255,201,74,.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,201,74,.08) 1px, transparent 1px);
+  background-size: 28px 28px; transform: perspective(520px) rotateX(60deg) translateY(32%); transform-origin: 50% 100%; animation: gGrid 7s linear infinite;
+  -webkit-mask: linear-gradient(180deg, transparent 42%, #000 78%); mask: linear-gradient(180deg, transparent 42%, #000 78%); }
+@keyframes gGrid { to { background-position: 0 28px, 0 0; } }
+.gate-flash { position: absolute; inset: 0; background: #fff6dc; opacity: 0; pointer-events: none; z-index: 9; }
+.gate.flash .gate-flash { animation: gFlash .5s ease-out; }
+@keyframes gFlash { 0% { opacity: .75; } 100% { opacity: 0; } }
+.gate-top { position: relative; z-index: 3; display: flex; justify-content: center; padding-top: 6px; }
+.gate-pill { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 14px; border-radius: 15px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.1);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); font: 600 11.5px/1 'IBM Plex Mono', ui-monospace, monospace; letter-spacing: .12em; }
+.gate-pill i { width: 7px; height: 7px; border-radius: 50%; background: var(--bad); animation: gBlink 1.1s infinite; }
+.gate.run .gate-pill i { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+.gate.done .gate-pill i { background: var(--ok); box-shadow: 0 0 8px var(--ok); animation: none; }
+.gate.bad .gate-pill { color: var(--bad); border-color: rgba(255,107,94,.4); }
+@keyframes gBlink { 50% { opacity: .25; } }
+.gate-stage { position: relative; z-index: 2; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; perspective: 1000px; min-height: 0; transition: transform .8s cubic-bezier(.2,.8,.2,1); }
+.gate-frame { position: relative; width: min(320px, 80vw); }
+/* 멤버 카드(초대장) */
+.mc { aspect-ratio: 1.6; border-radius: 16px; transform: rotateX(22deg) rotateZ(-6deg) translateY(10px) scale(.94); transition: transform 1s cubic-bezier(.2,.8,.2,1), box-shadow 1s; transform-style: preserve-3d;
+  box-shadow: 0 30px 60px rgba(0,0,0,.55), 0 0 0 1px rgba(255,201,74,.32); animation: gFloat 5s ease-in-out infinite; }
+@keyframes gFloat { 50% { translate: 0 -8px; } }
+.gate.run .mc, .gate.returning .mc { transform: none; animation: none; box-shadow: 0 24px 60px rgba(0,0,0,.5), 0 0 0 1px rgba(255,201,74,.55), 0 0 50px rgba(255,201,74,.18); }
+.mc-in { position: relative; height: 100%; border-radius: 16px; overflow: hidden; padding: 16px 18px; display: flex; flex-direction: column; justify-content: space-between;
+  background: radial-gradient(120% 90% at 100% 0%, rgba(255,201,74,.16), transparent 55%), linear-gradient(140deg, #33221a, #140d0a 70%); }
+.mc-in::before { content: ''; position: absolute; inset: 7px; border: 1px solid rgba(217,164,65,.28); border-radius: 11px; pointer-events: none; }
+.mc-top { display: flex; align-items: center; gap: 8px; font: 600 10.5px/1 'IBM Plex Mono', monospace; letter-spacing: .22em; }
+.mc-top em { margin-left: auto; font-style: normal; color: var(--brass); font-size: 9px; letter-spacing: .26em; }
+.mc-logo { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 14px; letter-spacing: 0; color: #1a110c; background: linear-gradient(135deg, #ffe08a, #c98f2c); }
+.mc-name { display: grid; gap: 4px; }
+.mc-name .fx { justify-self: start; font: 34px/1 var(--font-display); letter-spacing: .14em; background: linear-gradient(180deg, #fff1c7, #e0a53c); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.mc-name small { font-size: 12px; color: rgba(246,231,204,.6); letter-spacing: .04em; }
+.mc-bot { white-space: nowrap; display: flex; justify-content: space-between; align-items: end; font: 500 9.5px/1 'IBM Plex Mono', monospace; letter-spacing: .14em; color: rgba(246,231,204,.55); }
+.mc-bot .mc-no { font-size: 13px; color: #f6e7cc; letter-spacing: .16em; }
+.mc-shine { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(105deg, transparent 35%, rgba(255,240,200,.22) 45%, rgba(255,255,255,.05) 52%, transparent 60%); background-size: 250% 100%; animation: gShine 4.5s ease-in-out infinite; mix-blend-mode: screen; }
+@keyframes gShine { 0%, 55% { background-position: 130% 0; } 100% { background-position: -130% 0; } }
+.mc .fx { position: relative; }
+.mc .fx::after { content: ''; position: absolute; inset: -5px -7px; border: 1.5px solid transparent; border-radius: 6px; transition: all .35s; }
+.mc .fx::before { content: attr(data-fx); position: absolute; left: -6px; top: -17px; font: 600 8px/1 'IBM Plex Mono', monospace; letter-spacing: .16em; color: #1a110c; background: var(--amber); padding: 2px 4px; border-radius: 3px; opacity: 0; transform: translateY(4px); transition: all .3s; -webkit-text-fill-color: #1a110c; }
+.mc .fx.on::after { border-color: var(--amber); box-shadow: 0 0 12px rgba(255,201,74,.45); }
+.mc .fx.on::before { opacity: 1; transform: none; }
+.gate.done .mc .fx::after { border-color: var(--ok); box-shadow: 0 0 12px rgba(60,185,138,.45); }
+.gate.done .mc .fx::before { background: var(--ok); }
+/* 스캔 HUD */
+.gc { position: absolute; width: 26px; height: 26px; border: 3px solid rgba(255,255,255,.85); transition: all .7s cubic-bezier(.2,.8,.2,1); z-index: 3; }
+.gc.a { left: -22px; top: -22px; border-right: 0; border-bottom: 0; border-radius: 9px 0 0 0; } .gc.b { right: -22px; top: -22px; border-left: 0; border-bottom: 0; border-radius: 0 9px 0 0; }
+.gc.c { left: -22px; bottom: -22px; border-right: 0; border-top: 0; border-radius: 0 0 0 9px; } .gc.d { right: -22px; bottom: -22px; border-left: 0; border-top: 0; border-radius: 0 0 9px 0; }
+.gate.run .gc { border-color: var(--amber); filter: drop-shadow(0 0 6px var(--amber)); }
+.gate.run .gc.a { left: -8px; top: -8px; } .gate.run .gc.b { right: -8px; top: -8px; } .gate.run .gc.c { left: -8px; bottom: -8px; } .gate.run .gc.d { right: -8px; bottom: -8px; }
+.gate.done .gc { border-color: var(--ok); filter: drop-shadow(0 0 6px var(--ok)); }
+.gate.bad .gc { border-color: var(--bad); filter: drop-shadow(0 0 6px var(--bad)); }
+.gate.bad .mc { animation: gShake .5s cubic-bezier(.36,.07,.19,.97); }
+@keyframes gShake { 15%, 55% { translate: -10px 0; rotate: -1.5deg; } 35%, 75% { translate: 10px 0; rotate: 1.5deg; } }
+.gate-line { position: absolute; left: -4%; right: -4%; top: 0; height: 2px; border-radius: 2px; background: var(--amber); opacity: 0; z-index: 4;
+  box-shadow: 0 0 18px 4px rgba(255,201,74,.7), 0 0 60px 12px rgba(255,201,74,.22); }
+.gate-line::after { content: ''; position: absolute; left: 0; right: 0; top: 2px; height: 44px; background: linear-gradient(180deg, rgba(255,201,74,.22), transparent); }
+.gate.sweep .gate-line { opacity: 1; animation: gSweep 1s cubic-bezier(.6,0,.4,1) 2 alternate; }
+.gate.returning.sweep .gate-line { animation-duration: .55s; }
+@keyframes gSweep { from { top: 0; } to { top: 100%; } }
+.gate-ok { position: absolute; left: 50%; top: 50%; width: 74px; height: 74px; margin: -37px 0 0 -37px; border-radius: 50%; display: grid; place-items: center; z-index: 5; font-size: 36px; font-weight: 800;
+  color: var(--ok); background: rgba(60,185,138,.16); border: 2px solid var(--ok); box-shadow: 0 0 40px rgba(60,185,138,.45); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+  opacity: 0; transform: scale(.4); transition: all .45s cubic-bezier(.2,1.6,.4,1); }
+.gate.done .gate-ok { opacity: 1; transform: none; }
+.gate-data { width: min(320px, 80vw); margin-top: 30px; min-height: 92px; font: 500 10.5px/1.2 'IBM Plex Mono', monospace; letter-spacing: .06em; color: rgba(246,231,204,.5); }
+.gate-data div { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,.06); opacity: 0; transform: translateX(-10px); transition: all .35s cubic-bezier(.2,.8,.2,1); }
+.gate-data div.on { opacity: 1; transform: none; }
+.gate-data b { color: var(--amber); font-weight: 600; } .gate.done .gate-data b { color: var(--ok); }
+/* 문구 · 입력 */
+.gate-copy { position: relative; z-index: 3; text-align: center; transition: all .5s; }
+.gate-copy h1 { margin: 0; font: 27px/1.32 var(--font-display); letter-spacing: -.01em; color: #fff3dc; animation: gRise .7s .15s both cubic-bezier(.2,.8,.2,1); }
+.gate-copy p { margin: 8px 0 0; font-size: 13.5px; color: rgba(246,231,204,.6); animation: gRise .7s .3s both cubic-bezier(.2,.8,.2,1); }
+@keyframes gRise { from { opacity: 0; transform: translateY(14px); } }
+.gate-form { position: relative; z-index: 3; width: min(340px, 100%); margin: 18px auto 0; display: grid; gap: 10px; transition: all .5s; animation: gRise .7s .45s both cubic-bezier(.2,.8,.2,1); }
+.gate-form input { width: 100%; height: 56px; border-radius: 16px; border: 1.5px solid rgba(255,201,74,calc(.25 + var(--typed, 0) * .6)); background: rgba(255,255,255,.06); color: #fff3dc; text-align: center;
+  font: 600 20px/1 'IBM Plex Mono', monospace; letter-spacing: .38em; text-transform: uppercase; outline: none; transition: border-color .2s, box-shadow .2s; }
+.gate-form input::placeholder { font: 15px var(--font-body); letter-spacing: .1em; color: rgba(246,231,204,.4); text-transform: none; }
+.gate-form input:focus { box-shadow: 0 0 0 4px rgba(255,201,74,.14), 0 0 calc(var(--typed, 0) * 30px) rgba(255,201,74,.35); }
+.gate-form button { height: 56px; border-radius: 16px; border: 0; background: linear-gradient(180deg, #ffd668, #f2b230); color: #2a1a10; font: 18px var(--font-display); letter-spacing: .04em;
+  box-shadow: 0 10px 30px rgba(255,180,40,.28), inset 0 -3px 0 rgba(120,70,10,.35); transition: transform .12s; }
+.gate-form button:active { transform: scale(.97); }
+.gate-form small { min-height: 18px; text-align: center; font-size: 12.5px; color: var(--bad); }
+.gate.run .gate-copy, .gate.run .gate-form, .gate.returning .gate-copy, .gate.returning .gate-form { opacity: 0; transform: translateY(24px); pointer-events: none; }
+.gate.run .gate-stage { transform: translateY(8%); } .gate.returning .gate-stage { transform: translateY(4%); }
+.gate.returning .gate-copy, .gate.returning .gate-form { display: none; }
+/* 문: 닫혔다가(쿵) 틈으로 불빛 → 양쪽으로 열림 */
+.gate-doors { position: absolute; inset: 0; z-index: 20; pointer-events: none; perspective: 1400px; }
+.gate-doors i { position: absolute; top: 0; bottom: 0; width: 50.5%; transition: transform .46s cubic-bezier(.7,0,.3,1);
+  background: repeating-linear-gradient(90deg, rgba(0,0,0,.0) 0 36px, rgba(0,0,0,.18) 36px 38px), linear-gradient(180deg, #4a2e1e, #2a190f); box-shadow: inset 0 0 0 10px #22140c, inset 0 0 0 12px rgba(217,164,65,.35); }
+.gate-doors .dl { left: 0; transform: translateX(-102%); transform-origin: 0 50%; } .gate-doors .dr { right: 0; transform: translateX(102%); transform-origin: 100% 50%; }
+.gate-doors b { position: absolute; top: 50%; width: 8px; height: 110px; margin-top: -55px; border-radius: 4px; background: linear-gradient(90deg, #8a5d1e, #ffe08a 45%, #b07a26); box-shadow: 0 4px 10px rgba(0,0,0,.5); }
+.gate-doors .dl b { right: 22px; } .gate-doors .dr b { left: 22px; }
+.gate-seam { position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: #ffe7a8; opacity: 0; box-shadow: 0 0 24px 8px rgba(255,201,74,.75), 0 0 120px 40px rgba(255,170,60,.35); transition: opacity .35s; }
+.gate.shut .gate-doors i { transform: none; }
+.gate.shut > :not(.gate-doors) { opacity: 0; transition: opacity .3s .25s; }
+.gate.seam .gate-seam { opacity: 1; }
+.gate.open { background: transparent; }
+.gate.open .gate-doors i { transition: transform 1s cubic-bezier(.55,0,.25,1), opacity 1s .2s; opacity: 0; }
+.gate.open .gate-doors .dl { transform: rotateY(-96deg); } .gate.open .gate-doors .dr { transform: rotateY(96deg); }
+.gate.open .gate-seam { opacity: 0; transition: opacity .6s .2s; }
+/* 멤버 카드 공개(첫 체크인) */
+.mcr { position: fixed; inset: 0; z-index: 70; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; padding: 24px 16px max(22px, env(safe-area-inset-bottom)); text-align: center; color: #fff3dc;
+  background: radial-gradient(80% 50% at 50% 38%, #2c1b12 0%, #0d0907 72%); overflow: hidden; animation: gFade .4s both; transition: opacity .5s; }
+.mcr.out { opacity: 0; pointer-events: none; }
+@keyframes gFade { from { opacity: 0; } }
+.mcr .gate-glow { opacity: .8; }
+.mcr-k { position: relative; font: 600 11px/1 'IBM Plex Mono', monospace; letter-spacing: .32em; color: rgba(246,231,204,.55); animation: gRise .6s 1.25s both; }
+.mcr h1 { position: relative; margin: 10px 0 26px; font: 26px/1.32 var(--font-display); animation: gRise .6s 1.35s both; }
+.mcr-3d { position: relative; width: min(320px, 82vw); perspective: 1100px; }
+.mcr-card { position: relative; transform-style: preserve-3d; animation: gFlip 1.5s cubic-bezier(.2,.8,.2,1) both; transition: transform .25s ease-out; }
+@keyframes gFlip { 0% { transform: translateY(70px) rotateY(-200deg) rotateX(20deg) scale(.7); opacity: 0; } 30% { opacity: 1; } 100% { transform: none; } }
+.mcr-card .mc { transform: none; animation: none; backface-visibility: hidden; -webkit-backface-visibility: hidden; box-shadow: 0 30px 70px rgba(0,0,0,.6), 0 0 0 1px rgba(255,201,74,.55), 0 0 60px rgba(255,201,74,.2); }
+.mcr-back { position: absolute; inset: 0; border-radius: 16px; transform: rotateY(180deg); backface-visibility: hidden; -webkit-backface-visibility: hidden; display: grid; place-items: center;
+  background: radial-gradient(90% 90% at 80% 0%, #ffe08a, transparent 60%), linear-gradient(135deg, #f2b230, #a8641a); color: #2a1a10; font: 54px var(--font-display); }
+.mcr .mc-in { text-align: left; }
+.mcr .mc-name .fx { font-size: 28px; letter-spacing: .06em; }
+.mcr .mc-name { position: relative; z-index: 2; max-width: 60%; }
+.mcr-face { position: absolute; right: 10px; bottom: 6px; width: 46%; aspect-ratio: 1; pointer-events: none; filter: drop-shadow(0 8px 14px rgba(0,0,0,.45)); }
+.mcr-chips { position: relative; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 26px; }
+.mcr-chips span { display: inline-flex; align-items: center; gap: 5px; height: 30px; padding: 0 12px; border-radius: 15px; font-size: 12.5px; background: rgba(60,185,138,.14); border: 1px solid rgba(60,185,138,.45); color: #bff0d8; animation: gPop .45s both cubic-bezier(.2,1.6,.4,1); }
+@keyframes gPop { from { opacity: 0; transform: scale(.5); } }
+.mcr-go { position: relative; margin-top: 28px; width: min(340px, 100%); height: 56px; border-radius: 16px; border: 0; background: linear-gradient(180deg, #ffd668, #f2b230); color: #2a1a10; font: 18px var(--font-display);
+  box-shadow: 0 10px 30px rgba(255,180,40,.28), inset 0 -3px 0 rgba(120,70,10,.35); animation: gRise .6s 2.2s both; }
+.mcr-hint { position: relative; margin-top: 10px; font-size: 12px; color: rgba(246,231,204,.45); animation: gRise .6s 2.4s both; }
+@media (prefers-reduced-motion: reduce) {
+  .gate *, .gate, .mcr, .mcr * { animation-duration: .01s !important; animation-delay: 0s !important; transition-duration: .01s !important; }
+}

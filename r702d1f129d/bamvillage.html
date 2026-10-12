@@ -39,13 +39,30 @@
     <div id="roundCard" class="tutorial round-card" hidden></div>
     <button id="jumpBtn" class="jump-btn" aria-label="점프 (스페이스바)">점프<small>SPACE</small></button>
     <button id="punchBtn" class="punch-btn" aria-label="때리기 (Ctrl)">👊<small>CTRL</small></button>
-    <span class="demo-chip">팀 테스트 v2.13</span>
+    <span class="demo-chip">팀 테스트 v2.14</span>
 
     <div id="fade" class="fade" aria-hidden="true"></div>
-    <div id="passGate" class="pass-gate" hidden>
-      <div class="pass-card"><span class="pass-moon">☾</span><h2>밤마을</h2><p>초대받은 사람만 들어올 수 있어요</p>
-        <input id="passInput" type="password" autocomplete="current-password" placeholder="비밀번호" aria-label="비밀번호">
-        <button id="passGo">들어가기</button><small id="passMsg"></small></div>
+    <div id="passGate" class="gate" hidden>
+      <div class="gate-glow"></div><div class="gate-grid"></div><div class="gate-flash"></div>
+      <div class="gate-top"><span class="gate-pill"><i></i><b id="gateSt">INVITATION ONLY</b></span></div>
+      <div class="gate-stage">
+        <div class="gate-frame">
+          <div class="mc"><div class="mc-in">
+            <div class="mc-top"><span class="mc-logo">☾</span><span class="fx" data-fx="CLUB">BAM VILLAGE</span><em>INVITATION</em></div>
+            <div class="mc-name"><span class="fx" data-fx="ROOM">SEONGSU</span><small>성수 · 혼술바</small></div>
+            <div class="mc-bot"><span class="fx mc-no" data-fx="MEMBER">No. ····</span><span>MEMBERS ONLY</span></div>
+            <i class="mc-shine"></i></div></div>
+          <span class="gc a"></span><span class="gc b"></span><span class="gc c"></span><span class="gc d"></span>
+          <span class="gate-line"></span><span class="gate-ok">✓</span>
+        </div>
+        <div class="gate-data" id="gateData"></div>
+      </div>
+      <div class="gate-copy"><h1>초대받은 밤에만<br>문이 열려요</h1><p>초대 코드를 대면 이 기기가 멤버로 등록돼요</p></div>
+      <div class="gate-form">
+        <input id="passInput" type="password" autocomplete="current-password" autocapitalize="characters" spellcheck="false" placeholder="초대 코드" aria-label="초대 코드">
+        <button id="passGo">입장하기</button><small id="passMsg" role="status"></small>
+      </div>
+      <div class="gate-doors" aria-hidden="true"><i class="dl"><b></b></i><i class="dr"><b></b></i><span class="gate-seam"></span></div>
     </div>
     <div id="loading" class="loading"><span>☾</span><p>작은 마을을 여는 중…</p></div>
     <div id="failure" class="failure" hidden>
@@ -81,31 +98,8 @@
 
 <script type="module">
 // 실시간 연결 어댑터를 먼저 깐다: 공개 실시간 서버(모두 같은 방) → 안 되면 Claude 자체 실시간.
-// v2.8 비밀번호 입장: 비밀번호를 아는 사람만 들어오고, 같은 비밀번호끼리만 같은 방에서 만난다
-const CHECK = '345eed1ea6899355018991ea086a734c50db7bb73e42c572c728c40540580aeb';
-const sha = async t => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)))].map(b => b.toString(16).padStart(2, '0')).join('');
-const testing = new URLSearchParams(location.search).has('broker');
-async function unlock() {
-  let saved = ''; try { saved = (localStorage.getItem('bam-pass') || '').toUpperCase(); } catch {}
-  if (testing) return;
-  if (saved && await sha('bam-check:' + saved) === CHECK) { window.__bamKey = (await sha('bam-room:' + saved)).slice(0, 24); return; }
-  document.getElementById('loading').hidden = true;
-  const box = document.getElementById('passGate'); box.hidden = false;
-  const input = document.getElementById('passInput'), msg = document.getElementById('passMsg');
-  setTimeout(() => input.focus(), 50);
-  await new Promise(resolve => {
-    const tryIt = async () => {
-      const pw = input.value.trim().toUpperCase(); // 폰 자판 대소문자 상관없이
-      if (await sha('bam-check:' + pw) !== CHECK) { msg.textContent = '비밀번호가 달라요'; input.value = ''; box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake'); return; }
-      try { localStorage.setItem('bam-pass', pw); } catch {}
-      window.__bamKey = (await sha('bam-room:' + pw)).slice(0, 24);
-      box.hidden = true; document.getElementById('loading').hidden = false; resolve();
-    };
-    document.getElementById('passGo').onclick = tryIt;
-    input.onkeydown = e => { if (e.key === 'Enter') tryIt(); };
-  });
-}
-unlock().then(() => import('./netshim.mjs')).then(m => { m.install(); }).catch(e => console.warn('online off', e))
+// v2.14 입장 시퀀스(초대장 스캔 → 문 열림)는 gate.mjs. 같은 비밀번호끼리만 같은 방에서 만난다
+import('./gate.mjs').then(m => m.unlock()).then(() => import('./netshim.mjs').then(m => { m.install(); }).catch(e => console.warn('online off', e)))
 .then(() => import('./walk.mjs')).catch(error => {
   console.error(error);
   document.getElementById('loading').hidden = true;

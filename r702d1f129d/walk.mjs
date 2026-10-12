@@ -1,14 +1,15 @@
 // 밤마을 v0.7 — 카메라, 입력, 군중, 상호작용, 다이얼로그.
-import * as T from './vendor/three.min.mjs?v=1791774586';
-import {createBgm} from './bgm.mjs?v=1791774586';
-import {createWorld, HOST_STEP} from './world.mjs?v=1791774586';
-import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791774586';
+import {memberNo} from './gate.mjs?v=1791776192';
+import * as T from './vendor/three.min.mjs?v=1791776192';
+import {createBgm} from './bgm.mjs?v=1791776192';
+import {createWorld, HOST_STEP} from './world.mjs?v=1791776192';
+import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791776192';
 import {TABLES, SPOTS, WANDERERS, LOUNGERS, DRINKS, ENTRY, ROOM, MOODS, JACKETS, ACCESSORIES, DRINK_MINUTES, PROFILE_TAGS, ROUND_MINUTES, NEXT_TOPICS, VILLAGES, RESIDENT_COUNT, RING, OBSTACLES,
-  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC, DOOR_Z} from './map-data.mjs?v=1791774586';
-import {createSession} from './session.mjs?v=1791774586';
-import {createOnline} from './online.mjs?v=1791774586';
-import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791774586';
-import {createGames} from './games.mjs?v=1791774586';
+  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC, DOOR_Z} from './map-data.mjs?v=1791776192';
+import {createSession} from './session.mjs?v=1791776192';
+import {createOnline} from './online.mjs?v=1791776192';
+import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791776192';
+import {createGames} from './games.mjs?v=1791776192';
 
 const $ = id => document.getElementById(id);
 const view = $('viewport'), dialog = $('villageDialog'), calm = $('calm');
@@ -1459,8 +1460,33 @@ function stepProfile() {
     const pick = n => document.querySelector(`input[name=${n}]:checked`)?.value;
     session.setProfile({name: ($('nick').value || '').trim().slice(0, 10), gender: pick('gender') ?? '', adult: true, mood: pick('moodStart') ?? p.mood, fav: p.fav ?? 'highball'});
     wallet.look = {species: pick('sp') ?? 'fox', fur: pick('fur') ?? '#f08a3c', extra: wallet.look?.extra ?? 'none'}; // 가방에서 낀 머리 장식은 그대로 saveWallet();
-    closeDialog(); enterVillage();
+    closeDialog(); showMemberCard(enterVillage);
   };
+}
+
+// v2.14 첫 체크인: 3D로 뒤집히며 나오는 멤버 카드(내 미니미 · 닉네임 · 기기 고유 번호)
+function showMemberCard(next) {
+  const d = new Date(), day = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+  const el = document.createElement('div'); el.className = 'mcr'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', '멤버 카드');
+  el.innerHTML = `<div class="gate-glow"></div><div class="mcr-k">YOUR BAM CARD</div><h1>${esc(state.profile.name)}님의<br>멤버 카드가 나왔어요</h1>
+    <div class="mcr-3d"><div class="mcr-card"><div class="mc"><div class="mc-in">
+      <div class="mc-top"><span class="mc-logo">☾</span><span>BAM VILLAGE</span><em>MEMBER</em></div>
+      <div class="mc-name"><span class="fx">${esc(state.profile.name)}</span><small>SEONGSU · ${day} 첫 입장</small></div>
+      <div class="mc-bot"><span class="mc-no">No. ${memberNo()}</span></div>
+      <canvas class="mcr-face" width="220" height="220"></canvas><i class="mc-shine"></i></div></div><div class="mcr-back">☾</div></div></div>
+    <div class="mcr-chips">${['초대 확인', '기기 등록', '만 19세 확인'].map((t, i) => `<span style="animation-delay:${1.7 + i * .14}s">✓ ${t}</span>`).join('')}</div>
+    <button class="mcr-go">마을로 들어가기</button><p class="mcr-hint">카드를 손가락으로 기울여 보세요</p>`;
+  document.body.append(el);
+  setTimeout(() => { try { renderPreview(el.querySelector('.mcr-face')); } catch {} }, 60); // 카드가 먼저 돌기 시작하고 얼굴은 바로 뒤에
+  setTimeout(() => { try { navigator.vibrate?.([18, 50, 18]); } catch {} }, 1200);
+  const card = el.querySelector('.mcr-card');
+  card.addEventListener('animationend', () => {
+    card.style.animation = 'none';
+    el.addEventListener('pointermove', e => { const r = card.getBoundingClientRect(), x = (e.clientX - r.left) / r.width - .5, y = (e.clientY - r.top) / r.height - .5;
+      card.style.transform = `rotateY(${x * 22}deg) rotateX(${-y * 18}deg)`; card.querySelector('.mc-shine').style.backgroundPosition = `${50 - x * 160}% 0`; });
+    el.addEventListener('pointerleave', () => { card.style.transform = ''; });
+  }, {once: true});
+  el.querySelector('.mcr-go').onclick = () => { el.classList.add('out'); setTimeout(() => el.remove(), 520); next(); };
 }
 
 // 주말을 여기 두고 간: 같은 주 금·토·일 세 날 모두 방문(한국 날짜 기준)
@@ -2088,8 +2114,8 @@ function townBubbleAnchor(n) { const o = new T.Object3D(); town.worldPos(n, o.po
 
 // ── 캐릭터 꾸미기 ────────────────────────────────────────
 let preview = null;
-function renderPreview() {
-  const cv = $('charPreview'); if (!cv) return;
+function renderPreview(cv = $('charPreview')) {
+  if (!cv) return;
   if (!preview) {
     const r = new T.WebGLRenderer({antialias: true, alpha: true}); r.setPixelRatio(Math.min(2, devicePixelRatio)); r.setSize(220, 220, false);
     const sc = new T.Scene(); sc.add(new T.HemisphereLight('#fff3e0', '#6b5040', 1.6)); const dl = new T.DirectionalLight('#ffffff', 1.2); dl.position.set(2, 4, 5); sc.add(dl);
