@@ -1,15 +1,15 @@
 // 밤마을 v0.7 — 카메라, 입력, 군중, 상호작용, 다이얼로그.
-import {memberNo} from './gate.mjs?v=1791879766';
-import * as T from './vendor/three.min.mjs?v=1791879766';
-import {createBgm} from './bgm.mjs?v=1791879766';
-import {createWorld, HOST_STEP} from './world.mjs?v=1791879766';
-import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791879766';
+import {memberNo} from './gate.mjs?v=1791879918';
+import * as T from './vendor/three.min.mjs?v=1791879918';
+import {createBgm} from './bgm.mjs?v=1791879918';
+import {createWorld, HOST_STEP} from './world.mjs?v=1791879918';
+import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791879918';
 import {TABLES, SPOTS, WANDERERS, LOUNGERS, DRINKS, ENTRY, ROOM, MOODS, JACKETS, ACCESSORIES, DRINK_MINUTES, PROFILE_TAGS, ROUND_MINUTES, NEXT_TOPICS, VILLAGES, RESIDENT_COUNT, RING, OBSTACLES,
-  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC, DOOR_Z} from './map-data.mjs?v=1791879766';
-import {createSession} from './session.mjs?v=1791879766';
-import {createOnline} from './online.mjs?v=1791879766';
-import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791879766';
-import {createGames} from './games.mjs?v=1791879766';
+  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC, DOOR_Z} from './map-data.mjs?v=1791879918';
+import {createSession} from './session.mjs?v=1791879918';
+import {createOnline} from './online.mjs?v=1791879918';
+import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791879918';
+import {createGames} from './games.mjs?v=1791879918';
 
 const $ = id => document.getElementById(id);
 const view = $('viewport'), dialog = $('villageDialog'), calm = $('calm');
@@ -1463,7 +1463,7 @@ function stepProfile() {
   const basicFur = ['#f08a3c', '#f2b675', '#fbf3ea', '#8a8290', '#2f2b30', '#a9b8f0'];
   show('CHECK-IN · 오늘 밤의 나', `<h2>오늘 밤의 나</h2>
     <label class="field" for="nick"><span>닉네임 (이 기기에서 쓸 이름)</span><input id="nick" maxlength="10" autocomplete="off" placeholder="예: 미나, 별밤, 하이볼러" value="${esc(p.name)}"></label>
-    <fieldset><legend>기본 외형</legend><div class="char-grid six">${BASIC_SPECIES.map(id => { const sp = CHAR_SPECIES.find(x => x[0] === id); return `<label class="pick"><input type="radio" name="sp" value="${id}" ${L.species === id ? 'checked' : ''}><span>${sp[2]}</span>${sp[1]}</label>`; }).join('')}</div>
+    <fieldset><legend>외형</legend><div class="char-grid six">${CHAR_SPECIES.map(([id]) => id).map(id => { const sp = CHAR_SPECIES.find(x => x[0] === id); return `<label class="pick"><input type="radio" name="sp" value="${id}" ${L.species === id ? 'checked' : ''}><span>${sp[2]}</span>${sp[1]}</label>`; }).join('')}</div>
       <div class="swatches">${basicFur.map((c, i) => `<label class="sw"><input type="radio" name="fur" value="${c}" ${L.fur === c || (!basicFur.includes(L.fur) && i === 0) ? 'checked' : ''}><span style="--sw:${c}"></span></label>`).join('')}</div></fieldset>
     <fieldset class="jackets"><legend>성별 (이름표에 표시 · 선택)</legend>${[['M', '남 ♂'], ['F', '여 ♀'], ['', '말 안 함']].map(([v, l]) => `<label><input type="radio" name="gender" value="${v}" ${(p.gender ?? '') === v ? 'checked' : ''}>${l}</label>`).join('')}</fieldset>
     <label class="check-row"><input type="checkbox" id="adult" ${p.adult ? 'checked' : ''}> 만 19세 이상이에요</label>
@@ -2280,6 +2280,7 @@ session.hooks.extra = id => online.atTable(id).length;
 session.hooks.taken = id => online.takenSeats(id);
 
 // ── 시작 ─────────────────────────────────────────────────
+loadProfile(); if (!wallet.unlocked.includes('charFull')) { wallet.unlocked.push('charFull'); saveWallet(); } // 테스트판: 유령·로봇 등 모든 외형 처음부터
 loadProfile(); applyLook(); renderCoins(); applyUnlocks(); refresh();
 renderer.render(scene, camera);
 $('loading').hidden = true; $('nameplate').hidden = false;
