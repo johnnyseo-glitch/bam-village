@@ -6,7 +6,7 @@ const $ = id => document.getElementById(id);
 const ls = {get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} }};
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const buzz = p => { try { navigator.vibrate?.(p); } catch {} };
-const wait = ms => new Promise(r => setTimeout(r, reduced ? Math.min(ms, 120) : ms));
+const wait = ms => new Promise(r => setTimeout(r, reduced ? Math.min(ms, 120) : ms * 1.45)); // v2.15 천천히: 각 단계가 보이게
 
 // 기기마다 고정된 멤버 번호(1000~9999). 같은 기기 = 같은 캐릭터 = 같은 번호
 export function memberNo() {

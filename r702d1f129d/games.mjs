@@ -1,12 +1,12 @@
 // 밤마을 v1.1 — 테이블 술게임: 주사위 · 룰렛 · 사다리타기.
 // 결과는 시작한 사람이 정하고(payload), 같은 테이블의 팀원 화면에서는 같은 결과로 같은 애니메이션이 재생된다.
-import {PENALTIES, PENALTY_ICONS} from './map-data.mjs?v=1791879918';
+import {PENALTIES, PENALTY_ICONS} from './map-data.mjs?v=1791880488';
 
 const COLORS = ['#ff8f7a', '#ffd36b', '#8fd0c9', '#c9a2e8', '#9ad37a', '#7fc8e8', '#f5a3c0', '#f2b675'];
 const $ = id => document.getElementById(id);
 const pick = n => Math.floor(Math.random() * n);
 const ease = t => 1 - Math.pow(1 - t, 3);
-const FONT = "'Jua', 'Gowun Dodum', sans-serif";
+const FONT = "'Pretendard Variable', Pretendard, sans-serif";
 
 export function createGames(G) {
   const esc = G.esc;
@@ -130,7 +130,7 @@ export function createGames(G) {
     p.names.forEach((nm, i) => {
       const y = 20 + i * rowH, lose = !rolling && sums[i] === min;
       if (lose) { c.fillStyle = 'rgba(232,88,74,.35)'; c.fillRect(10, y, 580, rowH - 8); }
-      c.fillStyle = '#ffe9c2'; c.font = `${Math.min(40, rowH * .38)}px ${FONT}`; c.textBaseline = 'middle'; c.fillText(nm, 24, y + rowH / 2 - 4);
+      c.fillStyle = '#ffe9c2'; c.font = `800 ${Math.min(40, rowH * .38)}px ${FONT}`; c.textBaseline = 'middle'; c.fillText(nm, 24, y + rowH / 2 - 4);
       for (let j = 0; j < 2; j++) { const v = rolling ? 1 + Math.floor((k * 19 + i * 5 + j * 3) % 6) : p.rolls[i][j]; die(c, 330 + j * (s + 14), y + (rowH - 8 - s) / 2, s, v); }
       if (!rolling) { c.fillStyle = lose ? '#ffd36b' : '#c9b49c'; c.fillText(lose ? '🍺' : String(sums[i]), 330 + 2 * (s + 14) + 6, y + rowH / 2 - 4); }
     });
@@ -145,7 +145,7 @@ export function createGames(G) {
       c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, 250, i * seg, (i + 1) * seg); c.closePath();
       c.fillStyle = COLORS[i % COLORS.length]; c.fill(); c.strokeStyle = '#5a3d2b'; c.lineWidth = 4; c.stroke();
       c.save(); c.rotate((i + .5) * seg); c.fillStyle = '#3b2a22'; c.textAlign = 'right'; c.textBaseline = 'middle';
-      const label = p.items[i]; c.font = `${Math.min(34, 520 / Math.max(6, label.length * 1.6))}px ${FONT}`; c.fillText(label, 232, 0); c.restore();
+      const label = p.items[i]; c.font = `800 ${Math.min(34, 520 / Math.max(6, label.length * 1.6))}px ${FONT}`; c.fillText(label, 232, 0); c.restore();
     }
     c.restore();
     c.fillStyle = '#fff8e9'; c.beginPath(); c.arc(300, 315, 34, 0, Math.PI * 2); c.fill(); c.strokeStyle = '#5a3d2b'; c.lineWidth = 5; c.stroke();
@@ -173,7 +173,7 @@ export function createGames(G) {
     c.strokeStyle = '#c9b49c'; c.lineWidth = 6; c.lineCap = 'round';
     for (let i = 0; i < N; i++) { c.beginPath(); c.moveTo(X(i), top); c.lineTo(X(i), bottom); c.stroke(); }
     for (const [r, i] of p.rungs) { c.beginPath(); c.moveTo(X(i), Y(r)); c.lineTo(X(i + 1), Y(r)); c.stroke(); }
-    c.font = `${N > 6 ? 22 : 28}px ${FONT}`; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.font = `800 ${N > 6 ? 22 : 28}px ${FONT}`; c.textAlign = 'center'; c.textBaseline = 'middle';
     p.names.forEach((nm, i) => { c.fillStyle = COLORS[i % COLORS.length]; c.fillText(nm.slice(0, 6), X(i), 40); });
     const prog = Math.min(1, k / 3);
     const map = ladderMap(p);
@@ -186,7 +186,7 @@ export function createGames(G) {
     p.results.forEach((r, i) => {
       const reveal = prog >= 1;
       c.fillStyle = reveal ? (r === '통과' ? '#c9b49c' : '#ffd36b') : '#6b5a4c';
-      c.font = `${N > 6 ? 18 : 24}px ${FONT}`; c.fillText(reveal ? r.slice(0, 7) : '?', X(i), 555);
+      c.font = `800 ${N > 6 ? 18 : 24}px ${FONT}`; c.fillText(reveal ? r.slice(0, 7) : '?', X(i), 555);
       if (reveal) { const who = map.indexOf(i); if (who >= 0) { c.fillStyle = COLORS[who % COLORS.length]; c.beginPath(); c.arc(X(i), 528, 7, 0, Math.PI * 2); c.fill(); } }
     });
     return k > 3.4;

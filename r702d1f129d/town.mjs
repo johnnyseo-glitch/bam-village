@@ -1,7 +1,7 @@
 // 밤마을 v1.1 — 바 밖의 작은 서울. 해 질 무렵의 성수 골목 · 광장 · 한강 산책로 · 궁궐 돌담길.
 // 실제 서울 지도를 줄인 것이 아니라, 서울의 재료와 풍경을 짧은 산책 거리로 다시 짠 가상의 동네다.
 // 모든 그림은 코드와 캔버스로 만든다. 건물 내부는 없다(외관과 '오픈 준비 중' 안내까지).
-import * as T from './vendor/three.min.mjs?v=1791879918';
+import * as T from './vendor/three.min.mjs?v=1791880488';
 
 export const TOWN_X = 200;                 // 바 실내와 겹치지 않게 멀리 떨어진 곳에 둔다
 export const TOWN = {minX: -21.5, maxX: 21.5, minZ: -12, maxZ: 8.6};
@@ -45,7 +45,7 @@ export function createTown({scene, critter, makeBubbleSprite, noNpc = false}) {
     if (repeat) { t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(...repeat); }
     return t;
   }
-  const FONT = "'Jua', 'Gowun Dodum', sans-serif";
+  const FONT = "'Pretendard Variable', Pretendard, sans-serif";
   const rnd = (() => { let s = 7; return () => (s = (s * 16807) % 2147483647) / 2147483647; })();
 
   // ── 하늘 · 안개(해 질 무렵) ───────────────────────────
@@ -195,8 +195,8 @@ export function createTown({scene, critter, makeBubbleSprite, noNpc = false}) {
       c.fillStyle = bg; c.fillRect(0, 0, cw, ch);
       c.fillStyle = fg; c.textAlign = 'center'; c.textBaseline = 'middle';
       if (glowy) { c.shadowColor = fg; c.shadowBlur = 16; }
-      if (vertical) { c.font = `${size}px ${FONT}`; const chars = [...text]; chars.forEach((ch2, i) => c.fillText(ch2, cw / 2, ch / (chars.length + 1) * (i + 1))); }
-      else { c.font = `${size}px ${FONT}`; const tw = c.measureText(text).width; const s = Math.min(size, size * (cw - 30) / tw); c.font = `${s}px ${FONT}`; c.fillText(text, cw / 2, ch / 2 + 4); }
+      if (vertical) { c.font = `800 ${size}px ${FONT}`; const chars = [...text]; chars.forEach((ch2, i) => c.fillText(ch2, cw / 2, ch / (chars.length + 1) * (i + 1))); }
+      else { c.font = `800 ${size}px ${FONT}`; const tw = c.measureText(text).width; const s = Math.min(size, size * (cw - 30) / tw); c.font = `800 ${s}px ${FONT}`; c.fillText(text, cw / 2, ch / 2 + 4); }
     });
     return plane(w, h, glowy ? new T.MeshBasicMaterial({map: tex, toneMapped: false}) : toon('#ffffff', {map: tex}), x, y, z, b.g);
   }
@@ -204,7 +204,7 @@ export function createTown({scene, critter, makeBubbleSprite, noNpc = false}) {
   function planter(x, z, s = 1) { const g = new T.Group(); g.position.set(x, 0, z); group.add(g); box(.5 * s, .4 * s, .5 * s, toon('#8c8f8a'), 0, .2 * s, 0, g); const l = sphere(.36 * s, toon('#5f8a4a'), 0, .55 * s, 0, g); l.scale.y = .8; planters.push([W(x), z, .38 * s]); }
   function aSign(x, z, text) { // 입간판
     const g = new T.Group(); g.position.set(x, 0, z); group.add(g);
-    const tex = canvasTex(128, 160, (c, w, h) => { c.fillStyle = '#2b2a2c'; c.fillRect(0, 0, w, h); c.strokeStyle = '#c9a26b'; c.lineWidth = 6; c.strokeRect(6, 6, w - 12, h - 12); c.fillStyle = '#f5ead6'; c.textAlign = 'center'; c.font = `26px ${FONT}`; text.split('\n').forEach((l, i) => c.fillText(l, w / 2, 44 + i * 34)); });
+    const tex = canvasTex(128, 160, (c, w, h) => { c.fillStyle = '#2b2a2c'; c.fillRect(0, 0, w, h); c.strokeStyle = '#c9a26b'; c.lineWidth = 6; c.strokeRect(6, 6, w - 12, h - 12); c.fillStyle = '#f5ead6'; c.textAlign = 'center'; c.font = `800 26px ${FONT}`; text.split('\n').forEach((l, i) => c.fillText(l, w / 2, 44 + i * 34)); });
     for (const s of [-1, 1]) { const p = plane(.5, .7, toon('#ffffff', {map: tex, side: T.DoubleSide}), 0, .42, s * .12, g); p.rotation.x = s * -.18; if (s < 0) p.rotation.y = Math.PI; }
     planters.push([W(x), z, .32]);
   }
@@ -278,7 +278,7 @@ export function createTown({scene, critter, makeBubbleSprite, noNpc = false}) {
   { // 게시판 · 우체통
     const g = new T.Group(); g.position.set(-2.3, 0, 1.8); group.add(g);
     for (const s of [-1, 1]) cyl(.05, .05, 1.8, toon('#4a3a2e'), s * .7, .9, 0, g);
-    const bt = canvasTex(256, 160, (c, w, h) => { c.fillStyle = '#c99d6c'; c.fillRect(0, 0, w, h); c.fillStyle = '#5a3d2b'; c.font = `34px ${FONT}`; c.textAlign = 'center'; c.fillText('마을 게시판', w / 2, 40);
+    const bt = canvasTex(256, 160, (c, w, h) => { c.fillStyle = '#c99d6c'; c.fillRect(0, 0, w, h); c.fillStyle = '#5a3d2b'; c.font = `800 34px ${FONT}`; c.textAlign = 'center'; c.fillText('마을 게시판', w / 2, 40);
       for (const [x, y, col] of [[30, 64, '#fff6dc'], [140, 70, '#ffe0e0'], [70, 108, '#e3f2ff']]) { c.fillStyle = col; c.fillRect(x, y, 86, 40); } });
     box(1.6, 1.0, .08, toon('#ffffff', {map: bt}), 0, 1.35, 0, g);
     box(1.8, .12, .3, toon('#5a3d2b'), 0, 1.92, 0, g);
@@ -364,7 +364,7 @@ export function createTown({scene, critter, makeBubbleSprite, noNpc = false}) {
     box(1.6, .06, .8, toon('#e8e2d6'), 0, .7, 0, g); cyl(.05, .05, .7, toon('#3a3a3a'), 0, .35, 0, g);
     for (const [x, z] of [[-.9, .6], [.9, .6], [-.9, -.6], [.9, -.6]]) cyl(.18, .18, .4, toon(['#2f6fb3', '#d2392f'][(x > 0) | 0]), x, .2, z, g);
     for (let i = 0; i < 3; i++) { cyl(.05, .05, .2, toon('#2f8a5f'), -.4 + i * .3, .83, 0, g); } // 초록 병
-    const sg = canvasTex(256, 64, (c, w, h) => { c.fillStyle = '#2b1414'; c.fillRect(0, 0, w, h); c.fillStyle = '#ff5a4a'; c.shadowColor = '#ff5a4a'; c.shadowBlur = 14; c.font = `44px ${FONT}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('한강포차', w / 2, h / 2 + 3); });
+    const sg = canvasTex(256, 64, (c, w, h) => { c.fillStyle = '#2b1414'; c.fillRect(0, 0, w, h); c.fillStyle = '#ff5a4a'; c.shadowColor = '#ff5a4a'; c.shadowBlur = 14; c.font = `800 44px ${FONT}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('한강포차', w / 2, h / 2 + 3); });
     plane(1.8, .45, new T.MeshBasicMaterial({map: sg, toneMapped: false}), 0, 2.5, 1.12, g);
     for (let i = 0; i < 8; i++) sphere(.06, glow(['#ffe08a', '#ff9f8a', '#9fe0ff'][i % 3]), -1.5 + i * .43, 2.15 + Math.sin(i) * .06, 1.12, g);
     const pl = new T.PointLight('#ff9a5a', 4, 5, 1.6); pl.position.set(0, 1.8, 0); g.add(pl);
@@ -372,7 +372,7 @@ export function createTown({scene, critter, makeBubbleSprite, noNpc = false}) {
   }
   // ── 횡단보도 · 세로 네온 간판 ────────────────────────
   for (let i = 0; i < 6; i++) flat(.45, 3.2, toon('#f3efe6'), -1.4 + i * .75, .02, 6.4);
-  { const vsign = (text, x, y, z, bg, fg, ry = 0) => { const t = canvasTex(96, 384, (c, w, h) => { c.fillStyle = bg; c.fillRect(0, 0, w, h); c.fillStyle = fg; c.shadowColor = fg; c.shadowBlur = 14; c.font = `72px ${FONT}`; c.textAlign = 'center'; c.textBaseline = 'middle'; [...text].forEach((ch, i, a) => c.fillText(ch, w / 2, h / (a.length + 1) * (i + 1))); });
+  { const vsign = (text, x, y, z, bg, fg, ry = 0) => { const t = canvasTex(96, 384, (c, w, h) => { c.fillStyle = bg; c.fillRect(0, 0, w, h); c.fillStyle = fg; c.shadowColor = fg; c.shadowBlur = 14; c.font = `800 72px ${FONT}`; c.textAlign = 'center'; c.textBaseline = 'middle'; [...text].forEach((ch, i, a) => c.fillText(ch, w / 2, h / (a.length + 1) * (i + 1))); });
       const p = plane(.42, 1.7, new T.MeshBasicMaterial({map: t, toneMapped: false, side: T.DoubleSide}), x, y, z); p.rotation.y = ry; };
     vsign('노래방', -16.5, 3.2, 1.2, '#2a1636', '#ff7ad9', Math.PI / 2);
     vsign('치킨', -21.05, 2.6, 1.2, '#2a1a10', '#ffd34a', Math.PI / 2);

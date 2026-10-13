@@ -1,15 +1,15 @@
 // 밤마을 v0.7 — 카메라, 입력, 군중, 상호작용, 다이얼로그.
-import {memberNo} from './gate.mjs?v=1791879918';
-import * as T from './vendor/three.min.mjs?v=1791879918';
-import {createBgm} from './bgm.mjs?v=1791879918';
-import {createWorld, HOST_STEP} from './world.mjs?v=1791879918';
-import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791879918';
+import {memberNo} from './gate.mjs?v=1791880488';
+import * as T from './vendor/three.min.mjs?v=1791880488';
+import {createBgm} from './bgm.mjs?v=1791880488';
+import {createWorld, HOST_STEP} from './world.mjs?v=1791880488';
+import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791880488';
 import {TABLES, SPOTS, WANDERERS, LOUNGERS, DRINKS, ENTRY, ROOM, MOODS, JACKETS, ACCESSORIES, DRINK_MINUTES, PROFILE_TAGS, ROUND_MINUTES, NEXT_TOPICS, VILLAGES, RESIDENT_COUNT, RING, OBSTACLES,
-  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC, DOOR_Z} from './map-data.mjs?v=1791879918';
-import {createSession} from './session.mjs?v=1791879918';
-import {createOnline} from './online.mjs?v=1791879918';
-import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791879918';
-import {createGames} from './games.mjs?v=1791879918';
+  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC, DOOR_Z} from './map-data.mjs?v=1791880488';
+import {createSession} from './session.mjs?v=1791880488';
+import {createOnline} from './online.mjs?v=1791880488';
+import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791880488';
+import {createGames} from './games.mjs?v=1791880488';
 
 const $ = id => document.getElementById(id);
 const view = $('viewport'), dialog = $('villageDialog'), calm = $('calm');
@@ -368,7 +368,7 @@ const hitTex = (() => {
   g.translate(64, 64); g.beginPath();
   for (let i = 0; i < 20; i++) { const r = i % 2 ? 26 : 58 - (i % 4) * 6, a = i / 20 * Math.PI * 2; g.lineTo(Math.cos(a) * r, Math.sin(a) * r); }
   g.closePath(); g.fillStyle = '#fff3a0'; g.fill(); g.lineWidth = 6; g.strokeStyle = '#ff8a3d'; g.stroke();
-  g.fillStyle = '#e8432f'; g.font = 'bold 34px Jua, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('퍽!', 0, 2);
+  g.fillStyle = '#e8432f'; g.font = "900 34px 'Pretendard Variable', Pretendard, sans-serif"; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('퍽!', 0, 2);
   const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; return t;
 })();
 const hitFxs = [];
@@ -1244,7 +1244,7 @@ function drawMap() {
   c.clearRect(0, 0, 440, 360);
   c.fillStyle = '#d9c7b0'; c.fillRect(mx(-9), mz(-7.5), 18 * K, (ROOM.maxZ + 7.5) * K);
   c.fillStyle = '#5a3a28'; c.fillRect(mx(-9), mz(-7.5), 18 * K, 6); c.fillRect(mx(-9), mz(-7.5), 6, (ROOM.maxZ + 7.5) * K);
-  c.font = '14px Jua, sans-serif'; c.textAlign = 'center';
+  c.font = "700 14px 'Pretendard Variable', Pretendard, sans-serif"; c.textAlign = 'center';
   // 2층(메자닌) 띠와 계단
   c.fillStyle = '#5a3a2899'; c.fillRect(mx(-8.4), mz(-7.5), 16.8 * K, (MEZZ.front + 7.5) * K);
   c.fillStyle = '#fff7e6'; c.textAlign = 'left'; c.fillText('2F AFTER', mx(-6.9), mz(-5.45)); c.textAlign = 'center';
@@ -1458,7 +1458,8 @@ function openOnboarding() {
 }
 
 // 테스트판 체크인: 승인 단계 없이 한 화면(닉네임 · 기본 외형 · 성인 확인 · 오늘의 상태)
-function stepProfile() {
+function stepProfile(opts = {}) {
+  if (!opts.afterCard && !state.profile.cardSkipped && !state.profile.cardVerified) { openCardAuth(() => stepProfile({afterCard: true})); return; }
   const p = state.profile, L = wallet.look ?? CHAR_DEFAULT;
   const basicFur = ['#f08a3c', '#f2b675', '#fbf3ea', '#8a8290', '#2f2b30', '#a9b8f0'];
   show('CHECK-IN · 오늘 밤의 나', `<h2>오늘 밤의 나</h2>
@@ -1468,7 +1469,7 @@ function stepProfile() {
     <fieldset class="jackets"><legend>성별 (이름표에 표시 · 선택)</legend>${[['M', '남 ♂'], ['F', '여 ♀'], ['', '말 안 함']].map(([v, l]) => `<label><input type="radio" name="gender" value="${v}" ${(p.gender ?? '') === v ? 'checked' : ''}>${l}</label>`).join('')}</fieldset>
     <label class="check-row"><input type="checkbox" id="adult" ${p.adult ? 'checked' : ''}> 만 19세 이상이에요</label>
     <fieldset><legend>오늘의 상태</legend>${moodOptions('moodStart')}</fieldset>
-    <button class="action" id="profileNext">마을로 들어가기</button>
+    ${p.cardVerified ? `<p class="card-ok">✓ 명함 인증 · ${esc(p.job)}</p>` : ''}<button class="action" id="profileNext">마을로 들어가기</button>
     <p class="note">테스트판이라 승인 단계 없이 바로 들어가요. 나이·직업·MBTI는 MY에서 원할 때만 적어요. 꾸미기는 다시 방문하면 더 열려요.</p>`, {lock: true});
   $('profileNext').onclick = () => {
     if (!($('nick').value || '').trim()) { status('닉네임을 적어주세요'); $('nick').focus(); return; }
@@ -1490,7 +1491,7 @@ function showMemberCard(next) {
       <div class="mc-name"><span class="fx">${esc(state.profile.name)}</span><small>SEONGSU · ${day} 첫 입장</small></div>
       <div class="mc-bot"><span class="mc-no">No. ${memberNo()}</span></div>
       <canvas class="mcr-face" width="220" height="220"></canvas><i class="mc-shine"></i></div></div><div class="mcr-back">☾</div></div></div>
-    <div class="mcr-chips">${['초대 확인', '기기 등록', '만 19세 확인'].map((t, i) => `<span style="animation-delay:${1.7 + i * .14}s">✓ ${t}</span>`).join('')}</div>
+    <div class="mcr-chips">${[state.profile.cardVerified ? '명함 인증' : '초대 확인', '기기 등록', '만 19세 확인'].map((t, i) => `<span style="animation-delay:${1.7 + i * .14}s">✓ ${t}</span>`).join('')}</div>
     <button class="mcr-go">마을로 들어가기</button><p class="mcr-hint">카드를 손가락으로 기울여 보세요</p>`;
   document.body.append(el);
   setTimeout(() => { try { renderPreview(el.querySelector('.mcr-face')); } catch {} }, 60); // 카드가 먼저 돌기 시작하고 얼굴은 바로 뒤에
@@ -1503,6 +1504,62 @@ function showMemberCard(next) {
     el.addEventListener('pointerleave', () => { card.style.transform = ''; });
   }, {once: true});
   el.querySelector('.mcr-go').onclick = () => { el.classList.add('out'); setTimeout(() => el.remove(), 520); next(); };
+}
+
+// v2.15 명함 인증: 찍기 → 스캔 연출 → 직접 확인 → 직함이 이름표의 직업으로. 사진은 화면에만 잠깐 쓰고 저장·전송하지 않는다
+function openCardAuth(next) {
+  if (dialog.open) { dialog.dataset.lock = ''; closeDialog(); } // 뒤에 열린 창(마을 고르기)이 터치를 막지 않게
+  const p = state.profile, wait = ms => new Promise(r => setTimeout(r, ms));
+  const el = document.createElement('div'); el.className = 'gate bc'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', '명함 인증');
+  el.innerHTML = `<div class="gate-glow"></div><div class="gate-grid"></div><div class="gate-flash"></div>
+    <div class="gate-top"><span class="gate-pill"><i></i><b id="bcSt">BUSINESS CARD</b></span></div>
+    <div class="bc-head" id="bcHead"><h1>명함으로 인증해요</h1><p>회사와 직함이 이름표에 직업으로 보여요<br>명함 사진은 저장하지 않고 이 폰에서만 잠깐 써요</p></div>
+    <div class="gate-stage"><div class="gate-frame"><div class="bc-ph" id="bcPh"><span>명함을 틀에 맞춰 찍어요</span></div>
+      <span class="gc a"></span><span class="gc b"></span><span class="gc c"></span><span class="gc d"></span><span class="gate-line"></span><span class="gate-ok">✓</span></div>
+      <div class="gate-data" id="bcData"></div></div>
+    <div class="bc-foot" id="bcFoot"><label class="bc-shoot" for="bcFile" aria-label="명함 찍기"><i></i></label><input id="bcFile" type="file" accept="image/*" capture="environment" hidden>
+      <div class="bc-row"><button type="button" id="bcType">직접 입력</button><button type="button" id="bcSkip">나중에 할게요</button></div></div>`;
+  document.body.append(el);
+  const st = el.querySelector('#bcSt'), data = el.querySelector('#bcData'), foot = el.querySelector('#bcFoot'), head = el.querySelector('#bcHead'), ph = el.querySelector('#bcPh');
+  const buzz = v => { try { navigator.vibrate?.(v); } catch {} };
+  let photo = null;
+  const done = () => { el.classList.add('bc-out'); setTimeout(() => { el.remove(); if (photo) URL.revokeObjectURL(photo); }, 450); next(); };
+  el.querySelector('#bcSkip').onclick = () => { p.cardSkipped = true; saveProfile(); done(); };
+  el.querySelector('#bcType').onclick = () => form();
+  el.querySelector('#bcFile').onchange = async e => {
+    const f = e.target.files?.[0]; if (!f) return;
+    photo = URL.createObjectURL(f); ph.style.backgroundImage = `url(${photo})`; ph.classList.add('has');
+    foot.classList.add('gone'); head.classList.add('gone');
+    el.classList.add('run', 'flash'); buzz(12); st.textContent = '명함 읽는 중';
+    const rows = [['PHOTO', '명함 사진 확인'], ['FORMAT', '가로형 명함 · KR'], ['FIELDS', '이름 · 회사 · 직함 자리 찾음'], ['NEXT', '직접 확인으로']];
+    data.innerHTML = rows.map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join('');
+    await wait(600); el.classList.add('sweep');
+    for (const [i, line] of [...data.children].entries()) { await wait(i ? 650 : 800); line.classList.add('on'); if (i === 2) st.textContent = '글자 자리 찾는 중'; }
+    await wait(700); el.classList.remove('sweep'); el.classList.add('done'); st.textContent = '확인해 주세요'; buzz([20, 40, 20]);
+    await wait(1300); form();
+  };
+  function form() {
+    el.classList.remove('run', 'done', 'sweep'); el.classList.add('bc-form');
+    foot.classList.remove('gone'); head.classList.add('gone'); st.textContent = '내용 확인';
+    foot.innerHTML = `<div class="bc-card"><h2>명함 내용을 확인해요</h2><p>틀린 곳만 고쳐요. 이름표에는 고른 만큼만 보여요.</p>
+      <label class="field" for="bcCo"><span>회사</span><input id="bcCo" maxlength="20" autocomplete="organization" placeholder="예: P&amp;C캐피탈파트너스" value="${esc(p.company || '')}"></label>
+      <label class="field" for="bcTi"><span>부서 · 직함</span><input id="bcTi" maxlength="20" autocomplete="organization-title" placeholder="예: 경영관리본부 팀장" value="${esc(p.title || '')}"></label>
+      <fieldset class="bc-show"><legend>이름표에 보이는 것</legend><label><input type="radio" name="bcShow" value="title" ${p.jobShow !== 'both' ? 'checked' : ''}>직함만</label><label><input type="radio" name="bcShow" value="both" ${p.jobShow === 'both' ? 'checked' : ''}>회사 · 직함</label></fieldset>
+      <button class="bc-go" type="button" id="bcOk">인증 완료</button><button class="bc-later" type="button" id="bcLater">나중에 할게요</button></div>`;
+    foot.querySelector('#bcLater').onclick = () => { p.cardSkipped = true; saveProfile(); done(); };
+    foot.querySelector('#bcOk').onclick = async () => {
+      const co = foot.querySelector('#bcCo').value.trim(), ti = foot.querySelector('#bcTi').value.trim();
+      if (!co || !ti) { status('회사와 직함을 적어주세요'); (co ? foot.querySelector('#bcTi') : foot.querySelector('#bcCo')).focus(); return; }
+      const show = foot.querySelector('input[name=bcShow]:checked')?.value ?? 'title';
+      Object.assign(p, {company: co, title: ti, jobShow: show, job: show === 'both' ? `${co} · ${ti}` : ti, cardVerified: true, cardAt: Date.now()}); saveProfile();
+      foot.style.display = 'none'; el.classList.remove('bc-form');
+      data.innerHTML = [['COMPANY', co], ['TITLE', ti], ['STATUS', '명함 인증 완료']].map(([k, v]) => `<div class="on"><span>${k}</span><b>${esc(v)}</b></div>`).join('');
+      ph.classList.remove('has'); ph.style.backgroundImage = ''; ph.innerHTML = `<div class="bc-mini"><b>${esc(co)}</b><span>${esc(ti)}</span><em>VERIFIED</em></div>`;
+      el.classList.add('run', 'done'); st.textContent = '명함 인증 완료'; buzz([20, 40, 20]);
+      await wait(1500); done();
+    };
+    setTimeout(() => foot.querySelector('#bcCo')?.focus({preventScroll: true}), 300);
+  }
 }
 
 // 주말을 여기 두고 간: 같은 주 금·토·일 세 날 모두 방문(한국 날짜 기준)
@@ -2069,7 +2126,7 @@ function ensureTown() {
   const door = TOWN_SPOTS.find(s => s.kind === 'door');
   const c = document.createElement('canvas'); c.width = 512; c.height = 96; const g = c.getContext('2d');
   const gr = g.createLinearGradient(0, 0, 0, 96); gr.addColorStop(0, '#ffb06600'); gr.addColorStop(.5, '#ffb066cc'); gr.addColorStop(1, '#ffb06600');
-  g.fillStyle = gr; g.fillRect(0, 0, 512, 96); g.fillStyle = '#fff3df'; g.font = "44px Jua, sans-serif"; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('↑ IN · 바로 들어가기', 256, 50);
+  g.fillStyle = gr; g.fillRect(0, 0, 512, 96); g.fillStyle = '#fff3df'; g.font = "800 44px 'Pretendard Variable', Pretendard, sans-serif"; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('↑ IN · 바로 들어가기', 256, 50);
   const tex = new T.CanvasTexture(c); tex.colorSpace = T.SRGBColorSpace;
   const strip = new T.Mesh(new T.PlaneGeometry(2.2, .42), new T.MeshBasicMaterial({map: tex, transparent: true, depthWrite: false, toneMapped: false}));
   strip.rotation.x = -Math.PI / 2; strip.position.set(door.x, .03, DOOR_IN_Z + .05); strip.userData.ignorePick = true; town.group.add(strip);
@@ -2186,7 +2243,7 @@ function netMe() {
   const t = state.table ? tableOf(state.table) : null, owner = !!t && state.owned === t.id;
   const j = JACKETS.find(j => j.id === wallet.equipped.jacket) ?? JACKETS[0];
   const petItem = wallet.equipped.pet ? SHOP.find(i => i.kind === 'pet' && i.value === wallet.equipped.pet) : null;
-  return {in: 1, n: (p.name || '손님').slice(0, 12), g: p.gender || '', a: p.age ? String(p.age) : '', j: (p.job || '').slice(0, 16), m: p.mbti || '',
+  return {in: 1, cv: state.profile.cardVerified ? 1 : 0, n: (p.name || '손님').slice(0, 12), g: p.gender || '', a: p.age ? String(p.age) : '', j: (p.job || '').slice(0, 16), m: p.mbti || '',
     t: wallet.title ? titleName(wallet.title) ?? '' : '', md: p.mood || 'talk', c: j.color, of: j.id, fc: wallet.equipped.face || 'none', pt: wallet.equipped.pet || null, pf: petItem?.fur || null,
     x: r2(actor.position.x), y: r2(actor.position.y), z: r2(actor.position.z), r: r2(netEuler.setFromQuaternion(actor.quaternion, 'YXZ').y), w: walking ? 1 : 0,
     tb: state.table || null, s: t ? (state.seatIdx ?? -1) : -1, own: owner ? 1 : 0, tt: owner ? t.title : '', op: owner ? t.opener : '',
@@ -2328,7 +2385,7 @@ addEventListener('bam-passive', () => {
 });
 const resume = readResume();
 if (resume) resumeVillage(resume); else { clearResume(); openVillages(); }
-document.fonts?.load('64px Jua').then(() => world.drawSign("'Jua', sans-serif")).catch(() => {});
+world.drawSign("'Pretendard Variable', Pretendard, -apple-system, sans-serif"); document.fonts?.load("800 64px 'Pretendard Variable'").then(() => world.drawSign("'Pretendard Variable', Pretendard, -apple-system, sans-serif")).catch(() => {});
 
 renderer.domElement.addEventListener('webglcontextlost', e => { e.preventDefault(); failed = true; cancelAnimationFrame(frameId); $('failure').hidden = false; $('nameplate').hidden = true; release(); });
 document.addEventListener('visibilitychange', () => { release(); if (document.hidden) { cancelAnimationFrame(frameId); frameId = 0; } else if (!failed && !frameId) { last = performance.now(); frameId = requestAnimationFrame(animate); } });

@@ -4,8 +4,8 @@
 //
 // 입장: 호스트 화면(QR + 1분마다 바뀌는 4자리 코드) → 손님이 코드 입력 → 호스트 화면이 확인하고
 // passes/<손님 id> 입장권을 쓴다. 입장권이 있는 사람만 마을에 들어오고, 서로의 화면에도 보인다.
-import * as T from './vendor/three.min.mjs?v=1791879918';
-import {EMOTES, TABLES, SPOTS, PRAISE_TAGS, DRINKS} from './map-data.mjs?v=1791879918';
+import * as T from './vendor/three.min.mjs?v=1791880488';
+import {EMOTES, TABLES, SPOTS, PRAISE_TAGS, DRINKS} from './map-data.mjs?v=1791880488';
 
 const PASS_MS = 6 * 3600 * 1000, CODE_MS = 60000, SEND_MS = 110;
 const NONCE_KEY = 'bam-net-nonce';
@@ -244,7 +244,7 @@ export function createOnline(G) {
       if (R && R.color !== lookKey(p)) { removeRemote(R); R = null; }
       if (!R) R = addRemote(peer);
       R.p = p; R.by = peer.by;
-      R.tag.innerHTML = `${p.t ? `<small class="ttl">〈${esc(p.t)}〉</small>` : ''}<b class="mood-dot ${esc(p.md || 'talk')}"></b>${esc(p.n || '손님')} <i>${G.genderMark(p.g)}</i>${p.pt ? '<span>🐾</span>' : ''}${p.away ? '<small class="away">💬 대화 중</small>' : ''}`;
+      R.tag.innerHTML = `${p.t ? `<small class="ttl">〈${esc(p.t)}〉</small>` : ''}<b class="mood-dot ${esc(p.md || 'talk')}"></b>${esc(p.n || '손님')} <i>${G.genderMark(p.g)}</i>${p.pt ? '<span>🐾</span>' : ''}${p.j ? `<small class="pjob">${p.cv ? '✓ ' : ''}${esc(p.j)}</small>` : ''}${p.away ? '<small class="away">💬 대화 중</small>' : ''}`;
       // 폰이 잠들어도 캐릭터와 자리는 그대로. 이름표에 '자리 비움'만 붙인다.
       R.tag.classList.toggle('is-away', !!p.away);
     }

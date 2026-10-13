@@ -1,8 +1,8 @@
 // 밤마을 v0.7 — 앰버 조명의 미드센추리 바 디오라마와 2등신 동물 주민.
 // 모든 그림은 코드와 캔버스로 직접 만든다(외부 이미지·모델 없음).
 // 무드: 월넛 루버 · 러스트 벨벳 커튼 · 웜다크 콘크리트 · 돌기둥 링 바 · 버섯 램프 · 캐러멜 가죽 · 앰버 빛 웅덩이.
-import * as T from './vendor/three.min.mjs?v=1791879918';
-import {TABLES, WANDERERS, LOUNGERS, LOUNGES, COUNTER, ENTRY, DOOR_Z, ROOM, RING, SOFA, MEZZ, MEZZ_Y, STAIRS, WELCOME_ZONE, PEOPLE} from './map-data.mjs?v=1791879918';
+import * as T from './vendor/three.min.mjs?v=1791880488';
+import {TABLES, WANDERERS, LOUNGERS, LOUNGES, COUNTER, ENTRY, DOOR_Z, ROOM, RING, SOFA, MEZZ, MEZZ_Y, STAIRS, WELCOME_ZONE, PEOPLE} from './map-data.mjs?v=1791880488';
 
 export const HOST_STEP = .32; // 링 바 안쪽 발판 높이: 호스트 얼굴이 카운터 위로 보이게
 const SKY = '#211b17'; // v1.8 젠 하이엔드: 바깥은 깊은 웜 차콜
@@ -138,15 +138,15 @@ export function createWorld() {
   });
 
   const neonTex = canvasTex(1024, 256, (c, w, h, font = 'sans-serif') => {
-    c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = `120px ${font}`;
+    c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = `800 120px ${font}`;
     for (const [blur, col] of [[30, '#ffe0b8'], [10, '#fff1dc'], [0, '#fffaf2']]) { c.shadowColor = '#ffd09a'; c.shadowBlur = blur; c.fillStyle = col; c.fillText('bam village ☾', w / 2, h / 2 + 6); }
   }); drawables.push(neonTex);
 
   const matTex = canvasTex(512, 256, (c, w, h, font = 'sans-serif') => {
     c.fillStyle = '#2b221d'; c.fillRect(0, 0, w, h);
     c.strokeStyle = '#6b5446'; c.lineWidth = 10; c.strokeRect(14, 14, w - 28, h - 28);
-    c.fillStyle = '#f1dcc0'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = `74px ${font}`; c.fillText('WELCOME', w / 2, h / 2 - 16);
-    c.font = `38px ${font}`; c.fillText('어서 와요, 밤마을', w / 2, h / 2 + 52);
+    c.fillStyle = '#f1dcc0'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = `800 74px ${font}`; c.fillText('WELCOME', w / 2, h / 2 - 16);
+    c.font = `800 38px ${font}`; c.fillText('어서 와요, 밤마을', w / 2, h / 2 + 52);
   }); drawables.push(matTex);
 
   // ── 재질 팔레트 ───────────────────────────────────────
@@ -834,7 +834,7 @@ export function createWorld() {
     const fTex = canvasTex(128, 128, (c, w, h, font = 'sans-serif') => {
       c.fillStyle = '#f7ead6'; c.beginPath(); c.arc(64, 64, 60, 0, 7); c.fill();
       c.strokeStyle = '#2e1f17'; c.lineWidth = 6; c.stroke();
-      c.fillStyle = '#2e1f17'; c.font = `74px ${font}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(t.number), 64, 70);
+      c.fillStyle = '#2e1f17'; c.font = `800 74px ${font}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(t.number), 64, 70);
     }); drawables.push(fTex);
     const fy = ly + (t.type === 'ring' ? 1.42 : t.type === 'sofa' ? .8 : t.type === 'long' ? 1.08 : t.type === 'booth' ? 1.0 : t.type === 'after' ? .9 : t.type === 'bar' ? 1.36 : t.type === 'booth6' ? 1.05 : t.type === 'lounge' ? .72 : t.type === 'counter' ? 1.36 : 1.12);
     const fx = t.type === 'ring' ? t.x - .95 : t.x - .3, fz = t.type === 'ring' ? t.z + .85 : t.z + .25;
@@ -921,7 +921,7 @@ export function createWorld() {
   {
     const wzTex = canvasTex(512, 512, (c, w, h, font = 'sans-serif') => {
       c.strokeStyle = '#ffb066'; c.lineWidth = 10; c.setLineDash([26, 16]); c.beginPath(); c.arc(256, 256, 236, 0, 7); c.stroke();
-      c.setLineDash([]); c.fillStyle = '#ffd9a8'; c.font = `46px ${font}`; c.textAlign = 'center'; c.fillText('WELCOME ZONE', 256, 60 + 40);
+      c.setLineDash([]); c.fillStyle = '#ffd9a8'; c.font = `800 46px ${font}`; c.textAlign = 'center'; c.fillText('WELCOME ZONE', 256, 60 + 40);
     }); drawables.push(wzTex);
     const wz = mesh(new T.PlaneGeometry(WELCOME_ZONE.r * 2, WELCOME_ZONE.r * 2), basic('#ffffff', {map: wzTex, transparent: true, depthWrite: false, toneMapped: false}), WELCOME_ZONE.x, .016, WELCOME_ZONE.z, scene, false);
     wz.rotation.x = -Math.PI / 2; wz.userData.ignorePick = true;
@@ -947,7 +947,7 @@ export function createWorld() {
     const outTex = canvasTex(512, 96, (c, w, h, font = 'sans-serif') => {
       const gr = c.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#ffb06600'); gr.addColorStop(.5, '#ffb066cc'); gr.addColorStop(1, '#ffb06600');
       c.fillStyle = gr; c.fillRect(0, 0, w, h);
-      c.fillStyle = '#fff3df'; c.font = `44px ${font}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('OUT · 골목으로 →', w / 2, h / 2 + 3);
+      c.fillStyle = '#fff3df'; c.font = `800 44px ${font}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('OUT · 골목으로 →', w / 2, h / 2 + 3);
     }); drawables.push(outTex);
     const strip = mesh(new T.PlaneGeometry(2.8, .52), basic('#ffffff', {map: outTex, transparent: true, depthWrite: false, toneMapped: false}), 0, .02, DOOR_Z + .2, scene, false);
     strip.rotation.x = -Math.PI / 2; strip.userData.ignorePick = true;
@@ -972,8 +972,8 @@ export function createWorld() {
       c.beginPath(); c.roundRect(8, 8, w - 16, 84, 34); c.fill(); c.stroke();
       c.beginPath(); c.moveTo(w / 2 - 14, 89); c.lineTo(w / 2, 116); c.lineTo(w / 2 + 14, 89); c.fill(); c.stroke();
       c.fillStyle = bg; c.fillRect(w / 2 - 12, 82, 24, 10);
-      c.font = `52px ${font}`; const tw = c.measureText(text).width; const fs = Math.min(52, 52 * (w - 40) / Math.max(tw, 1));
-      c.fillStyle = fg; c.font = `${fs}px ${font}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(text, w / 2, 54);
+      c.font = `800 52px ${font}`; const tw = c.measureText(text).width; const fs = Math.min(52, 52 * (w - 40) / Math.max(tw, 1));
+      c.fillStyle = fg; c.font = `800 ${fs}px ${font}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(text, w / 2, 54);
     });
   }
   const restTex = bubbleTex('Zz', '#d9cff7'); drawables.push(restTex);
