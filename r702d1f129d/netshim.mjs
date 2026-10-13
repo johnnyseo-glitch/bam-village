@@ -177,6 +177,7 @@ export function install({brokers = BROKERS} = {}) {
   // 공개 서버에 못 붙으면(회사망·차단 등) Claude 로그인 사용자는 Claude 자체 실시간으로 대신 연결한다.
   const native = window.claude?.use ? window.claude.use.bind(window.claude) : null;
   window.__bamNet = {room: ROOM, ready, get broker() { return live().map(c => c.options?.hostname || host(c.options?.href || '')).join(' + ') || null; }, get brokers() { return live().length; },
+    leave: () => { pub(`${P}/p/${peerId}`, '', {retain: true, qos: 0}); pub(`${P}/w/${peerId}`, '', {retain: true, qos: 0}); passive = true; setTimeout(() => { for (const c of clients) try { c.end(false); } catch {} }, 300); },
     use: name => ready.then(ok => ok ? (caps[name] ?? null) : (native ? native(name).catch(() => null) : null)),
     get via() { return clients.length ? 'mqtt' : native ? 'claude' : 'off'; }, errors, get passive() { return passive; }};
   return ready;

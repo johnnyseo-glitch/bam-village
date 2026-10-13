@@ -1,15 +1,15 @@
 // 밤마을 v0.7 — 카메라, 입력, 군중, 상호작용, 다이얼로그.
-import {memberNo} from './gate.mjs?v=1791776192';
-import * as T from './vendor/three.min.mjs?v=1791776192';
-import {createBgm} from './bgm.mjs?v=1791776192';
-import {createWorld, HOST_STEP} from './world.mjs?v=1791776192';
-import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791776192';
+import {memberNo} from './gate.mjs?v=1791879766';
+import * as T from './vendor/three.min.mjs?v=1791879766';
+import {createBgm} from './bgm.mjs?v=1791879766';
+import {createWorld, HOST_STEP} from './world.mjs?v=1791879766';
+import {route, valid, navs, levelRoute, levelY} from './navigation.mjs?v=1791879766';
 import {TABLES, SPOTS, WANDERERS, LOUNGERS, DRINKS, ENTRY, ROOM, MOODS, JACKETS, ACCESSORIES, DRINK_MINUTES, PROFILE_TAGS, ROUND_MINUTES, NEXT_TOPICS, VILLAGES, RESIDENT_COUNT, RING, OBSTACLES,
-  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC, DOOR_Z} from './map-data.mjs?v=1791776192';
-import {createSession} from './session.mjs?v=1791776192';
-import {createOnline} from './online.mjs?v=1791776192';
-import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791776192';
-import {createGames} from './games.mjs?v=1791776192';
+  MEZZ_Y, MEZZ, STAIRS, WELCOME_ZONE, PEOPLE, PRAISE_TAGS, COIN_RULES, SHOP, DEMO_WALLET, OPEN_TOPICS, STAMP_GOAL, VILLAGE_RULES, EMOTES, TITLES, CHAR_SPECIES, CHAR_FURS, CHAR_EXTRAS, CHAR_DEFAULT, SPECIES_FUR, BASIC_SPECIES, TEST_MODE, NO_NPC, DOOR_Z} from './map-data.mjs?v=1791879766';
+import {createSession} from './session.mjs?v=1791879766';
+import {createOnline} from './online.mjs?v=1791879766';
+import {createTown, TOWN_SPOTS, TOWN_SPAWN, TOWN_X} from './town.mjs?v=1791879766';
+import {createGames} from './games.mjs?v=1791879766';
 
 const $ = id => document.getElementById(id);
 const view = $('viewport'), dialog = $('villageDialog'), calm = $('calm');
@@ -342,6 +342,11 @@ function punch() {
     for (const R of online?.players() ?? []) {
       const dx = R.root.position.x - actor.position.x, dz = R.root.position.z - actor.position.z, d = Math.hypot(dx, dz);
       if (d < 1.35 && d > 0 && (dx * fx + dz * fz) / d > .35 && !R.p.tb) { hit = true; online.playHit(R, fx, fz); hitFx(R.root.position, fx, fz); }
+    }
+    for (const n of npcs) { // 서 있는 주민도 맞으면 휘청 밀려난다(앉은 사람·호스트는 제외)
+      if (n.seated || n.host || n.guestTask) continue;
+      const dx = n.root.position.x - actor.position.x, dz = n.root.position.z - actor.position.z, d = Math.hypot(dx, dz);
+      if (d < 1.35 && d > 0 && (dx * fx + dz * fz) / d > .35 && Math.abs(n.root.position.y - actor.position.y) < .6) { hit = true; hitFx(n.root.position, fx, fz); n.kb = {x: fx, z: fz, start: performance.now() + 60, dur: 420, done: 0}; }
     }
     if (hit) { hitStop = performance.now() + 110; shakeUntil = performance.now() + 160; }
   }, STRIKE_AT);
@@ -1283,7 +1288,18 @@ function finishVisit() {
   online?.leaveVillage(); inVillage = false; clearResume();
   if (place === 'town') { actor.position.set(ENTRY.x, 0, ENTRY.z); switchPlace('bar'); }
   stand(); orderGen++; flowToken++; releaseGuests(); session.reset(); glassGroup.visible = false; drink = null; giftDemoDone = false; refresh();
-  showPostcard(memory.id, {fresh: true});
+  showBye(memory.id);
+}
+// 진짜 나가기: 연결을 끊어 다른 사람 화면에서 바로 사라지고, 문 닫힌 화면만 남는다
+function showBye(memId) {
+  try { if (bgm.on) bgm.toggle(); } catch {}
+  try { window.__bamNet?.leave?.(); } catch {}
+  const el = document.createElement('div'); el.className = 'bye'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', '마을에서 나왔어요');
+  el.innerHTML = `<div class="bye-moon">☾</div><h2>오늘 밤 즐거웠어요</h2><p>마을에서 나왔어요.<br>다른 사람 화면에서도 사라졌어요.</p>
+    <button class="bye-card" id="byeCard">✉️ 오늘의 엽서 보기</button><button class="bye-again" id="byeAgain">다시 들어가기</button>`;
+  document.body.append(el);
+  el.querySelector('#byeCard').onclick = () => showPostcard(memId, {fresh: true});
+  el.querySelector('#byeAgain').onclick = () => location.reload();
 }
 function exitToTown() {
   unlock('town', {quiet: true});
@@ -1740,6 +1756,12 @@ function animateCrowd(now, dt) {
     if (!g.path.length) { n.walking = false; n.guestTask = null; g.done(); }
   }
   for (const n of npcs) {
+    if (n.kb && now >= n.kb.start) { // 맞은 주민: 0.75m 밀리며 살짝 뜨고 휘청
+      const k = Math.min(1, (now - n.kb.start) / n.kb.dur), want = .75 * (1 - (1 - k) ** 2), v = want - n.kb.done; n.kb.done = want;
+      const nx = n.root.position.x + n.kb.x * v, nz = n.root.position.z + n.kb.z * v; if (standAt(nx, nz) !== null) { n.root.position.x = nx; n.root.position.z = nz; }
+      const rig = n.root.children[0]; if (rig) { rig.rotation.z = Math.sin(k * 22) * .18 * (1 - k); rig.rotation.x = -.35 * (1 - k); rig.position.y = Math.sin(k * Math.PI) * .2; }
+      if (k >= 1) { n.kb = null; if (rig) { rig.rotation.z = 0; rig.rotation.x = 0; rig.position.y = 0; } }
+    }
     if (n.seated) {
       n.head.rotation.y = reduced ? 0 : Math.sin(now * .0008 + n.phase) * .16;
       n.arms[0].rotation.x = reduced ? -.1 : Math.sin(now * .0014 + n.phase) * .12 - .12;

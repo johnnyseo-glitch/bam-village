@@ -4,8 +4,8 @@
 //
 // 입장: 호스트 화면(QR + 1분마다 바뀌는 4자리 코드) → 손님이 코드 입력 → 호스트 화면이 확인하고
 // passes/<손님 id> 입장권을 쓴다. 입장권이 있는 사람만 마을에 들어오고, 서로의 화면에도 보인다.
-import * as T from './vendor/three.min.mjs?v=1791776192';
-import {EMOTES, TABLES, SPOTS, PRAISE_TAGS, DRINKS} from './map-data.mjs?v=1791776192';
+import * as T from './vendor/three.min.mjs?v=1791879766';
+import {EMOTES, TABLES, SPOTS, PRAISE_TAGS, DRINKS} from './map-data.mjs?v=1791879766';
 
 const PASS_MS = 6 * 3600 * 1000, CODE_MS = 60000, SEND_MS = 110;
 const NONCE_KEY = 'bam-net-nonce';
@@ -244,7 +244,7 @@ export function createOnline(G) {
       if (R && R.color !== lookKey(p)) { removeRemote(R); R = null; }
       if (!R) R = addRemote(peer);
       R.p = p; R.by = peer.by;
-      R.tag.innerHTML = `${p.t ? `<small class="ttl">〈${esc(p.t)}〉</small>` : ''}<b class="mood-dot ${esc(p.md || 'talk')}"></b>${esc(p.n || '손님')} <i>${G.genderMark(p.g)}</i>${p.pt ? '<span>🐾</span>' : ''}${p.away ? '<small class="away">💤 자리 비움</small>' : ''}`;
+      R.tag.innerHTML = `${p.t ? `<small class="ttl">〈${esc(p.t)}〉</small>` : ''}<b class="mood-dot ${esc(p.md || 'talk')}"></b>${esc(p.n || '손님')} <i>${G.genderMark(p.g)}</i>${p.pt ? '<span>🐾</span>' : ''}${p.away ? '<small class="away">💬 대화 중</small>' : ''}`;
       // 폰이 잠들어도 캐릭터와 자리는 그대로. 이름표에 '자리 비움'만 붙인다.
       R.tag.classList.toggle('is-away', !!p.away);
     }
@@ -366,12 +366,12 @@ export function createOnline(G) {
   const NOTES = ['돌아오면 같이 한잔해요 🍻', '저 지금 바에 있어요', '테이블에 자리 맡아뒀어요', '먼저 가요, 다음에 봐요 👋', '아까 얘기 재밌었어요!'];
   function openAway(R) {
     const p = R.p, t = p.tb ? G.tableOf(p.tb) : null;
-    G.show('TEAMMATE · 자리 비움', `<h2>${esc(p.n || '손님')} <i class="g">${G.genderMark(p.g)}</i> <em class="away-badge">💤 자리 비움</em></h2>
-      <p class="meta">${t ? `T${t.number} ${esc(t.title)} 자리 그대로` : '잠깐 화면을 껐어요'}</p>
-      <p>지금은 화면을 안 보고 있어요. 남겨두면 돌아왔을 때 바로 알려줘요.</p>
+    G.show('TEAMMATE · 대화 중', `<h2>${esc(p.n || '손님')} <i class="g">${G.genderMark(p.g)}</i> <em class="away-badge">💬 대화 중</em></h2>
+      <p class="meta">${t ? `T${t.number} ${esc(t.title)}에서` : '바에서'} 폰 내려놓고 대화 중이에요</p>
+      <p>지금은 화면을 안 보고 있어요. 남겨두면 폰을 다시 볼 때 바로 알려줘요.</p>
       <button class="action" id="aWave">👋 손 흔들어 두기</button>
       <button class="secondary" id="aNote">💬 한마디 남기기</button>
-      <button class="secondary" id="aDrink">🍸 한 잔 맡겨두기</button>`);
+      <button class="secondary" id="aDrink">🍸 한 잔 선물하기</button>`);
     const done = msg => { G.closeDialog(); G.status(msg); };
     $('aWave').onclick = () => { leave(R, {kind: 'wave'}); done(`${p.n}님이 돌아오면 손 흔든 걸 알려줄게요`); };
     $('aNote').onclick = () => {
@@ -380,7 +380,7 @@ export function createOnline(G) {
       $('modalContent').querySelectorAll('[data-note]').forEach(b => b.onclick = () => { leave(R, {kind: 'note', text: NOTES[+b.dataset.note]}); done('남겨뒀어요. 돌아오면 바로 보여요'); });
     };
     $('aDrink').onclick = () => {
-      G.show('🍸 한 잔 맡겨두기', `<h2>${esc(p.n)}님에게 맡겨둘 한 잔</h2><div class="note-pick drinks">${DRINKS.slice(0, 12).map(d => `<button class="secondary" data-dr="${d.id}"><b style="color:${d.color}">●</b> ${esc(d.name)}</button>`).join('')}</div>
+      G.show('🍸 한 잔 선물하기', `<h2>${esc(p.n)}님에게 맡겨둘 한 잔</h2><div class="note-pick drinks">${DRINKS.slice(0, 12).map(d => `<button class="secondary" data-dr="${d.id}"><b style="color:${d.color}">●</b> ${esc(d.name)}</button>`).join('')}</div>
         <p class="note">돌아와서 받기를 누르면 그때 바에서 만들어 자리로 가져다줘요. 마음만 받으면 결제되지 않아요.</p>`);
       $('modalContent').querySelectorAll('[data-dr]').forEach(b => b.onclick = () => { const d = DRINKS.find(x => x.id === b.dataset.dr); leave(R, {kind: 'drink', drink: d.name, glass: d.glass, color: d.color}); done(`${G.eulreul(d.name)} 맡겨뒀어요 · 돌아오면 알려줘요`); });
     };
@@ -420,7 +420,7 @@ export function createOnline(G) {
       };
       $('ibNo').onclick = () => finish('마음만 받았어요');
     } else {
-      G.show(x.kind === 'thanks' ? '🥂 전해졌어요' : '💌 자리 비운 사이에', `<h2>${esc(inboxText(x))}</h2><p class="meta">${new Date(x.at).getHours()}:${String(new Date(x.at).getMinutes()).padStart(2, '0')}</p>
+      G.show(x.kind === 'thanks' ? '🥂 전해졌어요' : '💌 대화하는 사이에', `<h2>${esc(inboxText(x))}</h2><p class="meta">${new Date(x.at).getHours()}:${String(new Date(x.at).getMinutes()).padStart(2, '0')}</p>
         ${x.kind !== 'thanks' && back ? '<button class="action" id="ibWave">👋 답인사</button>' : ''}<button class="${x.kind !== 'thanks' && back ? 'secondary' : 'action'}" id="ibOk">확인</button>`, {lock: true});
       if ($('ibWave')) $('ibWave').onclick = () => { emit('wave', {to: back.peer}); G.wave(); finish(`${x.fromNick}님에게 손을 흔들었어요`); };
       $('ibOk').onclick = () => finish('');
@@ -575,7 +575,8 @@ export function createOnline(G) {
     praise, friendRequest, acceptFriend, friendStatus, leaveVillage, metList, hasPass,
     isHere: id => !!net.room?.peers().some(p => p.by === id && !p.sameTab && p.presence?.in),
     pumpInbox: () => setTimeout(pumpInbox, 6000),
-    playHit: R => { const now = performance.now(); R.localHitAt = now; R.hitAt = now; },
+    playHit: (R, fx, fz) => { const now = performance.now(); R.localHitAt = now; R.hitAt = now;
+      if (fx != null && !R.p.tb) { R.p = {...R.p, x: (+R.p.x || 0) + fx * .75, z: (+R.p.z || 0) + fz * .75}; if (!(R.jy > 0)) { R.jv = 2.4; R.jy = .0001; } } }, // 때린 쪽 화면에서도 바로 밀려난다
     leaveDrink: (R, d) => leave(R, {kind: 'drink', drink: d.name, glass: d.glass, color: d.color}),
     get count() { return remotes.size; }, players: () => [...remotes.values()]};
 }
