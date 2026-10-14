@@ -1,6 +1,6 @@
 // v2.14 입장 시퀀스: 초대장(멤버 카드) 스캔 → 문이 닫혔다 열리며 바 안으로.
 // 비밀번호는 저장하지 않고 해시만 비교한다. 같은 비밀번호끼리만 같은 방 열쇠(__bamKey)를 얻는다.
-const CHECK = '345eed1ea6899355018991ea086a734c50db7bb73e42c572c728c40540580aeb';
+const CHECK = '8a50663736e4c1d96c6e6437dc69a0f27cb295d5110e953ad5e739a6d07961fa';
 const sha = async t => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)))].map(b => b.toString(16).padStart(2, '0')).join('');
 const $ = id => document.getElementById(id);
 const ls = {get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} }};
