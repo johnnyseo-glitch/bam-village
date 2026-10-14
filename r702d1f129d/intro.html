@@ -1,0 +1,246 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>[hidden]{display:none!important}body{margin:0}</style></head><body>
+<title>밤마을</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+  /* 입구: 밤골목의 바 정면 한 장. 문을 누르면 열리며 들어간다. 단일 다크 룩 */
+  :root { color-scheme: dark; --sky1: #0b0a1a; --sky2: #24132a; --ink: #120a08; --amber: #ffc94a; --warm: #ff9a3c; --neon: #ff6fae; --cream: #fff3dc; --mute: #b8a690;
+    --display: 'Noto Sans KR', -apple-system, 'Apple SD Gothic Neo', system-ui, sans-serif; --body: 'Noto Sans KR', -apple-system, 'Apple SD Gothic Neo', system-ui, sans-serif; --mono: 'IBM Plex Mono', ui-monospace, monospace; }
+  html, body { height: 100%; }
+  body { background: radial-gradient(120% 70% at 50% 0%, var(--sky2), var(--sky1) 60%) var(--sky1); color: var(--cream); font-family: var(--body); overflow-x: hidden; }
+  .wrap { position: relative; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 10px; padding-inline: 16px; padding-block: 12px 14px; box-sizing: border-box; min-height: 420px; }
+  .stars, .moon { position: absolute; pointer-events: none; }
+  .stars { inset: 0; }
+  .stars i { position: absolute; width: 2px; height: 2px; border-radius: 50%; background: #fff; opacity: .6; animation: tw 3s ease-in-out infinite; }
+  @keyframes tw { 50% { opacity: .15; } }
+  .moon { top: 6%; right: 12%; width: 56px; height: 56px; border-radius: 50%; background: #fff1c9; box-shadow: 0 0 40px 8px rgba(255, 233, 170, .35), 0 0 120px 40px rgba(255, 200, 120, .12); }
+  .moon::after { content: ''; position: absolute; inset: -4px 0 0 14px; border-radius: 50%; background: var(--sky1); opacity: .92; }
+  .scene { appearance: none; border: 0; background: none; padding: 0; margin: 0; cursor: pointer; color: inherit; font: inherit; transition: transform 1.15s cubic-bezier(.7, 0, .3, 1), opacity .5s 1s; position: relative; display: block; flex: 1 1 auto; min-height: 200px; width: 100%; max-width: 560px; }
+  .scene svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .neon { animation: flick 6s infinite; }
+  @keyframes flick { 0%, 18%, 22%, 61%, 63%, 100% { opacity: 1; } 20%, 62% { opacity: .35; } }
+  .glowwin { animation: breathe 5s ease-in-out infinite; }
+  @keyframes breathe { 50% { opacity: .82; } }
+  #doorPanel { transform-box: fill-box; transform-origin: 0% 50%; transition: transform .8s cubic-bezier(.6, 0, .25, 1), filter .8s; }
+  #leak, #inside { transition: opacity .6s; }
+  .scene:hover #doorPanel, .scene:focus-visible #doorPanel { transform: scaleX(.94); }
+  .open #doorPanel { transform: scaleX(.1) !important; filter: brightness(.5); }
+  .open #leak { opacity: 1 !important; }
+  .scene:focus-visible { outline: none; }
+  .scene:focus-visible #frame { stroke: var(--amber); }
+  .hint { margin: 0; font: 500 11px/1 var(--mono); letter-spacing: .28em; color: var(--mute); animation: bob 2.4s ease-in-out infinite; }
+  @keyframes bob { 50% { transform: translateY(-3px); } }
+  .go { display: flex; align-items: center; justify-content: center; width: min(360px, 100%); height: 54px; border-radius: 16px; background: linear-gradient(180deg, #ffd668, #f2b230); color: #2a1a10; font: 700 17px var(--display); letter-spacing: -.01em; text-decoration: none; box-shadow: 0 0 40px rgba(255, 170, 60, .25), inset 0 -3px 0 rgba(120, 70, 10, .35); flex: none; }
+  .go:focus-visible, .copy:focus-visible { outline: 3px solid var(--cream); outline-offset: 3px; }
+  .foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 10px; max-width: 420px; text-align: center; font-size: 12px; color: var(--mute); line-height: 1.5; flex: none; }
+  .copy { height: 28px; padding: 0 10px; border-radius: 8px; border: 1px solid rgba(255, 201, 74, .35); background: transparent; color: var(--amber); font: 12px var(--body); cursor: pointer; }
+  #url { font: 500 11px var(--mono); color: var(--cream); overflow-wrap: anywhere; user-select: all; }
+  .go { border: 0; cursor: pointer; }
+  /* 빨려 들어가기: 문이 열리고 → 문 쪽으로 확대되며 불빛이 화면을 채운다 → 바 안 */
+  .flood { position: fixed; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(circle at var(--fx, 50%) var(--fy, 70%), #fff4d6 0%, #ffc56a 18%, #e0772c 45%, #2a1408 85%); clip-path: circle(0% at var(--fx, 50%) var(--fy, 70%)); z-index: 5; }
+  .enter .flood { opacity: 1; clip-path: circle(150% at var(--fx, 50%) var(--fy, 70%)); transition: clip-path .9s cubic-bezier(.7, 0, .3, 1) .45s, opacity .2s .45s; }
+  .enter .scene { transform: scale(5.5); }
+  .enter .stars, .enter .moon, .enter .hint, .enter #knock { opacity: 0; transition: opacity .4s; }
+  .enter #doorPanel { transform: scaleX(.05) !important; filter: brightness(.4); }
+  .enter #leak { opacity: 1 !important; }
+  /* 바 안(로비): 화면을 꽉 채운 실내 그림 + 메이플식 NPC 대화창 */
+  .lobby { position: fixed; inset: 0; z-index: 6; display: flex; flex-direction: column; background: #1a0d07; overflow: hidden; animation: lobbyIn .9s cubic-bezier(.2, .8, .2, 1) both; }
+  .lobby[hidden] { display: none; }
+  .lobby.leaving { transition: opacity .6s, filter .6s; opacity: 0; filter: brightness(1.8); }
+  @keyframes lobbyIn { from { opacity: 0; transform: scale(1.08); filter: brightness(2); } }
+  .room { position: relative; flex: 1 1 auto; min-height: 0; width: 100%; max-width: 520px; margin: 0 auto; }
+  .lobby { background: radial-gradient(60% 70% at 50% 35%, #4a2512, #1a0d07 75%) #1a0d07; }
+  .room svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .sway { transform-box: fill-box; transform-origin: 50% 0%; animation: sway 4.2s ease-in-out infinite alternate; }
+  .sway.s2 { animation-duration: 5.1s; animation-delay: -1.5s; } .sway.s3 { animation-duration: 4.6s; animation-delay: -3s; }
+  @keyframes sway { from { transform: rotate(-3deg); } to { transform: rotate(3deg); } }
+  .bt { animation: bt 3s ease-in-out infinite; } .bt:nth-child(2n) { animation-delay: -1s; } .bt:nth-child(3n) { animation-delay: -2s; }
+  @keyframes bt { 50% { opacity: .55; } }
+  .shake { transform-box: fill-box; transform-origin: 50% 100%; animation: shake .32s ease-in-out infinite alternate; }
+  @keyframes shake { from { transform: translate(-3px, 2px) rotate(-14deg); } to { transform: translate(3px, -4px) rotate(10deg); } }
+  .cheers { transform-box: fill-box; transform-origin: 50% 100%; animation: cheers 2.8s ease-in-out infinite; }
+  @keyframes cheers { 0%, 60%, 100% { transform: rotate(0); } 70%, 80% { transform: rotate(-24deg) translateY(-4px); } }
+  .pop { transform-box: fill-box; transform-origin: 50% 100%; animation: pop 2.8s ease-in-out infinite; }
+  .pop.p2 { animation-delay: -1.4s; }
+  @keyframes pop { 0%, 55% { transform: scale(0); opacity: 0; } 65% { transform: scale(1.15); opacity: 1; } 72%, 92% { transform: scale(1); opacity: 1; } 100% { transform: scale(.6); opacity: 0; } }
+  .mote { animation: mote 7s linear infinite; } .mote:nth-child(2n) { animation-duration: 9s; animation-delay: -3s; } .mote:nth-child(3n) { animation-duration: 11s; animation-delay: -6s; }
+  @keyframes mote { from { transform: translateY(0); opacity: 0; } 15% { opacity: .9; } to { transform: translateY(-160px); opacity: 0; } }
+  .ineon { animation: flick 7s infinite; }
+  .talk { flex: none; position: relative; margin: 0 auto; width: min(560px, calc(100% - 32px)); margin-bottom: max(16px, env(safe-area-inset-bottom)); display: grid; gap: 12px; }
+  .box { position: relative; display: grid; grid-template-columns: 64px 1fr; gap: 12px; align-items: start; padding: 16px 16px 18px; border-radius: 16px;
+    background: linear-gradient(180deg, rgba(36, 20, 12, .94), rgba(22, 12, 8, .96)); border: 2px solid #c9943a; box-shadow: 0 0 0 4px rgba(20, 10, 6, .8), 0 0 0 5px rgba(201, 148, 58, .35), 0 20px 50px rgba(0, 0, 0, .6); }
+  .box::before, .box::after { content: ''; position: absolute; width: 10px; height: 10px; border: 2px solid #f2c46a; transform: rotate(45deg); background: #2a170d; top: -7px; }
+  .box::before { left: 18px; } .box::after { right: 18px; }
+  .face { width: 64px; height: 64px; border-radius: 14px; background: radial-gradient(circle at 50% 40%, #6b3a20, #2a170d); border: 2px solid #c9943a; overflow: hidden; }
+  .who { display: inline-block; margin-bottom: 6px; padding: 3px 9px; border-radius: 6px; background: #c9943a; color: #24140c; font: 800 12px var(--display); letter-spacing: -.01em; }
+  .say { margin: 0; min-height: 3.2em; font: 500 15.5px/1.6 var(--body); color: #fff3dc; letter-spacing: -.015em; }
+  .say::after { content: '▼'; display: inline-block; margin-left: 6px; font-size: 10px; color: #f2c46a; animation: bob 1s ease-in-out infinite; opacity: var(--more, 0); }
+  .go.big { width: 100%; height: 58px; font: 800 18px var(--display); letter-spacing: -.02em; position: relative; overflow: hidden; }
+  .go.big::after { content: ''; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, .55) 50%, transparent 65%); transform: translateX(-120%); animation: sweep 2.6s ease-in-out infinite 1s; }
+  @keyframes sweep { 60%, 100% { transform: translateX(120%); } }
+  .row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--mute); }
+  .back { appearance: none; border: 0; background: none; color: var(--mute); font: 600 13px var(--body); cursor: pointer; padding: 6px 0; }
+  .back:focus-visible { outline: 2px solid var(--cream); }
+  .snd { appearance: none; border: 1px solid rgba(255, 201, 74, .35); background: rgba(0, 0, 0, .35); color: var(--amber); border-radius: 999px; padding: 6px 12px; font: 600 12px var(--body); cursor: pointer; position: absolute; top: max(14px, env(safe-area-inset-top)); right: 16px; z-index: 2; }
+  @media (prefers-reduced-motion: reduce) { .neon, .glowwin, .stars i, .hint, .sway, .bt, .shake, .cheers, .pop, .mote, .ineon, .go.big::after { animation: none; } #doorPanel { transition: none; } }
+</style>
+<div class="wrap" id="wrap">
+  <div class="stars" id="stars" aria-hidden="true"></div>
+  <div class="moon" aria-hidden="true"></div>
+
+  <button class="scene" id="scene" type="button" aria-label="밤마을 문 열고 들어가기">
+    <svg viewBox="0 0 400 430" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
+      <defs>
+        <pattern id="brick" width="28" height="14" patternUnits="userSpaceOnUse"><rect width="28" height="14" fill="#3b1c13"/><path d="M0 13.5h28M14 0v7M0 7h28M0 7v7M28 7v7" stroke="#22100b" stroke-width="1.4"/></pattern>
+        <linearGradient id="win" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd98a"/><stop offset="1" stop-color="#e07a2c"/></linearGradient>
+        <linearGradient id="wood" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#6a3f26"/><stop offset="1" stop-color="#3e2215"/></linearGradient>
+        <radialGradient id="inside" cx=".5" cy=".75" r=".8"><stop offset="0" stop-color="#ffe2a0"/><stop offset=".6" stop-color="#f29a3c"/><stop offset="1" stop-color="#7a3a16"/></radialGradient>
+        <radialGradient id="pool" cx=".5" cy="0" r=".6"><stop offset="0" stop-color="#ffb347" stop-opacity=".55"/><stop offset="1" stop-color="#ffb347" stop-opacity="0"/></radialGradient>
+        <filter id="glow" x="-30%" y="-60%" width="160%" height="220%"><feGaussianBlur stdDeviation="3.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="10"/></filter>
+      </defs>
+      <!-- 건물 -->
+      <rect x="34" y="54" width="332" height="356" fill="url(#brick)"/>
+      <rect x="26" y="44" width="348" height="16" rx="2" fill="#1c0e09"/>
+      <rect x="34" y="60" width="332" height="10" fill="#000" opacity=".25"/>
+      <!-- 네온 간판 -->
+      <rect x="108" y="78" width="184" height="62" rx="12" fill="#1a0c10" stroke="#3a1a22" stroke-width="2"/>
+      <g class="neon" filter="url(#glow)">
+        <text x="200" y="121" text-anchor="middle" font-family="Noto Sans KR, sans-serif" font-weight="800" font-size="36" fill="#ffd3e6" stroke="#ff6fae" stroke-width="1.2" letter-spacing="6">밤마을</text>
+      </g>
+      <text x="200" y="156" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#ffc94a" letter-spacing="4" opacity=".85">SEONGSU · SINCE 2026</text>
+      <!-- 창문(미니미 실루엣) -->
+      <g class="glowwin">
+        <rect x="58" y="178" width="78" height="112" rx="38" fill="url(#win)"/>
+        <rect x="264" y="178" width="78" height="112" rx="38" fill="url(#win)"/>
+      </g>
+      <g fill="#3a1a10" opacity=".85">
+        <circle cx="90" cy="262" r="17"/><path d="M76 252 l4 -16 9 11z M104 252 l-4 -16 -9 11z"/><rect x="74" y="272" width="32" height="20" rx="10"/>
+        <circle cx="306" cy="262" r="16"/><circle cx="294" cy="248" r="6"/><circle cx="318" cy="248" r="6"/><rect x="291" y="272" width="30" height="20" rx="10"/>
+        <rect x="112" y="268" width="5" height="16" rx="2"/><path d="M108 262h13l-6 7z"/>
+      </g>
+      <path d="M58 236h78M97 178v112M264 236h78M303 178v112" stroke="#2a140c" stroke-width="3" opacity=".7"/>
+      <!-- 문: 안쪽 불빛 → 문짝 -->
+      <path d="M156 410 V246 a44 44 0 0 1 88 0 V410z" fill="url(#inside)"/>
+      <g id="leak" opacity=".0"><ellipse cx="200" cy="330" rx="70" ry="90" fill="#ffd27a" filter="url(#soft)" opacity=".75"/></g>
+      <g id="doorPanel">
+        <path d="M156 410 V246 a44 44 0 0 1 88 0 V410z" fill="url(#wood)"/>
+        <path d="M178 216 V410 M200 202 V410 M222 216 V410" stroke="#2c170e" stroke-width="1.5" opacity=".55"/>
+        <circle cx="200" cy="262" r="15" fill="url(#win)" stroke="#c9943a" stroke-width="3"/>
+        <rect x="228" y="318" width="6" height="34" rx="3" fill="#e7b552"/>
+      </g>
+      <path id="frame" d="M150 412 V246 a50 50 0 0 1 100 0 V412" fill="none" stroke="#24120b" stroke-width="8"/>
+      <rect x="156" y="404" width="88" height="5" fill="#ffb347" opacity=".9" filter="url(#glow)"/>
+      <!-- 화분 · OPEN -->
+      <path d="M104 378 h34 l-5 30 h-24z" fill="#5a2c1e"/><circle cx="121" cy="362" r="14" fill="#2f5a34"/><circle cx="109" cy="368" r="10" fill="#3d6e42"/><circle cx="133" cy="368" r="10" fill="#28502d"/>
+      <g class="neon" filter="url(#glow)"><rect x="262" y="300" width="58" height="22" rx="6" fill="none" stroke="#7fe0ff" stroke-width="2"/><text x="291" y="316" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="#c8f3ff" letter-spacing="3">OPEN</text></g>
+      <!-- 길바닥과 불빛 웅덩이 -->
+      <rect x="0" y="410" width="400" height="20" fill="#140b09"/>
+      <ellipse cx="200" cy="414" rx="120" ry="16" fill="url(#pool)"/>
+    </svg>
+  </button>
+
+  <p class="hint">TAP THE DOOR</p>
+  <button class="go" id="knock" type="button">문 열고 들어가기</button>
+  <div class="flood" id="flood" aria-hidden="true"></div>
+  <section class="lobby" id="lobby" hidden aria-label="바 안">
+    <button class="snd" id="snd" type="button">♪ 음악 끄기</button>
+    <div class="room" aria-hidden="true">
+      <svg viewBox="0 0 400 440" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a140b"/><stop offset=".55" stop-color="#4a2512"/><stop offset="1" stop-color="#1f0f08"/></linearGradient>
+          <linearGradient id="beam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd27a" stop-opacity=".55"/><stop offset="1" stop-color="#ffd27a" stop-opacity="0"/></linearGradient>
+          <linearGradient id="ctr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a5432"/><stop offset=".12" stop-color="#5e3520"/><stop offset="1" stop-color="#2a150b"/></linearGradient>
+          <radialGradient id="warm" cx=".5" cy=".45" r=".7"><stop offset="0" stop-color="#ffb04a" stop-opacity=".35"/><stop offset="1" stop-color="#ffb04a" stop-opacity="0"/></radialGradient>
+          <filter id="g2" x="-40%" y="-80%" width="180%" height="260%"><feGaussianBlur stdDeviation="2.6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        </defs>
+        <rect width="400" height="440" fill="url(#wall)"/>
+        <path d="M0 0h400v14H0z" fill="#160a05"/>
+        <rect x="20" y="14" width="2" height="230" fill="#000" opacity=".18"/><rect x="58" y="14" width="2" height="230" fill="#000" opacity=".18"/><rect x="96" y="14" width="2" height="230" fill="#000" opacity=".18"/><rect x="134" y="14" width="2" height="230" fill="#000" opacity=".18"/><rect x="172" y="14" width="2" height="230" fill="#000" opacity=".18"/><rect x="210" y="14" width="2" height="230" fill="#000" opacity=".18"/><rect x="248" y="14" width="2" height="230" fill="#000" opacity=".18"/><rect x="286" y="14" width="2" height="230" fill="#000" opacity=".18"/><rect x="324" y="14" width="2" height="230" fill="#000" opacity=".18"/><rect x="362" y="14" width="2" height="230" fill="#000" opacity=".18"/>
+        <rect x="24" y="40" width="352" height="160" rx="8" fill="#1b0d06" opacity=".7"/>
+        <rect x="24" y="196" width="352" height="6" fill="#ffb347" opacity=".55" filter="url(#g2)"/>
+        <rect x="28" y="92" width="344" height="4" rx="2" fill="#6b3d22"/><rect x="28" y="140" width="344" height="4" rx="2" fill="#6b3d22"/><rect x="28" y="188" width="344" height="4" rx="2" fill="#6b3d22"/>
+        <g class="bt"><rect x="34" y="70" width="11" height="22" rx="3" fill="#e8584a" opacity=".9"/><rect x="37.5" y="63" width="4" height="8" rx="1.5" fill="#e8584a"/><rect x="36" y="74" width="2" height="14" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="52" y="74" width="9" height="18" rx="3" fill="#ffb347" opacity=".9"/><rect x="54.5" y="67" width="4" height="8" rx="1.5" fill="#ffb347"/><rect x="54" y="78" width="2" height="10" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="66" y="70" width="9" height="22" rx="3" fill="#7fd6a0" opacity=".9"/><rect x="68.5" y="63" width="4" height="8" rx="1.5" fill="#7fd6a0"/><rect x="68" y="74" width="2" height="14" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="79" y="64" width="12" height="28" rx="3" fill="#ffb347" opacity=".9"/><rect x="83.0" y="57" width="4" height="8" rx="1.5" fill="#ffb347"/><rect x="81" y="68" width="2" height="20" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="95" y="64" width="9" height="28" rx="3" fill="#7fd6a0" opacity=".9"/><rect x="97.5" y="57" width="4" height="8" rx="1.5" fill="#7fd6a0"/><rect x="97" y="68" width="2" height="20" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="111" y="70" width="9" height="22" rx="3" fill="#7fd6a0" opacity=".9"/><rect x="113.5" y="63" width="4" height="8" rx="1.5" fill="#7fd6a0"/><rect x="113" y="74" width="2" height="14" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="127" y="74" width="12" height="18" rx="3" fill="#ffe08a" opacity=".9"/><rect x="131.0" y="67" width="4" height="8" rx="1.5" fill="#ffe08a"/><rect x="129" y="78" width="2" height="10" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="143" y="66" width="10" height="26" rx="3" fill="#e8584a" opacity=".9"/><rect x="146.0" y="59" width="4" height="8" rx="1.5" fill="#e8584a"/><rect x="145" y="70" width="2" height="18" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="253" y="64" width="11" height="28" rx="3" fill="#c9a2e8" opacity=".9"/><rect x="256.5" y="57" width="4" height="8" rx="1.5" fill="#c9a2e8"/><rect x="255" y="68" width="2" height="20" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="271" y="66" width="12" height="26" rx="3" fill="#ffb347" opacity=".9"/><rect x="275.0" y="59" width="4" height="8" rx="1.5" fill="#ffb347"/><rect x="273" y="70" width="2" height="18" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="287" y="70" width="12" height="22" rx="3" fill="#c9a2e8" opacity=".9"/><rect x="291.0" y="63" width="4" height="8" rx="1.5" fill="#c9a2e8"/><rect x="289" y="74" width="2" height="14" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="303" y="64" width="12" height="28" rx="3" fill="#7fd6a0" opacity=".9"/><rect x="307.0" y="57" width="4" height="8" rx="1.5" fill="#7fd6a0"/><rect x="305" y="68" width="2" height="20" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="322" y="66" width="9" height="26" rx="3" fill="#c9a2e8" opacity=".9"/><rect x="324.5" y="59" width="4" height="8" rx="1.5" fill="#c9a2e8"/><rect x="324" y="70" width="2" height="18" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="338" y="64" width="11" height="28" rx="3" fill="#f2c46a" opacity=".9"/><rect x="341.5" y="57" width="4" height="8" rx="1.5" fill="#f2c46a"/><rect x="340" y="68" width="2" height="20" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="353" y="66" width="9" height="26" rx="3" fill="#f2c46a" opacity=".9"/><rect x="355.5" y="59" width="4" height="8" rx="1.5" fill="#f2c46a"/><rect x="355" y="70" width="2" height="18" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="34" y="122" width="9" height="18" rx="3" fill="#9ac4ff" opacity=".9"/><rect x="36.5" y="115" width="4" height="8" rx="1.5" fill="#9ac4ff"/><rect x="36" y="126" width="2" height="10" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="50" y="114" width="12" height="26" rx="3" fill="#e8584a" opacity=".9"/><rect x="54.0" y="107" width="4" height="8" rx="1.5" fill="#e8584a"/><rect x="52" y="118" width="2" height="18" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="69" y="122" width="11" height="18" rx="3" fill="#f2c46a" opacity=".9"/><rect x="72.5" y="115" width="4" height="8" rx="1.5" fill="#f2c46a"/><rect x="71" y="126" width="2" height="10" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="85" y="122" width="10" height="18" rx="3" fill="#f2c46a" opacity=".9"/><rect x="88.0" y="115" width="4" height="8" rx="1.5" fill="#f2c46a"/><rect x="87" y="126" width="2" height="10" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="99" y="114" width="10" height="26" rx="3" fill="#ff6f9c" opacity=".9"/><rect x="102.0" y="107" width="4" height="8" rx="1.5" fill="#ff6f9c"/><rect x="101" y="118" width="2" height="18" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="116" y="112" width="10" height="28" rx="3" fill="#e8584a" opacity=".9"/><rect x="119.0" y="105" width="4" height="8" rx="1.5" fill="#e8584a"/><rect x="118" y="116" width="2" height="20" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="131" y="118" width="9" height="22" rx="3" fill="#f2c46a" opacity=".9"/><rect x="133.5" y="111" width="4" height="8" rx="1.5" fill="#f2c46a"/><rect x="133" y="122" width="2" height="14" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="145" y="118" width="11" height="22" rx="3" fill="#e8584a" opacity=".9"/><rect x="148.5" y="111" width="4" height="8" rx="1.5" fill="#e8584a"/><rect x="147" y="122" width="2" height="14" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="163" y="112" width="11" height="28" rx="3" fill="#c9a2e8" opacity=".9"/><rect x="166.5" y="105" width="4" height="8" rx="1.5" fill="#c9a2e8"/><rect x="165" y="116" width="2" height="20" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="181" y="118" width="12" height="22" rx="3" fill="#ff6f9c" opacity=".9"/><rect x="185.0" y="111" width="4" height="8" rx="1.5" fill="#ff6f9c"/><rect x="183" y="122" width="2" height="14" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="197" y="118" width="10" height="22" rx="3" fill="#ffe08a" opacity=".9"/><rect x="200.0" y="111" width="4" height="8" rx="1.5" fill="#ffe08a"/><rect x="199" y="122" width="2" height="14" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="214" y="122" width="10" height="18" rx="3" fill="#f2c46a" opacity=".9"/><rect x="217.0" y="115" width="4" height="8" rx="1.5" fill="#f2c46a"/><rect x="216" y="126" width="2" height="10" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="231" y="114" width="10" height="26" rx="3" fill="#9ac4ff" opacity=".9"/><rect x="234.0" y="107" width="4" height="8" rx="1.5" fill="#9ac4ff"/><rect x="233" y="118" width="2" height="18" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="245" y="112" width="10" height="28" rx="3" fill="#c9a2e8" opacity=".9"/><rect x="248.0" y="105" width="4" height="8" rx="1.5" fill="#c9a2e8"/><rect x="247" y="116" width="2" height="20" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="262" y="118" width="11" height="22" rx="3" fill="#7fd6a0" opacity=".9"/><rect x="265.5" y="111" width="4" height="8" rx="1.5" fill="#7fd6a0"/><rect x="264" y="122" width="2" height="14" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="278" y="112" width="12" height="28" rx="3" fill="#e8584a" opacity=".9"/><rect x="282.0" y="105" width="4" height="8" rx="1.5" fill="#e8584a"/><rect x="280" y="116" width="2" height="20" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="295" y="112" width="9" height="28" rx="3" fill="#e8584a" opacity=".9"/><rect x="297.5" y="105" width="4" height="8" rx="1.5" fill="#e8584a"/><rect x="297" y="116" width="2" height="20" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="308" y="122" width="10" height="18" rx="3" fill="#ffe08a" opacity=".9"/><rect x="311.0" y="115" width="4" height="8" rx="1.5" fill="#ffe08a"/><rect x="310" y="126" width="2" height="10" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="323" y="122" width="10" height="18" rx="3" fill="#c9a2e8" opacity=".9"/><rect x="326.0" y="115" width="4" height="8" rx="1.5" fill="#c9a2e8"/><rect x="325" y="126" width="2" height="10" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="340" y="122" width="9" height="18" rx="3" fill="#7fd6a0" opacity=".9"/><rect x="342.5" y="115" width="4" height="8" rx="1.5" fill="#7fd6a0"/><rect x="342" y="126" width="2" height="10" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="356" y="122" width="10" height="18" rx="3" fill="#c9a2e8" opacity=".9"/><rect x="359.0" y="115" width="4" height="8" rx="1.5" fill="#c9a2e8"/><rect x="358" y="126" width="2" height="10" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="34" y="170" width="9" height="18" rx="3" fill="#ffe08a" opacity=".9"/><rect x="36.5" y="163" width="4" height="8" rx="1.5" fill="#ffe08a"/><rect x="36" y="174" width="2" height="10" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="50" y="166" width="12" height="22" rx="3" fill="#9ac4ff" opacity=".9"/><rect x="54.0" y="159" width="4" height="8" rx="1.5" fill="#9ac4ff"/><rect x="52" y="170" width="2" height="14" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="67" y="160" width="11" height="28" rx="3" fill="#ffb347" opacity=".9"/><rect x="70.5" y="153" width="4" height="8" rx="1.5" fill="#ffb347"/><rect x="69" y="164" width="2" height="20" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="82" y="160" width="12" height="28" rx="3" fill="#f2c46a" opacity=".9"/><rect x="86.0" y="153" width="4" height="8" rx="1.5" fill="#f2c46a"/><rect x="84" y="164" width="2" height="20" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="99" y="170" width="11" height="18" rx="3" fill="#ff6f9c" opacity=".9"/><rect x="102.5" y="163" width="4" height="8" rx="1.5" fill="#ff6f9c"/><rect x="101" y="174" width="2" height="10" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="114" y="162" width="11" height="26" rx="3" fill="#f2c46a" opacity=".9"/><rect x="117.5" y="155" width="4" height="8" rx="1.5" fill="#f2c46a"/><rect x="116" y="166" width="2" height="18" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="132" y="170" width="10" height="18" rx="3" fill="#ffe08a" opacity=".9"/><rect x="135.0" y="163" width="4" height="8" rx="1.5" fill="#ffe08a"/><rect x="134" y="174" width="2" height="10" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="149" y="166" width="11" height="22" rx="3" fill="#7fd6a0" opacity=".9"/><rect x="152.5" y="159" width="4" height="8" rx="1.5" fill="#7fd6a0"/><rect x="151" y="170" width="2" height="14" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="167" y="170" width="11" height="18" rx="3" fill="#9ac4ff" opacity=".9"/><rect x="170.5" y="163" width="4" height="8" rx="1.5" fill="#9ac4ff"/><rect x="169" y="174" width="2" height="10" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="185" y="166" width="11" height="22" rx="3" fill="#c9a2e8" opacity=".9"/><rect x="188.5" y="159" width="4" height="8" rx="1.5" fill="#c9a2e8"/><rect x="187" y="170" width="2" height="14" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="200" y="166" width="11" height="22" rx="3" fill="#ffe08a" opacity=".9"/><rect x="203.5" y="159" width="4" height="8" rx="1.5" fill="#ffe08a"/><rect x="202" y="170" width="2" height="14" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="215" y="166" width="12" height="22" rx="3" fill="#ffe08a" opacity=".9"/><rect x="219.0" y="159" width="4" height="8" rx="1.5" fill="#ffe08a"/><rect x="217" y="170" width="2" height="14" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="234" y="162" width="12" height="26" rx="3" fill="#7fd6a0" opacity=".9"/><rect x="238.0" y="155" width="4" height="8" rx="1.5" fill="#7fd6a0"/><rect x="236" y="166" width="2" height="18" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="250" y="160" width="11" height="28" rx="3" fill="#9ac4ff" opacity=".9"/><rect x="253.5" y="153" width="4" height="8" rx="1.5" fill="#9ac4ff"/><rect x="252" y="164" width="2" height="20" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="265" y="160" width="11" height="28" rx="3" fill="#c9a2e8" opacity=".9"/><rect x="268.5" y="153" width="4" height="8" rx="1.5" fill="#c9a2e8"/><rect x="267" y="164" width="2" height="20" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="281" y="166" width="9" height="22" rx="3" fill="#ffb347" opacity=".9"/><rect x="283.5" y="159" width="4" height="8" rx="1.5" fill="#ffb347"/><rect x="283" y="170" width="2" height="14" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="294" y="166" width="12" height="22" rx="3" fill="#c9a2e8" opacity=".9"/><rect x="298.0" y="159" width="4" height="8" rx="1.5" fill="#c9a2e8"/><rect x="296" y="170" width="2" height="14" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="310" y="170" width="12" height="18" rx="3" fill="#f2c46a" opacity=".9"/><rect x="314.0" y="163" width="4" height="8" rx="1.5" fill="#f2c46a"/><rect x="312" y="174" width="2" height="10" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="329" y="170" width="11" height="18" rx="3" fill="#ffb347" opacity=".9"/><rect x="332.5" y="163" width="4" height="8" rx="1.5" fill="#ffb347"/><rect x="331" y="174" width="2" height="10" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="345" y="160" width="10" height="28" rx="3" fill="#ff6f9c" opacity=".9"/><rect x="348.0" y="153" width="4" height="8" rx="1.5" fill="#ff6f9c"/><rect x="347" y="164" width="2" height="20" rx="1" fill="#fff" opacity=".35"/></g><g class="bt"><rect x="360" y="170" width="11" height="18" rx="3" fill="#e8584a" opacity=".9"/><rect x="363.5" y="163" width="4" height="8" rx="1.5" fill="#e8584a"/><rect x="362" y="174" width="2" height="10" rx="1" fill="#fff" opacity=".35"/></g>
+        <g class="ineon" filter="url(#g2)"><rect x="152" y="26" width="96" height="44" rx="10" fill="#1a0c10" stroke="#ff6fae" stroke-width="1.6"/><text x="200" y="56" text-anchor="middle" font-family="Noto Sans KR, sans-serif" font-weight="800" font-size="22" fill="#ffd3e6" letter-spacing="3">밤마을</text></g>
+        <rect width="400" height="440" fill="url(#warm)"/>
+        <!-- 펜던트 조명 -->
+        <g class="sway"><path d="M80 0v62" stroke="#140a05" stroke-width="2"/><path d="M66 62h28l-6 14h-16z" fill="#c9943a"/><path d="M58 76 L102 76 L150 300 L10 300z" fill="url(#beam)" opacity=".5"/><circle cx="80" cy="78" r="5" fill="#fff4cf" filter="url(#g2)"/></g>
+
+        <g class="sway s3"><path d="M320 0v62" stroke="#140a05" stroke-width="2"/><path d="M306 62h28l-6 14h-16z" fill="#c9943a"/><path d="M298 76 L342 76 L390 300 L250 300z" fill="url(#beam)" opacity=".5"/><circle cx="320" cy="78" r="5" fill="#fff4cf" filter="url(#g2)"/></g>
+        <!-- 바텐더 JAY -->
+        <g><circle cx="200" cy="232" r="30" fill="#f2a45a"/><path d="M176 214 l5 -24 16 14z M224 214 l-5 -24 -16 14z" fill="#f2a45a"/><path d="M180 210 l3 -14 9 8z M220 210 l-3 -14 -9 8z" fill="#ffb3c6"/>
+          <circle cx="189" cy="232" r="4" fill="#2b2228"/><circle cx="211" cy="232" r="4" fill="#2b2228"/><circle cx="190.5" cy="230.5" r="1.3" fill="#fff"/><circle cx="212.5" cy="230.5" r="1.3" fill="#fff"/>
+          <ellipse cx="200" cy="244" rx="9" ry="6" fill="#fbe3c4"/><ellipse cx="183" cy="242" rx="5" ry="3" fill="#ff8fa3" opacity=".6"/><ellipse cx="217" cy="242" rx="5" ry="3" fill="#ff8fa3" opacity=".6"/>
+          <rect x="176" y="258" width="48" height="34" rx="14" fill="#3b3646"/><path d="M196 262 l4 8 4 -8z" fill="#e65f5c"/>
+          <g class="shake"><path d="M226 270 q14 -6 18 -22" stroke="#f2a45a" stroke-width="10" stroke-linecap="round" fill="none"/><rect x="238" y="226" width="12" height="24" rx="4" fill="#dfe3ea" stroke="#9aa4ad" stroke-width="1.5"/><path d="M240 226 l2 -6 h4 l2 6z" fill="#9aa4ad"/></g></g>
+        <!-- 카운터 -->
+        <path d="M-10 286 Q200 268 410 286 V440 H-10z" fill="url(#ctr)"/>
+        <path d="M-10 286 Q200 268 410 286" stroke="#c9943a" stroke-width="3" fill="none"/>
+        <path d="M-10 312 Q200 296 410 312" stroke="#e7b552" stroke-width="2.5" fill="none" opacity=".7"/>
+        <g opacity=".95"><path d="M128 266 h14 l-2 14 h-10z" fill="#fff3dc" opacity=".35"/><rect x="130" y="270" width="10" height="9" fill="#ff9a3c" opacity=".8"/>
+          <path d="M262 258 l-9 -14 h22 l-9 14z" fill="#fff3dc" opacity=".4"/><rect x="265" y="258" width="2" height="16" fill="#fff3dc" opacity=".5"/><rect x="258" y="274" width="16" height="2" fill="#fff3dc" opacity=".5"/><path d="M256 246 h20 l-4 7 h-12z" fill="#e04f63" opacity=".85"/></g>
+        <!-- 손님(뒷모습) -->
+        <g><circle cx="74" cy="352" r="34" fill="#9ad3b5"/><path d="M48 334 l2 -26 18 16z M100 334 l-2 -26 -18 16z" fill="#9ad3b5"/><rect x="42" y="378" width="64" height="62" rx="24" fill="#3b5a8a"/>
+          <g class="cheers"><path d="M104 384 q20 -10 22 -40" stroke="#9ad3b5" stroke-width="11" stroke-linecap="round" fill="none"/><path d="M118 336 h16 l-2 16 h-12z" fill="#fff3dc" opacity=".55"/><rect x="120" y="342" width="12" height="9" fill="#ffb347"/></g></g>
+        <g><circle cx="326" cy="356" r="32" fill="#f5a3c0"/><circle cx="302" cy="330" r="11" fill="#f5a3c0"/><circle cx="350" cy="330" r="11" fill="#f5a3c0"/><rect x="296" y="380" width="60" height="60" rx="24" fill="#7a4a8a"/>
+          <g class="cheers" style="animation-delay:-.1s"><path d="M298 386 q-20 -10 -22 -40" stroke="#f5a3c0" stroke-width="11" stroke-linecap="round" fill="none"/><path d="M268 338 h16 l-2 16 h-12z" fill="#fff3dc" opacity=".55"/><rect x="270" y="344" width="12" height="9" fill="#e04f63"/></g></g>
+        <g class="pop"><rect x="168" y="318" width="64" height="30" rx="15" fill="#fff3dc"/><path d="M196 348 l4 7 4 -7z" fill="#fff3dc"/><text x="200" y="338" text-anchor="middle" font-family="Noto Sans KR, sans-serif" font-weight="800" font-size="14" fill="#3b2a20">짠! 🥂</text></g>
+        <g class="pop p2"><rect x="224" y="176" width="74" height="28" rx="14" fill="#fff3dc"/><path d="M234 204 l-6 8 12 -6z" fill="#fff3dc"/><text x="261" y="195" text-anchor="middle" font-family="Noto Sans KR, sans-serif" font-weight="800" font-size="12.5" fill="#3b2a20">어서 와요!</text></g>
+        <g><circle class="mote" cx="70" cy="330" r="1.6" fill="#ffe0a0"/><circle class="mote" cx="118" cy="300" r="1.2" fill="#ffe0a0"/><circle class="mote" cx="170" cy="350" r="1.4" fill="#ffe0a0"/><circle class="mote" cx="232" cy="320" r="1.1" fill="#ffe0a0"/><circle class="mote" cx="285" cy="340" r="1.7" fill="#ffe0a0"/><circle class="mote" cx="332" cy="300" r="1.2" fill="#ffe0a0"/><circle class="mote" cx="205" cy="280" r="1" fill="#ffe0a0"/><circle class="mote" cx="150" cy="260" r="1.3" fill="#ffe0a0"/><circle class="mote" cx="260" cy="270" r="1.5" fill="#ffe0a0"/><circle class="mote" cx="95" cy="250" r="1" fill="#ffe0a0"/></g>
+        <rect width="400" height="440" fill="url(#warm)" opacity=".4"/>
+      </svg>
+    </div>
+    <div class="talk">
+      <div class="box"><div class="face" aria-hidden="true"><svg viewBox="0 0 64 64"><circle cx="32" cy="38" r="20" fill="#f2a45a"/><path d="M15 26 l3 -16 11 9z M49 26 l-3 -16 -11 9z" fill="#f2a45a"/><circle cx="25" cy="38" r="2.8" fill="#2b2228"/><circle cx="39" cy="38" r="2.8" fill="#2b2228"/><ellipse cx="32" cy="46" rx="6" ry="4" fill="#fbe3c4"/></svg></div>
+        <div><span class="who">JAY · 바텐더</span><p class="say" id="say"></p></div></div>
+      <button class="go big glow" id="go" type="button">▶ 자리로 가기</button>
+      <div class="row"><button class="back" id="back" type="button">← 밖으로</button><span>비밀번호는 초대한 사람에게 물어봐요</span></div>
+    </div>
+  </section>
+</div>
+<script>
+  (function () {
+    const s = document.getElementById('stars');
+    for (let i = 0; i < 40; i++) { const e = document.createElement('i'); e.style.left = (Math.random() * 100) + '%'; e.style.top = (Math.random() * 45) + '%'; e.style.animationDelay = (Math.random() * 3) + 's'; if (Math.random() < .25) { e.style.width = e.style.height = '3px'; } s.appendChild(e); }
+    const wrap = document.getElementById('wrap');
+    const LINES = ['어서 와요! 성수 밤마을에 온 걸 환영해요.', '오늘은 재즈가 흐르는 밤이에요. 혼자 왔어도 괜찮아요, 다들 그래요.', '자리 하나 봐뒀어요. 들어가서 편하게 한잔해요.'];
+    let tt = 0;
+    function typeLines() {
+      const el = document.getElementById('say'); let li = 0, ci = 0; clearInterval(tt);
+      const tick = () => { const line = LINES[li]; ci++; el.textContent = line.slice(0, ci); el.style.setProperty('--more', '0');
+        if (ci >= line.length) { clearInterval(tt); if (li < LINES.length - 1) { el.style.setProperty('--more', '1'); setTimeout(() => { li++; ci = 0; tt = setInterval(tick, 45); }, 1500); } } };
+      tt = setInterval(tick, 45);
+      el.parentElement.parentElement.onclick = () => { if (ci < LINES[li].length) { ci = LINES[li].length - 1; } };
+    }
+    // 잔잔한 재즈(직접 합성): 문을 누른 손가락이 소리를 허락해 준다
+    const music = (() => {
+      let ctx = null, on = false, timer = 0;
+      const chords = [[220, 277.2, 329.6, 415.3], [196, 246.9, 293.7, 349.2], [174.6, 220, 261.6, 329.6], [164.8, 207.7, 246.9, 311.1]];
+      function note(f, t, d, v, type) { const o = ctx.createOscillator(), g = ctx.createGain(); o.type = type; o.frequency.value = f; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + .03); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + d + .05); }
+      function bar(i) { const t = ctx.currentTime + .05, c = chords[i % 4];
+        c.forEach((f, k) => note(f, t + k * .02, 2.2, .035, 'triangle'));
+        [0, .5, 1, 1.5].forEach((b, k) => note(c[0] / 2 * (k % 2 ? 1.5 : 1), t + b, .45, .07, 'sine'));
+        if (i % 2) note(c[3] * 2, t + 1.25, .5, .025, 'sine'); }
+      return { start() { try { ctx = ctx || new (window.AudioContext || window.webkitAudioContext)(); ctx.resume(); } catch (_) { return; } if (on) return; on = true; let i = 0; bar(i++); timer = setInterval(() => bar(i++), 2000);
+          const d = ctx.createOscillator(), g = ctx.createGain(); d.type = 'sawtooth'; d.frequency.setValueAtTime(140, ctx.currentTime); d.frequency.exponentialRampToValueAtTime(60, ctx.currentTime + .5); g.gain.setValueAtTime(.05, ctx.currentTime); g.gain.exponentialRampToValueAtTime(.0001, ctx.currentTime + .5); d.connect(g); g.connect(ctx.destination); d.start(); d.stop(ctx.currentTime + .55); },
+        stop() { on = false; clearInterval(timer); }, get on() { return on; } };
+    })();
+    document.getElementById('go').addEventListener('click', () => { music.stop(); clearInterval(tt); document.getElementById('lobby').classList.add('leaving'); try { parent.postMessage({bam: 'intro-done'}, '*'); } catch (_) {} });
+    document.getElementById('snd').addEventListener('click', e => { if (music.on) { music.stop(); e.currentTarget.textContent = '♪ 음악 켜기'; } else { music.start(); e.currentTarget.textContent = '♪ 음악 끄기'; } });
+    let busy = false;
+    const enter = () => {
+      if (busy) return; busy = true;
+      const d = document.getElementById('doorPanel').getBoundingClientRect(), sc = document.getElementById('scene'), r = sc.getBoundingClientRect();
+      const cx = d.left + d.width / 2, cy = d.top + d.height * .55;
+      sc.style.transformOrigin = (cx - r.left) + 'px ' + (cy - r.top) + 'px';
+      wrap.style.setProperty('--fx', cx + 'px'); wrap.style.setProperty('--fy', cy + 'px');
+      wrap.classList.add('open'); try { navigator.vibrate && navigator.vibrate(15); } catch (_) {}
+      setTimeout(() => wrap.classList.add('enter'), 380);
+      music.start(); setTimeout(() => { const l = document.getElementById('lobby'); l.hidden = false; typeLines(); document.getElementById('go').focus({preventScroll: true}); }, 1550);
+    };
+    document.getElementById('scene').addEventListener('click', enter);
+    document.getElementById('knock').addEventListener('click', enter);
+    document.getElementById('back').addEventListener('click', () => { document.getElementById('lobby').hidden = true; music.stop(); clearInterval(tt); wrap.classList.remove('enter', 'open'); busy = false; });
+  })();
+</script>
+
+</body></html>

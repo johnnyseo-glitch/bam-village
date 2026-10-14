@@ -793,3 +793,7 @@ body { letter-spacing: -.01em; }
 .bc.bc-out { opacity: 0; transition: opacity .45s; }
 .card-ok { margin: 0; font-size: 13px; color: #2f8a5f; font-weight: 700; }
 .player-tag .pjob, .npc-tag .pjob { display: block; font-size: 10.5px; font-weight: 600; opacity: .8; letter-spacing: -.01em; }
+
+/* v2.16 입구(골목 문 → 바 안 로비)는 intro.html을 맨 위에 띄운다 */
+.intro-frame { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; z-index: 200; background: #0b0a1a; transition: opacity .6s; }
+.intro-frame.out { opacity: 0; pointer-events: none; }
